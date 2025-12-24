@@ -71,7 +71,7 @@ export async function syncWorkPackage(wpId: string) {
         const contractType = wp.contractType?.toUpperCase();
         if (contractType !== 'BOLSA' && contractType !== 'BD' && contractType !== 'EVENTOS') {
             fs.appendFileSync(logPath, `[INFO] Skipping sync - Contract type not supported: ${wp.contractType}\n`);
-            return { success: true, message: "Sync no aplicable para este tipo de contrato" };
+            return { success: true, message: "Sync no aplicable para este tipo de contrato", processed: 0, totalHours: 0 };
         }
 
 
@@ -802,7 +802,7 @@ export async function syncWorkPackage(wpId: string) {
         fs.appendFileSync(logPath, `===== SYNC FINISHED =====\n`);
 
         revalidatePath(`/dashboard`);
-        return { success: true, totalHours };
+        return { success: true, totalHours, processed: validCount };
 
     } catch (error: any) {
         fs.appendFileSync(logPath, `[ERROR] ${error.message}\n${error.stack}\n`);

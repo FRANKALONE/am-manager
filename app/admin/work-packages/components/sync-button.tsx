@@ -20,7 +20,8 @@ export function SyncButton({ wpId }: { wpId: string }) {
         if (res.error) {
             alert(`Error: ${res.error}`);
         } else {
-            alert(`Sincronización completada.\nProcesados: ${res.processed} worklogs.\nTotal Horas: ${res.totalHours?.toFixed(1)}`);
+            const data = res as { processed?: number; totalHours?: number };
+            alert(`Sincronización completada.\nProcesados: ${data.processed || 0} worklogs.\nTotal Horas: ${data.totalHours?.toFixed(1) || "0.0"}`);
             router.refresh();
         }
     };
