@@ -29,7 +29,7 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
     // Let's do auto-apply with a small effect.
 
     useEffect(() => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams.toString());
 
         if (clientId) params.set("clientId", clientId);
         else params.delete("clientId");
