@@ -13,7 +13,7 @@ interface ClientFormFieldsProps {
     customFieldsDef: any[];
     existingCustomAttrs: Record<string, string>;
     isEdit: boolean;
-    action: (formData: FormData) => Promise<any>;
+    action: (formData: FormData) => void | Promise<void>;
 }
 
 export function ClientFormFields({

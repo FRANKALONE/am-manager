@@ -59,9 +59,9 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
         if (isEdit) {
             const id = formData.get("id") as string;
             if (!id) throw new Error("ID not found");
-            return await updateWorkPackage(id, {}, formData);
+            await updateWorkPackage(id, {}, formData);
         } else {
-            return await createWorkPackage({}, formData);
+            await createWorkPackage({}, formData);
         }
     }
 
@@ -291,7 +291,7 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                     </Card>
 
                     {/* Regularizations (Only Edit) */}
-                    {isEdit && (
+                    {isEdit && wp && (
                         <Card className="md:col-span-2">
                             <CardHeader>
                                 <CardTitle>Regularizaciones Puntuales</CardTitle>

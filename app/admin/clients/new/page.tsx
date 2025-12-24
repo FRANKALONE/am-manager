@@ -23,9 +23,9 @@ export default async function ClientFormPage(props: any) {
         if (isEdit) {
             const id = formData.get("id") as string;
             if (!id) throw new Error("ID not found in form data");
-            return await updateClient(id, {}, formData);
+            await updateClient(id, {}, formData);
         } else {
-            return await createClient({}, formData);
+            await createClient({}, formData);
         }
     }
 
