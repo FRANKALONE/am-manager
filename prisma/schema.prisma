@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Parameter {
+  id       Int     @id @default(autoincrement())
+  category String
+  label    String
+  value    String
+  isActive Boolean @default(true)
+  order    Int     @default(0)
+
+  @@index([category])
+}
+
+model Client {
+  id               String        @unique
+  name             String
+  manager          String?
+  amOnboardingDate DateTime?
+  customAttributes String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  portalUrl        String?
+  clientLogo       String?
+  clientPortalUrl  String?
+  users            User[]
+  workPackages     WorkPackage[]
+}
+
+model WorkPackage {
+  id                   String           @id
+  name                 String
+  clientId             String
+  clientName           String
+  contractType         String
+  billingType          String
+  renewalType          String
+  accumulatedHours     Float            @default(0.0)
+  accumulatedHoursDate DateTime?
+  jiraProjectKeys      String?
+  tempoAccountId       String?
+  oldWpId              String?
+  hasIaasService       Boolean          @default(false)
+  lastSyncedAt         DateTime?
+  customAttributes     String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  monthlyMetrics       MonthlyMetric[]
+  regularizations      Regularization[]
+  reviewRequests       ReviewRequest[]
+  tickets              Ticket[]
+  validityPeriods      ValidityPeriod[]
+  wpCorrections        WPCorrection[]
+  client               Client           @relation(fields: [clientId], references: [id])
+  worklogDetails       WorklogDetail[]
+}
+
+model Regularization {
+  id            Int         @id @default(autoincrement())
+  workPackageId String
+  date          DateTime
+  type          String
+  quantity      Float
+  description   String?
+  ticketId      String?
+  note          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id               String          @id @default(uuid())
+  name             String
+  surname          String?
+  email            String          @unique
+  password         String
+  role             String
+  clientId         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  workPackageIds   String?
+  lastLoginAt      DateTime?
+  notifications    Notification[]
+  reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
+  requestedReviews ReviewRequest[] @relation("RequestedReviews")
+  client           Client?         @relation(fields: [clientId], references: [id])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ValidityPeriod {
+  id                 Int         @id @default(autoincrement())
+  workPackageId      String
+  startDate          DateTime
+  endDate            DateTime
+  totalQuantity      Float       @default(0)
+  rate               Float       @default(0)
+  isPremium          Boolean     @default(false)
+  premiumPrice       Float?
+  regularizationRate Float?
+  scopeUnit          String      @default("HORAS")
+  regularizationType String?
+  surplusStrategy    String?
+  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+}
+
+model CorrectionModel {
+  id            Int            @id @default(autoincrement())
+  name          String
+  code          String         @unique
+  description   String?
+  isDefault     Boolean        @default(false)
+  config        String
+  status        String         @default("active")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  wpCorrections WPCorrection[]
+}
+
+model WPCorrection {
+  id                Int             @id @default(autoincrement())
+  workPackageId     String
+  correctionModelId Int
+  startDate         DateTime
+  endDate           DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  correctionModel   CorrectionModel @relation(fields: [correctionModelId], references: [id])
+  workPackage       WorkPackage     @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+}
+
+model MonthlyMetric {
+  id            Int         @id @default(autoincrement())
+  workPackageId String
+  year          Int
+  month         Int
+  consumedHours Float       @default(0.0)
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id])
+
+  @@unique([workPackageId, year, month])
+}
+
+model WorklogDetail {
+  id               Int         @id @default(autoincrement())
+  workPackageId    String
+  year             Int
+  month            Int
+  issueKey         String?
+  issueType        String
+  issueSummary     String
+  timeSpentHours   Float
+  startDate        DateTime
+  author           String
+  tipoImputacion   String?
+  issueCreatedDate DateTime?
+  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id])
+
+  @@index([workPackageId, year, month])
+}
+
+model Ticket {
+  id            Int         @id @default(autoincrement())
+  workPackageId String
+  issueKey      String
+  issueSummary  String
+  issueType     String
+  createdDate   DateTime
+  year          Int
+  month         Int
+  status        String
+  reporter      String
+  reporterEmail String?
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+
+  @@unique([workPackageId, issueKey])
+  @@index([workPackageId, year, month])
+}
+
+model ReviewRequest {
+  id              String      @id @default(cuid())
+  workPackageId   String
+  requestedBy     String
+  worklogIds      String
+  reason          String
+  status          String
+  reviewedBy      String?
+  reviewNotes     String?
+  approvedIds     String?     // JSON array of approved worklog IDs
+  createdAt       DateTime    @default(now())
+  reviewedAt      DateTime?
+  reviewedByUser  User?       @relation("ReviewedRequests", fields: [reviewedBy], references: [id])
+  requestedByUser User        @relation("RequestedReviews", fields: [requestedBy], references: [id])
+  workPackage     WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+
+  @@index([workPackageId, status])
+  @@index([requestedBy])
+  @@index([status, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}

@@ -1,0 +1,530 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { fetchJira } from "@/lib/jira";
+import { getWorklogs } from "@/lib/tempo";
+import { applyCorrection } from "@/lib/correction";
+import { revalidatePath } from "next/cache";
+
+export async function syncWorkPackage(wpId: string) {
+    // DEBUG LOGGING START
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'sync-debug.log');
+
+    try {
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] Sync STARTED for ${wpId}\n`);
+
+        // CHECK ENV VARS
+        const hasJiraToken = !!process.env.JIRA_API_TOKEN;
+        const hasTempoToken = !!process.env.TEMPO_API_TOKEN;
+        fs.appendFileSync(logPath, `[DEBUG] Env Check: JIRA=${hasJiraToken}, TEMPO=${hasTempoToken}\n`);
+
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: {
+                wpCorrections: { include: { correctionModel: true } }
+            }
+        });
+
+        if (!wp) {
+            return { error: "Work Package no encontrado" };
+        }
+
+        // CLEANUP: Always remove old metrics first to ensure clean state
+        // This handles cases where 0 issues are found (should result in 0 hours)
+        await prisma.monthlyMetric.deleteMany({
+            where: { workPackageId: wp.id }
+        });
+        console.log(`Sync: Cleared old metrics for ${wp.id}`);
+
+        // Include validity periods to determine range
+        const wpWithDates = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: { validityPeriods: true }
+        });
+
+        // Determines Sync Strategy
+        const isEventos = wp.contractType?.toUpperCase() === 'EVENTOS';
+
+        let from = "";
+        let to = "";
+        const currentYear = new Date().getFullYear();
+
+        if (wpWithDates && wpWithDates.validityPeriods.length > 0) {
+            // Find overall min and max dates
+            const startDates = wpWithDates.validityPeriods.map(p => new Date(p.startDate).getTime());
+            const endDates = wpWithDates.validityPeriods.map(p => new Date(p.endDate).getTime());
+            const minDate = new Date(Math.min(...startDates));
+            const maxDate = new Date(Math.max(...endDates));
+
+            // IMPORTANT: Expand search range to capture logs before contract start
+            // Some logs may be dated before the official contract period
+            const expandedStart = new Date(minDate);
+            expandedStart.setMonth(expandedStart.getMonth() - 6); // 6 months before
+
+            // Also ensure we start from beginning of year
+            const yearStart = new Date(minDate.getFullYear(), 0, 1);
+            const searchStart = expandedStart < yearStart ? expandedStart : yearStart;
+
+            from = searchStart.toISOString().split('T')[0];
+            to = maxDate.toISOString().split('T')[0];
+
+            fs.appendFileSync(logPath, `[DEBUG] Validity Range: ${minDate.toISOString().split('T')[0]} to ${to}\n`);
+            fs.appendFileSync(logPath, `[DEBUG] Expanded Search Range: ${from} to ${to}\n`);
+            console.log(`Sync: Using Expanded Range: ${from} to ${to}`);
+        } else {
+            // Default to Current Year if no validity
+            from = `${currentYear}-01-01`;
+            to = `${currentYear}-12-31`;
+            console.log(`Sync: Using Default Current Year Range: ${from} to ${to}`);
+        }
+
+        const monthlyAggregates = new Map<string, { consumed: number, year: number, month: number }>();
+        let totalAccumulated = 0;
+
+        // --- STRATEGY: EVENTOS (Count Tickets) ---
+        if (isEventos) {
+            // Logic: Count tickets created per month of type Correctivo/Consulta
+            // We need Project or Account context.
+            // Warning: If using Account (WP ID), we need to search issues with that Account? 
+            // Usually Eventos are Project based. Let's assume Project Keys exist or we use Account field if we knew it.
+            // Let's rely on Project Keys for Eventos as it's the standard.
+
+            let targetJQL = "";
+
+            // Build Context JQL
+            if (wp.jiraProjectKeys) {
+                const keys = wp.jiraProjectKeys.split(",").map(k => k.trim()).filter(Boolean);
+                if (keys.length > 0) {
+                    const projectIn = keys.map(k => `"${k}"`).join(",");
+                    targetJQL = `project IN (${projectIn})`;
+                }
+            }
+
+            // If no project keys, try Account? (Fallback)
+            if (!targetJQL) {
+                // Fallback: Use WP ID as simple text search or Account if we knew the field ID.
+                // This is risky for counting. But let's try searching text ~ WP-ID if strictly needed.
+                // Ideally Eventos WPs HAVE project keys.
+                // Let's abort if no project keys for Eventos to avoid garbage data.
+                console.warn(`Sync [Eventos]: Missing Project Keys for ${wp.id}. Cannot count tickets accurately.`);
+                return { error: "Faltan Project Keys para contrato Eventos" };
+            }
+
+            // Full JQL
+            // "created >= 2024-01-01 AND issuetype IN ('Correctivo', 'Consulta') AND ..."
+            const jql = `${targetJQL} AND created >= "${from}" AND issuetype IN ("Correctivo", "Consulta")`;
+
+            // Fetch Issues
+            const jiraSearch = await fetchJira(`/search?jql=${encodeURIComponent(jql)}&fields=created,issuetype,key&maxResults=2000`);
+
+            if (jiraSearch.issues) {
+                for (const issue of jiraSearch.issues) {
+                    const created = new Date(issue.fields.created);
+                    const m = created.getMonth() + 1;
+                    const y = created.getFullYear(); // Should be >= currentYear due to JQL
+
+                    // Count = 1 unit
+                    // Aggregate
+                    const key = `${y}-${m}`;
+                    if (!monthlyAggregates.has(key)) {
+                        monthlyAggregates.set(key, { consumed: 0, year: y, month: m });
+                    }
+                    const current = monthlyAggregates.get(key)!;
+                    current.consumed += 1; // 1 Ticket = 1 Consumed Unit
+                    monthlyAggregates.set(key, current);
+
+                    totalAccumulated += 1;
+                }
+            }
+
+        } else {
+            // STRATEGY: TEMPO PROJECT-BASED FILTERING
+            // Use GET /worklogs with project filter (more reliable than account)
+
+            if (!wp.jiraProjectKeys) {
+                fs.appendFileSync(logPath, `[WARN] No Jira Project Keys configured for ${wp.id}\n`);
+                console.log(`Sync: No Jira Project Keys for ${wp.id}, skipping Tempo sync`);
+            } else {
+                const projectKeys = wp.jiraProjectKeys.split(',').map((k: string) => k.trim());
+                fs.appendFileSync(logPath, `[DEBUG] Using Project Keys: ${projectKeys.join(', ')}\n`);
+                console.log(`Sync [Tempo-Project]: Fetching worklogs for projects: ${projectKeys.join(', ')}`);
+
+                let allWorklogs: any[] = [];
+                const https = require('https');
+
+                // Fetch worklogs for each project
+                for (const projectKey of projectKeys) {
+                    let offset = 0;
+                    let hasMore = true;
+                    const limit = 1000;
+
+                    while (hasMore) {
+                        try {
+                            fs.appendFileSync(logPath, `[DEBUG] Tempo GET /worklogs [${projectKey}]: offset=${offset}\n`);
+
+                            const tempoRes: any = await new Promise((resolve, reject) => {
+                                const url = `https://api.tempo.io/4/worklogs?from=${from}&to=${to}&project=${projectKey}&limit=${limit}&offset=${offset}`;
+                                const req = https.request(url, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                        'Accept': 'application/json'
+                                    }
+                                }, (res: any) => {
+                                    let data = '';
+                                    res.on('data', (c: any) => data += c);
+                                    res.on('end', () => {
+                                        try {
+                                            const parsed = JSON.parse(data);
+                                            if (res.statusCode !== 200) {
+                                                fs.appendFileSync(logPath, `[ERROR] Tempo API returned ${res.statusCode}: ${data}\n`);
+                                            }
+                                            resolve(parsed);
+                                        } catch (e) {
+                                            fs.appendFileSync(logPath, `[ERROR] Failed to parse: ${data.substring(0, 200)}\n`);
+                                            resolve({ results: [] });
+                                        }
+                                    });
+                                });
+                                req.on('error', reject);
+                                req.end();
+                            });
+
+                            if (tempoRes.results && tempoRes.results.length > 0) {
+                                allWorklogs = [...allWorklogs, ...tempoRes.results];
+                                fs.appendFileSync(logPath, `[DEBUG] Batch [${projectKey}]: ${tempoRes.results.length} worklogs\n`);
+
+                                if (tempoRes.results.length < limit) {
+                                    hasMore = false;
+                                } else {
+                                    offset += limit;
+                                }
+                            } else {
+                                hasMore = false;
+                            }
+                        } catch (e: any) {
+                            fs.appendFileSync(logPath, `[ERROR] Tempo fetch error: ${e.message}\n`);
+                            console.error("Tempo fetch error:", e);
+                            hasMore = false;
+                        }
+                    }
+                }
+
+                fs.appendFileSync(logPath, `[DEBUG] Total worklogs found for ${wp.id}: ${allWorklogs.length}\n`);
+                console.log(`Sync [Tempo-Project]: Found ${allWorklogs.length} worklogs for ${wp.id}`);
+
+                console.log("Sync [Tempo-Account]: Fetching worklogs from Tempo Account endpoint...");
+                fs.appendFileSync(logPath, `[DEBUG] Strategy: Tempo Account-specific endpoint\n`);
+
+                let allWorklogs: any[] = [];
+                const https = require('https');
+
+                const accountId = wp.tempoAccountId;
+
+                if (!accountId) {
+                    // Fallback to attribute filtering if no account mapping
+                    fs.appendFileSync(logPath, `[WARN] No Account ID mapping for ${wp.id}, using attribute filter\n`);
+                    console.warn(`No Account ID mapping for ${wp.id}, this will be slow...`);
+
+                    // Use global search with attribute filtering (slower)
+                    let offset = 0;
+                    let hasMore = true;
+                    const limit = 1000;
+
+                    while (hasMore) {
+                        try {
+                            const bodyData = JSON.stringify({
+                                from: from,
+                                to: to
+                            });
+
+                            fs.appendFileSync(logPath, `[DEBUG] Tempo Global Search: offset=${offset}, limit=${limit}\n`);
+
+                            const tempoRes: any = await new Promise((resolve, reject) => {
+                                const url = `https://api.tempo.io/4/worklogs/search?limit=${limit}&offset=${offset}`;
+                                const req = https.request(url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }, (res: any) => {
+                                    let data = '';
+                                    res.on('data', (c: any) => data += c);
+                                    res.on('end', () => resolve(JSON.parse(data)));
+                                });
+                                req.on('error', reject);
+                                req.write(bodyData);
+                                req.end();
+                            });
+
+                            if (tempoRes.results && tempoRes.results.length > 0) {
+                                const filtered = tempoRes.results.filter((log: any) => {
+                                    const clientAttr = log.attributes?.values?.find((a: any) => a.key === "_Cliente_");
+                                    return clientAttr && clientAttr.value === wp.id;
+                                });
+
+                                allWorklogs = [...allWorklogs, ...filtered];
+                                fs.appendFileSync(logPath, `[DEBUG] Batch: ${tempoRes.results.length} total, ${filtered.length} matching\n`);
+
+                                if (tempoRes.results.length < limit) {
+                                    hasMore = false;
+                                } else {
+                                    offset += limit;
+                                }
+                            } else {
+                                hasMore = false;
+                            }
+                        } catch (e: any) {
+                            const err = e.message || String(e);
+                            fs.appendFileSync(logPath, `[ERROR] Tempo fetch error: ${err}\n`);
+                            console.error("Tempo fetch error:", e);
+                            hasMore = false;
+                        }
+                    }
+                } else {
+                    // Use account-specific endpoint (much faster!)
+                    fs.appendFileSync(logPath, `[DEBUG] Using Account ID: ${accountId}\n`);
+
+                    let offset = 0;
+                    let hasMore = true;
+                    const limit = 1000;
+
+                    while (hasMore) {
+                        try {
+                            fs.appendFileSync(logPath, `[DEBUG] Tempo GET /worklogs: offset=${offset}, limit=${limit}\n`);
+
+                            const tempoRes: any = await new Promise((resolve, reject) => {
+                                // Use GET /worklogs with date filters (accountId filter not supported, will filter locally)
+                                const url = `https://api.tempo.io/4/worklogs?from=${from}&to=${to}&limit=${limit}&offset=${offset}`;
+                                const req = https.request(url, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                        'Accept': 'application/json'
+                                    }
+                                }, (res: any) => {
+                                    let data = '';
+                                    res.on('data', (c: any) => data += c);
+                                    res.on('end', () => {
+                                        try {
+                                            const parsed = JSON.parse(data);
+                                            if (res.statusCode !== 200) {
+                                                fs.appendFileSync(logPath, `[ERROR] Tempo API returned ${res.statusCode}: ${data}\n`);
+                                            }
+                                            resolve(parsed);
+                                        } catch (e) {
+                                            fs.appendFileSync(logPath, `[ERROR] Failed to parse Tempo response: ${data.substring(0, 200)}\n`);
+                                            resolve({ results: [] });
+                                        }
+                                    });
+                                });
+                                req.on('error', reject);
+                                req.end();
+                            });
+
+                            if (tempoRes.results && tempoRes.results.length > 0) {
+                                // Filter by accountId locally (Tempo API doesn't support this filter)
+                                const filtered = tempoRes.results.filter((log: any) => {
+                                    // Check if worklog has account attribute matching our accountId
+                                    const accountAttr = log.attributes?.values?.find((a: any) => a.key === "_Account_");
+                                    return accountAttr && String(accountAttr.value) === String(accountId);
+                                });
+
+                                allWorklogs = [...allWorklogs, ...filtered];
+                                fs.appendFileSync(logPath, `[DEBUG] Batch: ${tempoRes.results.length} total, ${filtered.length} matching account ${accountId}\n`);
+
+                                if (tempoRes.results.length < limit) {
+                                    hasMore = false;
+                                } else {
+                                    offset += limit;
+                                }
+                            } else {
+                                hasMore = false;
+                            }
+                        } catch (e: any) {
+                            const err = e.message || String(e);
+                            fs.appendFileSync(logPath, `[ERROR] Tempo account fetch error: ${err}\n`);
+                            console.error("Tempo account fetch error:", e);
+                            hasMore = false;
+                        }
+                    }
+                }
+
+                fs.appendFileSync(logPath, `[DEBUG] Total worklogs found for ${wp.id}: ${allWorklogs.length}\n`);
+                console.log(`Sync [Tempo-Direct]: Found ${allWorklogs.length} worklogs for ${wp.id}`);
+
+                // 4. Fetch Issue Details from Jira to filter by type
+                // We need to know the issue type and billing mode for each worklog
+                const uniqueIssueIds = Array.from(new Set(allWorklogs.map((log: any) => log.issue.id)));
+                fs.appendFileSync(logPath, `[DEBUG] Fetching details for ${uniqueIssueIds.length} unique issues...\n`);
+
+                const issueDetails = new Map<string, any>();
+                const BATCH_SIZE = 100;
+
+                for (let i = 0; i < uniqueIssueIds.length; i += BATCH_SIZE) {
+                    const batch = uniqueIssueIds.slice(i, i + BATCH_SIZE);
+                    const jql = `id IN (${batch.join(',')})`;
+
+                    try {
+                        const jiraUrl = process.env.JIRA_URL?.trim();
+                        const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+                        const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+                        const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+
+                        const bodyData = JSON.stringify({
+                            jql,
+                            maxResults: BATCH_SIZE,
+                            fields: ['issuetype', 'customfield_10121'] // Issue Type and Modo de Facturación
+                        });
+
+                        const jiraRes: any = await new Promise((resolve, reject) => {
+                            // Use /search endpoint for batch queries with fields
+                            const req = https.request(`${jiraUrl}/rest/api/3/search`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Basic ${auth}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            }, (res: any) => {
+                                let data = '';
+                                res.on('data', (c: any) => data += c);
+                                res.on('end', () => resolve(JSON.parse(data)));
+                            });
+                            req.on('error', reject);
+                            req.write(bodyData);
+                            req.end();
+                        });
+
+                        if (jiraRes.issues) {
+                            jiraRes.issues.forEach((issue: any) => {
+                                issueDetails.set(issue.id, {
+                                    issueType: issue.fields.issuetype?.name,
+                                    billingMode: issue.fields.customfield_10121
+                                });
+                            });
+                        }
+                    } catch (e: any) {
+                        fs.appendFileSync(logPath, `[ERROR] Failed to fetch issue details: ${e.message}\n`);
+                        console.error("Failed to fetch issue details:", e);
+                    }
+                }
+
+                fs.appendFileSync(logPath, `[DEBUG] Fetched details for ${issueDetails.size} issues\n`);
+
+                // 5. Filter and Process Worklogs
+                const validIssueTypes = ['Consulta', 'BPO', 'Incidencia de correctivo', 'Solicitud de servicio', 'Petición de observabilidad'];
+                let filteredCount = 0;
+                let skippedCount = 0;
+
+                for (const log of allWorklogs) {
+                    const issueId = String(log.issue.id);
+                    const details = issueDetails.get(issueId);
+
+                    if (!details) {
+                        fs.appendFileSync(logPath, `[WARN] No details for issue ${issueId}, skipping\n`);
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Check if issue type is valid
+                    const isValidType = validIssueTypes.includes(details.issueType);
+
+                    // Special case: Petición de observabilidad requires billing mode check
+                    if (details.issueType === 'Petición de observabilidad') {
+                        if (details.billingMode !== 'T&M contra Bolsa') {
+                            fs.appendFileSync(logPath, `[FILTER] Skipping Evolutivo with billing mode: ${details.billingMode}\n`);
+                            skippedCount++;
+                            continue;
+                        }
+                    }
+
+                    if (!isValidType) {
+                        fs.appendFileSync(logPath, `[FILTER] Skipping issue type: ${details.issueType}\n`);
+                        skippedCount++;
+                        continue;
+                    }
+
+                    filteredCount++;
+
+                    // ... Aggregation Logic ...
+                    const date = new Date(log.startDate);
+                    const month = date.getMonth() + 1;
+                    const year = date.getFullYear();
+                    const timeSpentHours = log.timeSpentSeconds / 3600;
+
+                    const correction = wp.wpCorrections.find(c => {
+                        const start = new Date(c.startDate);
+                        const end = c.endDate ? new Date(c.endDate) : new Date('2099-12-31');
+                        return date >= start && date <= end;
+                    });
+
+                    const correctedHours = correction
+                        ? applyCorrection(timeSpentHours, correction.correctionModel.config)
+                        : timeSpentHours;
+
+                    const key = `${year}-${month}`;
+                    if (!monthlyAggregates.has(key)) {
+                        monthlyAggregates.set(key, { consumed: 0, year, month });
+                    }
+                    const current = monthlyAggregates.get(key)!;
+                    current.consumed += correctedHours;
+                    monthlyAggregates.set(key, current);
+
+                    totalAccumulated += correctedHours;
+                }
+
+                fs.appendFileSync(logPath, `[DEBUG] Filtered: ${filteredCount} valid, ${skippedCount} skipped\n`);
+                console.log(`Sync: Processed ${filteredCount} valid worklogs, skipped ${skippedCount}`);
+            }
+
+
+            // 4. Update Database
+
+            // Update Monthly Metrics
+            for (const [key, data] of Array.from(monthlyAggregates.entries())) {
+                fs.appendFileSync(logPath, `[DEBUG] Updating DB. Month ${data.month}/${data.year}: ${data.consumed}h... `);
+                await prisma.monthlyMetric.upsert({
+                    where: {
+                        workPackageId_month_year: {
+                            workPackageId: wp.id,
+                            month: data.month,
+                            year: data.year
+                        }
+                    },
+                    update: { consumedHours: data.consumed },
+                    create: {
+                        workPackageId: wp.id,
+                        month: data.month,
+                        year: data.year,
+                        consumedHours: data.consumed
+                    }
+                });
+                fs.appendFileSync(logPath, `Done.\n`);
+            }
+
+            // Update Work Package Total
+            await prisma.workPackage.update({
+                where: { id: wp.id },
+                data: { accumulatedHours: totalAccumulated }
+            });
+
+            revalidatePath(`/admin/work-packages/${wp.id}`);
+            // Do not revalidate dashboard here, let the dashboard reload data itself
+
+            return { success: true, totalHours: totalAccumulated };
+
+        } catch (error: any) {
+            console.error("Sync Error:", error);
+            // DEBUG LOGGING TO FILE
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(process.cwd(), 'sync-debug.log');
+            fs.appendFileSync(logPath, `[${new Date().toISOString()}] SYNC ERROR: ${error.message}\n${error.stack}\n---\n`);
+
+            return { error: error.message || "Error desconocido en sync" };
+        }
+    }
+}

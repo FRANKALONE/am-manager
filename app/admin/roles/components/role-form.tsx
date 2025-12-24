@@ -1,0 +1,148 @@
+"use client";
+
+import { useFormState } from "react-dom";
+import { createRole, updateRole } from "@/app/actions/roles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const initialState = {
+    error: "",
+    message: ""
+};
+
+type Permission = {
+    key: string;
+    label: string;
+    section: string;
+};
+
+const PERMISSIONS: Permission[] = [
+    { key: "view_dashboard", label: "Ver Dashboard de Consumos", section: "General" },
+    { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
+    { key: "manage_users", label: "Gestionar Usuarios", section: "Administración" },
+    { key: "manage_clients", label: "Gestionar Clientes", section: "Administración" },
+    { key: "manage_wps", label: "Gestionar Work Packages", section: "Administración" },
+    { key: "manage_roles", label: "Gestionar Roles", section: "Administración" },
+    { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
+    { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },
+    { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
+    { key: "manage_reviews", label: "Gestionar Reclamaciones", section: "Administración" },
+];
+
+type Props = {
+    initialRole?: any; // If provided, we are in EDIT mode
+};
+
+export function RoleForm({ initialRole }: Props) {
+    const isEdit = !!initialRole;
+
+    // Parse permissions if they exist
+    let currentPermissions: Record<string, boolean> = {};
+    if (initialRole?.permissions) {
+        try {
+            currentPermissions = JSON.parse(initialRole.permissions);
+        } catch (e) {
+            console.error("Error parsing permissions", e);
+        }
+    }
+
+    // Bind the updateRole action with the role ID if editing
+    const updateWithId = isEdit ? updateRole.bind(null, initialRole.id) : createRole;
+    const [state, formAction] = useFormState(updateWithId as any, initialState);
+
+    return (
+        <div className="max-w-3xl mx-auto">
+            <h1 className="text-3xl font-bold tracking-tight mb-6">
+                {isEdit ? "Editar Rol" : "Nuevo Rol"}
+            </h1>
+
+            <form action={formAction} className="space-y-6">
+                <Card className="shadow-lg border-t-4 border-t-malachite">
+                    <CardHeader>
+                        <CardTitle>Datos del Rol</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {state?.error && (
+                            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm font-medium">
+                                {state.error}
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nombre *</Label>
+                            <Input id="name" name="name" defaultValue={initialRole?.name} required placeholder="Ej: CLIENTE" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Descripción</Label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                defaultValue={initialRole?.description}
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                placeholder="Descripción del rol..."
+                            />
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="isActive"
+                                name="isActive"
+                                defaultChecked={initialRole ? initialRole.isActive : true}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="isActive" className="font-normal cursor-pointer">
+                                Rol activo
+                            </Label>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg border-t-4 border-t-blue-500">
+                    <CardHeader>
+                        <CardTitle>Permisos y Accesos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {["General", "Administración", "Finanzas"].map(section => (
+                                <div key={section} className="space-y-3">
+                                    <h3 className="font-bold text-dark-green border-b pb-1 mb-4">{section}</h3>
+                                    <div className="space-y-3">
+                                        {PERMISSIONS.filter(p => p.section === section).map(p => (
+                                            <div key={p.key} className="flex items-center space-x-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`perm_${p.key}`}
+                                                    name={`perm_${p.key}`}
+                                                    defaultChecked={currentPermissions[p.key]}
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <Label htmlFor={`perm_${p.key}`} className="font-medium cursor-pointer">
+                                                    {p.label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end gap-2 pt-4">
+                    <Link href="/admin/roles">
+                        <Button variant="outline" type="button">Cancelar</Button>
+                    </Link>
+                    <Button type="submit" className="bg-malachite hover:bg-jade transition-colors">
+                        {isEdit ? "Actualizar Rol" : "Guardar Rol"}
+                    </Button>
+                </div>
+            </form>
+        </div>
+    );
+}

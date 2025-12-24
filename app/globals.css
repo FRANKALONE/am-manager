@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand: Anti-Flash White #F0F0F0 */
+    --background: 0 0% 94%;
+    /* Brand: Dark Green #003B28 for text */
+    --foreground: 161 100% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 161 100% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 161 100% 12%;
+
+    /* Brand: Malachite #18D450 */
+    --primary: 131 79% 46%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Brand: Mint #D8FDEC */
+    --secondary: 153 92% 92%;
+    --secondary-foreground: 161 100% 12%;
+
+    /* Brand: Sea Salt #FAFAFA */
+    --muted: 0 0% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Brand: Luminous Green #6CF4A5 */
+    --accent: 145 88% 69%;
+    --accent-foreground: 161 100% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 131 79% 46%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
