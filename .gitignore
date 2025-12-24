@@ -24,3 +24,5 @@ pnpm-debug.log*
 # Local env files
 .env*.local
 .env
+prisma/*.db
+prisma/*.db-journal
