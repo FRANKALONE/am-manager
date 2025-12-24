@@ -116,7 +116,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                         >
                             <option value="all">Todos los tipos</option>
                             {ticketTypes.map((type) => (
-                                <option key={type} value={type}>{type}</option>
+                                <option key={String(type)} value={String(type)}>{String(type)}</option>
                             ))}
                         </select>
                     </div>
