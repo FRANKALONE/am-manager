@@ -41,7 +41,7 @@ export function CorrectionModelsManager({ models }: { models: Model[] }) {
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Modelos de Corrección</CardTitle>
-                    <CardDescription>Algmos de transformación de horas (Tempo -> Facturable)</CardDescription>
+                    <CardDescription>Algoritmos de transformación de horas (Tempo → Facturable)</CardDescription>
                 </div>
                 <Button onClick={handleCreate} size="sm"><Plus className="w-4 h-4 mr-2" /> Nuevo Modelo</Button>
             </CardHeader>
@@ -69,7 +69,7 @@ export function CorrectionModelsManager({ models }: { models: Model[] }) {
                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(model)}>
                                         <Edit className="w-4 h-4" />
                                     </Button>
-                                    <form action={deleteCorrectionModel.bind(null, model.id)} className="inline-block">
+                                    <form action={async () => { await deleteCorrectionModel(model.id); }} className="inline-block">
                                         <Button variant="ghost" size="icon" className="text-red-500">
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
