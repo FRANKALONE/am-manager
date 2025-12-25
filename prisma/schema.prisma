@@ -150,7 +150,7 @@ model MonthlyMetric {
   year          Int
   month         Int
   consumedHours Float       @default(0.0)
-  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id])
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, year, month])
 }
@@ -168,7 +168,7 @@ model WorklogDetail {
   author           String
   tipoImputacion   String?
   issueCreatedDate DateTime?
-  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id])
+  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@index([workPackageId, year, month])
 }
