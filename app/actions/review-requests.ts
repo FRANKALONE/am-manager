@@ -11,6 +11,8 @@ export async function createReviewRequest(
     reason: string
 ) {
     try {
+        console.log('[DEBUG] Creating review request with worklog IDs:', worklogIds);
+
         // 1. Create the review request
         const reviewRequest = await prisma.reviewRequest.create({
             data: {
@@ -21,6 +23,8 @@ export async function createReviewRequest(
                 status: "PENDING"
             }
         });
+
+        console.log('[DEBUG] Review request created:', reviewRequest.id, 'with IDs:', reviewRequest.worklogIds);
 
         // 2. Notify administrators
         const admins = await prisma.user.findMany({
@@ -137,11 +141,15 @@ export async function getReviewRequestDetail(id: string) {
 
         // Parse worklog IDs and fetch detail
         const worklogIds = JSON.parse(request.worklogIds) as number[];
+        console.log('[DEBUG] Fetching worklogs for review request:', id, 'IDs:', worklogIds);
+
         const worklogs = await prisma.worklogDetail.findMany({
             where: {
                 id: { in: worklogIds }
             }
         });
+
+        console.log('[DEBUG] Found', worklogs.length, 'worklogs out of', worklogIds.length, 'requested');
 
         return { ...request, worklogs };
     } catch (error) {
