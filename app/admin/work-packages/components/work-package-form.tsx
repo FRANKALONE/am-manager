@@ -92,7 +92,6 @@ type Props = {
 export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits }: Props) {
     const updateAction = updateWorkPackage.bind(null, wp.id);
     const [state, formAction] = useFormState(updateAction, initialState);
-    const [contractType, setContractType] = useState(wp.contractType);
 
     // Get current period (first one)
     const currentPeriod = wp.validityPeriods?.[0];
@@ -119,11 +118,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
 
                         <div className="space-y-2">
                             <Label htmlFor="contractType">Tipo de Contrato</Label>
-                            <Select
-                                name="contractType"
-                                defaultValue={wp.contractType}
-                                onValueChange={(value) => setContractType(value)}
-                            >
+                            <Select name="contractType" defaultValue={wp.contractType}>
                                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                                 <SelectContent>
                                     {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
@@ -162,21 +157,19 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             />
                         </div>
 
-                        {/* IAAS Service checkbox - reactive to contract type */}
-                        {contractType?.toUpperCase() === 'EVENTOS' && (
-                            <div className="flex items-center space-x-2 pt-2">
-                                <input
-                                    type="checkbox"
-                                    id="hasIaasService"
-                                    name="hasIaasService"
-                                    defaultChecked={wp.hasIaasService || false}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="hasIaasService" className="font-normal cursor-pointer">
-                                    Servicio IAAS Incluido
-                                </Label>
-                            </div>
-                        )}
+                        {/* IAAS Service checkbox - available for all contract types */}
+                        <div className="flex items-center space-x-2 pt-2">
+                            <input
+                                type="checkbox"
+                                id="hasIaasService"
+                                name="hasIaasService"
+                                defaultChecked={wp.hasIaasService || false}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="hasIaasService" className="font-normal cursor-pointer">
+                                Servicio IAAS Incluido
+                            </Label>
+                        </div>
 
                         <div className="flex justify-end pt-4">
                             <SubmitButton />
