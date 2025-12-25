@@ -190,20 +190,27 @@ export async function approveReviewRequest(
 
         // 2. Create the RETURN regularization if there are approved worklogs
         if (approvedWorklogIds.length > 0) {
-            // Fetch the worklogs to calculate total hours
+            // Fetch the worklogs to calculate total hours and get the date
             const worklogs = await prisma.worklogDetail.findMany({
                 where: {
                     id: { in: approvedWorklogIds }
-                }
+                },
+                orderBy: { startDate: 'asc' }
             });
 
             const totalHours = worklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
 
             if (totalHours > 0) {
+                // Use the date of the first worklog (earliest) for the regularization
+                // This ensures the return is recorded in the correct month
+                const regularizationDate = worklogs.length > 0
+                    ? new Date(worklogs[0].startDate)
+                    : new Date();
+
                 await prisma.regularization.create({
                     data: {
                         workPackageId: currentRequest.workPackageId,
-                        date: new Date(),
+                        date: regularizationDate,
                         type: "RETURN",
                         quantity: totalHours,
                         description: `Devolución de horas (Reclamación aprobada el ${new Date().toLocaleDateString('es-ES')})`,
