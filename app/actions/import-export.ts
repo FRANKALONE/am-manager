@@ -189,7 +189,7 @@ export async function importBulkData(formData: FormData) {
             // ValidityPeriod fields
             periodStartDate, periodEndDate,
             periodTotalQuantity, periodScopeUnit, periodRate,
-            periodIsPremium, periodPremiumPrice, periodCorrectionFactor,
+            periodIsPremium, periodPremiumPrice,
             periodRegularizationType, periodRegularizationRate, periodSurplusStrategy
         ] = cols;
 
@@ -305,6 +305,23 @@ export async function importBulkData(formData: FormData) {
 
     revalidatePath("/admin/clients");
     revalidatePath("/admin/work-packages");
+
+    // Persist log locally
+    try {
+        await prisma.importLog.create({
+            data: {
+                type: 'BULK_DATA',
+                status: errors.length === 0 ? 'SUCCESS' : (processedCount > 0 ? 'PARTIAL' : 'ERROR'),
+                filename: file.name,
+                totalRows: dataRows.length,
+                processedCount: processedCount,
+                errors: errors.length > 0 ? JSON.stringify(errors) : null,
+                delimiter: delimiter === ',' ? 'coma' : 'punto y coma'
+            }
+        });
+    } catch (e) {
+        console.error("Error creating import log:", e);
+    }
 
     return {
         success: true,

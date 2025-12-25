@@ -227,6 +227,23 @@ export async function importRegularizations(formData: FormData) {
 
     revalidatePath("/admin/regularizations");
 
+    // Persist log locally
+    try {
+        await prisma.importLog.create({
+            data: {
+                type: 'REGULARIZATIONS',
+                status: errors.length === 0 ? 'SUCCESS' : (processedCount > 0 ? 'PARTIAL' : 'ERROR'),
+                filename: file.name,
+                totalRows: dataRows.length,
+                processedCount: processedCount,
+                errors: errors.length > 0 ? JSON.stringify(errors) : null,
+                delimiter: delimiter === ',' ? 'coma' : 'semicolon'
+            }
+        });
+    } catch (e) {
+        console.error("Error creating import regularization log:", e);
+    }
+
     return {
         success: true,
         count: processedCount,

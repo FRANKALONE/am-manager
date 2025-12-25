@@ -3,9 +3,9 @@ import { getParametersByCategory } from "@/app/actions/parameters";
 import { getClients } from "@/app/actions/clients";
 import { WorkPackageFilters } from "./filters";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { WorkPackagesTable } from "./components/work-package-table";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, CalendarClock } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default async function WorkPackagesPage({
     searchParams,
@@ -39,11 +39,6 @@ export default async function WorkPackagesPage({
         return acc;
     }, {} as Record<string, string>);
 
-    async function deleteAction(id: string) {
-        "use server";
-        await deleteWorkPackage(id);
-    }
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -69,74 +64,12 @@ export default async function WorkPackagesPage({
                 </Link>
             </div>
 
-            {/* Scrollable Container with max-width to prevent full page blowout */}
-            <div className="shadow-sm border rounded-md overflow-hidden dark:border-gray-800 bg-white dark:bg-gray-900">
-                <div className="relative w-full overflow-x-auto">
-                    <Table className="min-w-[1400px]">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-[150px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">ID WP</TableHead>
-                                <TableHead className="sticky left-[150px] z-30 bg-white dark:bg-gray-900 w-[250px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nombre</TableHead>
-                                <TableHead className="min-w-[200px]">Cliente</TableHead>
-                                <TableHead className="min-w-[150px]">Tipo Contrato</TableHead>
-                                <TableHead className="min-w-[120px]">Facturación</TableHead>
-                                <TableHead className="min-w-[150px]">Renovación</TableHead>
-                                <TableHead className="min-w-[100px] text-center">Periodos</TableHead>
-                                <TableHead className="text-right min-w-[100px]">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {wps.map((wp) => (
-                                <TableRow key={wp.id} className="bg-white dark:bg-gray-900 hover:bg-muted/50">
-                                    <TableCell className="font-medium sticky left-0 z-20 bg-white dark:bg-gray-900 border-r">
-                                        {wp.id}
-                                    </TableCell>
-                                    <TableCell className="sticky left-[150px] z-20 bg-white dark:bg-gray-900 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                        {wp.name}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="font-medium">{wp.clientName}</span>
-                                    </TableCell>
-                                    <TableCell>
-                                        {contractTypeMap[wp.contractType] || wp.contractType}
-                                    </TableCell>
-                                    <TableCell>{wp.billingType}</TableCell>
-                                    <TableCell>{wp.renewalType ? (renewalTypeMap[wp.renewalType] || wp.renewalType) : "-"}</TableCell>
-                                    <TableCell className="text-center">
-                                        <span className="inline-flex items-center justify-center rounded-full bg-green-100 px-2.5 py-0.5 text-green-700 gap-1">
-                                            <CalendarClock className="w-3 h-3" />
-                                            {wp._count.validityPeriods}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Link href={`/admin/work-packages/${wp.id}/edit`}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                            </Link>
-                                            <form action={deleteAction.bind(null, wp.id)}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </form>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {wps.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
-                                        No hay Work Packages que coincidan con los filtros.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
+            <WorkPackagesTable
+                wps={wps}
+                contractTypeMap={contractTypeMap}
+                renewalTypeMap={renewalTypeMap}
+            />
         </div>
-
     );
 }
 

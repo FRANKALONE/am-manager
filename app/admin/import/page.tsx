@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { exportBulkData, importBulkData } from "@/app/actions/import-export";
 import { exportRegularizations, importRegularizations } from "@/app/actions/regularizations-import-export";
 import { useState } from "react";
-import { Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Info, History } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ImportHistory } from "./components/import-history";
 
 export default function ImportPage() {
     const [status, setStatus] = useState<string>("");
@@ -347,6 +348,11 @@ export default function ImportPage() {
                         </CardContent>
                     </Card>
                 </div>
+            </div>
+
+            {/* Historial de Importaciones */}
+            <div className="max-w-4xl mx-auto px-4 pb-12">
+                <ImportHistory />
             </div>
         </div>
     );

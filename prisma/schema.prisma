@@ -226,3 +226,16 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
 }
+
+model ImportLog {
+  id             Int      @id @default(autoincrement())
+  date           DateTime @default(now())
+  type           String   // 'BULK_DATA' or 'REGULARIZATIONS'
+  status         String   // 'SUCCESS', 'PARTIAL', 'ERROR'
+  filename       String?
+  totalRows      Int?
+  processedCount Int?
+  errors         String?  // JSON stringified array of error messages
+  delimiter      String?
+  createdAt      DateTime @default(now())
+}
