@@ -445,16 +445,29 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         }
 
         // 8.5. Find active correction model (before loop)
-        const activeCorrection = wp.wpCorrections.find(c => {
+        let activeCorrection = wp.wpCorrections.find(c => {
             const corrStart = new Date(c.startDate);
             const corrEnd = c.endDate ? new Date(c.endDate) : new Date('2099-12-31');
             return now >= corrStart && now <= corrEnd;
         });
 
-        if (activeCorrection) {
-            addLog(`[INFO] Using correction model: ${activeCorrection.correctionModel.name}`);
+        // If no WP-specific correction, use the default model from the system
+        if (!activeCorrection) {
+            const defaultModel = await prisma.correctionModel.findFirst({
+                where: { isDefault: true }
+            });
+
+            if (defaultModel) {
+                // Create a virtual correction object with the default model
+                activeCorrection = {
+                    correctionModel: defaultModel
+                } as any;
+                addLog(`[INFO] No WP-specific correction, using default model: ${defaultModel.name}`);
+            } else {
+                addLog(`[INFO] No active correction model and no default found, using raw hours`);
+            }
         } else {
-            addLog(`[INFO] No active correction model, using raw hours`);
+            addLog(`[INFO] Using WP-specific correction model: ${activeCorrection.correctionModel.name}`);
         }
 
         addLog(`[INFO] Filter candidates: ${accountIds.join(', ')}`);
