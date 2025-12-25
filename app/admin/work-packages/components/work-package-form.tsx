@@ -147,6 +147,16 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             />
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="tempoAccountId">Tempo Account ID</Label>
+                            <Input
+                                id="tempoAccountId"
+                                name="tempoAccountId"
+                                defaultValue={wp.tempoAccountId || ""}
+                                placeholder="ID interno de Tempo"
+                            />
+                        </div>
+
                         {/* IAAS Service checkbox - only for EVENTOS */}
                         {wp.contractType?.toUpperCase() === 'EVENTOS' && (
                             <div className="flex items-center space-x-2 pt-2">

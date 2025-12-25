@@ -245,6 +245,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const accumulatedHoursDateStr = formData.get("accumulatedHoursDate") as string;
     const accumulatedHoursDate = accumulatedHoursDateStr ? new Date(accumulatedHoursDateStr) : null;
 
+    const tempoAccountIdFromForm = formData.get("tempoAccountId")?.toString();
     const customAttributes: Record<string, any> = {};
     Array.from(formData.entries()).forEach(([key, value]) => {
         if (key.startsWith("custom_")) {
@@ -255,7 +256,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
 
     console.log("Updating WP:", { name, jiraProjectKeys, isPremium });
 
-    // Fetch Tempo Account ID if not already set
+    // Fetch existing WP to handle Tempo Account ID and Validity Periods
     const existingWP = await prisma.workPackage.findUnique({
         where: { id },
         select: {
@@ -267,8 +268,15 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         }
     });
 
+    if (!existingWP) return { error: "Work Package no encontrado" };
+
+    // Handle Tempo Account ID update
     let tempoAccountId: string | null | undefined = undefined;
-    if (!existingWP?.tempoAccountId) {
+
+    // Priority: 1. Field from form (if provided), 2. Keep existing or Auto-fetch if DB is empty
+    if (tempoAccountIdFromForm !== undefined && tempoAccountIdFromForm !== "") {
+        tempoAccountId = tempoAccountIdFromForm;
+    } else if (!existingWP.tempoAccountId) {
         try {
             const fetchedId = await fetchTempoAccountId(id);
             tempoAccountId = fetchedId ? String(fetchedId) : null;

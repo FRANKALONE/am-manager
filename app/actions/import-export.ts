@@ -25,7 +25,7 @@ export async function exportBulkData() {
         csvRows.push([
             "ClientId", "ClientName", "ClientManager", "ClientAmOnboardingDate", "ClientCustomAttributes",
             "WPId", "WPName", "WPContractType", "WPBillingType", "WPRenewalType",
-            "WPOldWpId", "WPJiraProjectKeys",
+            "WPOldWpId", "WPTempoAccountId", "WPJiraProjectKeys",
             "WPAccumulatedHours", "WPAccumulatedHoursDate", "WPCustomAttributes",
             // ValidityPeriod fields (first period)
             "PeriodStartDate", "PeriodEndDate",
@@ -61,7 +61,7 @@ export async function exportBulkData() {
                     client.id, client.name, client.manager || "", onboardingDate, client.customAttributes || "{}",
 
                     wp.id, wp.name, wp.contractType, wp.billingType, wp.renewalType,
-                    wp.oldWpId || "", wp.jiraProjectKeys || "",
+                    wp.oldWpId || "", wp.tempoAccountId || "", wp.jiraProjectKeys || "",
                     wp.accumulatedHours.toString(), accumDate, wp.customAttributes || "{}",
 
                     // ValidityPeriod fields
@@ -157,7 +157,7 @@ export async function importBulkData(formData: FormData) {
     console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
 
     const headerRow = rows[0];
-    const expectedColumns = 25; // Based on the export format
+    const expectedColumns = 26; // Based on the export format (added WPTempoAccountId)
     const headerCols = parseCSVRow(headerRow, delimiter);
 
     if (headerCols.length < expectedColumns) {
@@ -184,7 +184,7 @@ export async function importBulkData(formData: FormData) {
         const [
             clientId, clientName, clientManager, clientAmOnboardingDate, clientCustomAttrs,
             wpId, wpName, wpContractType, wpBillingType, wpRenewalType,
-            wpOldWpId, wpJiraProjectKeys,
+            wpOldWpId, wpTempoAccountId, wpJiraProjectKeys,
             wpAccumulatedHours, wpAccumulatedHoursDate, wpCustomAttrs,
             // ValidityPeriod fields
             periodStartDate, periodEndDate,
@@ -229,6 +229,7 @@ export async function importBulkData(formData: FormData) {
                         billingType: wpBillingType,
                         renewalType: wpRenewalType || "",
                         oldWpId: wpOldWpId || null,
+                        tempoAccountId: wpTempoAccountId || null,
                         jiraProjectKeys: wpJiraProjectKeys || null,
                         accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
                         accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,
@@ -243,6 +244,7 @@ export async function importBulkData(formData: FormData) {
                         billingType: wpBillingType,
                         renewalType: wpRenewalType || "",
                         oldWpId: wpOldWpId || null,
+                        tempoAccountId: wpTempoAccountId || null,
                         jiraProjectKeys: wpJiraProjectKeys || null,
                         accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
                         accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,

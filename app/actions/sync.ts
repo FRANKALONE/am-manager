@@ -105,8 +105,8 @@ export async function syncWorkPackage(wpId: string) {
         }
 
         if (accountIds.length === 0) {
-            fs.appendFileSync(logPath, `[ERROR] No Tempo Account ID configured (neither current nor old)\n`);
-            return { error: "No hay Tempo Account ID configurado para este WP" };
+            fs.appendFileSync(logPath, `[INFO] No explicit Tempo Account ID found. Falling back to WP ID: ${wp.id}\n`);
+            accountIds.push(wp.id);
         }
 
         // 5. Fetch worklogs from Tempo for all account IDs across ALL periods
