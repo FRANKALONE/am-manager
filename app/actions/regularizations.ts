@@ -73,9 +73,12 @@ export async function createRegularization(data: {
         revalidatePath('/admin/regularizations');
         revalidatePath(`/admin/work-packages/${data.workPackageId}/edit`);
         return { success: true, regularization };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating regularization:", error);
-        return { success: false, error: "Error al crear regularización" };
+        return {
+            success: false,
+            error: `Error al crear regularización: ${error.message || "Error desconocido"}`
+        };
     }
 }
 
