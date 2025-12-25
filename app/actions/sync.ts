@@ -150,32 +150,42 @@ export async function syncWorkPackage(wpId: string) {
                         let data = '';
                         res.on('data', (c: any) => data += c);
                         res.on('end', () => {
-                            fs.appendFileSync(logPath, `[DEBUG] Tempo response status: ${res.statusCode}, data length: ${data.length}\n`);
                             try {
                                 if (data.length === 0) {
-                                    fs.appendFileSync(logPath, `[ERROR] Empty response from Tempo\n`);
+                                    fs.appendFileSync(logPath, `[ERROR] Empty response from Tempo for ${accountId}\n`);
                                     resolve({ results: [] });
                                     return;
                                 }
-                                resolve(JSON.parse(data));
+                                const parsed = JSON.parse(data);
+                                if (res.statusCode !== 200) {
+                                    fs.appendFileSync(logPath, `[ERROR] Tempo API Error (${res.statusCode}): ${data.substring(0, 200)}\n`);
+                                }
+                                resolve(parsed);
                             } catch (e) {
-                                fs.appendFileSync(logPath, `[ERROR] Failed to parse Tempo response\n`);
+                                fs.appendFileSync(logPath, `[ERROR] Failed to parse Tempo response for ${accountId}\n`);
                                 fs.appendFileSync(logPath, `[ERROR] Data preview: ${data.substring(0, 200)}\n`);
                                 reject(e);
                             }
                         });
                     });
-                    req.on('error', reject);
+                    req.on('error', (err: any) => {
+                        fs.appendFileSync(logPath, `[ERROR] Tempo request error: ${err.message}\n`);
+                        reject(err);
+                    });
                     req.end();
                 });
 
-                if (tempoRes.results) {
+                if (tempoRes.results && tempoRes.results.length > 0) {
                     allWorklogs.push(...tempoRes.results);
                     fs.appendFileSync(logPath, `[INFO] Fetched ${tempoRes.results.length} worklogs for ${accountId} (offset ${offset})\n`);
                     hasMore = tempoRes.results.length === limit;
                     offset += limit;
                 } else {
-                    fs.appendFileSync(logPath, `[WARN] No results from Tempo for ${accountId}\n`);
+                    if (tempoRes.errors) {
+                        fs.appendFileSync(logPath, `[ERROR] Tempo returned errors for ${accountId}: ${JSON.stringify(tempoRes.errors)}\n`);
+                    } else {
+                        fs.appendFileSync(logPath, `[DEBUG] No more results from Tempo for ${accountId}\n`);
+                    }
                     hasMore = false;
                 }
             }
@@ -184,7 +194,10 @@ export async function syncWorkPackage(wpId: string) {
         fs.appendFileSync(logPath, `[INFO] Total worklogs fetched from all accounts: ${allWorklogs.length}\n`);
 
         // 6. Get unique issue IDs and author account IDs
-        const uniqueIssueIds = Array.from(new Set(allWorklogs.map((log: any) => log.issue.id)));
+        const uniqueIssueIds = Array.from(new Set(allWorklogs
+            .map((log: any) => log.issue?.id)
+            .filter(Boolean)
+        ));
         const uniqueAuthorIds = Array.from(new Set(allWorklogs.map((log: any) => log.author?.accountId).filter(Boolean)));
         fs.appendFileSync(logPath, `[INFO] Fetching details for ${uniqueIssueIds.length} unique issues\n`);
 
@@ -428,34 +441,36 @@ export async function syncWorkPackage(wpId: string) {
 
         let firstLog = true;
         for (const log of allWorklogs) {
-            const issueId = String(log.issue.id);
-            const details = issueDetails.get(issueId);
+            const issueId = log.issue?.id ? String(log.issue.id) : null;
+            const details = issueId ? issueDetails.get(issueId) : null;
 
-            // DEBUG: Log the first worklog to see structure
+            // DEBUG: Log the first few worklogs to see structure
             if (firstLog) {
-                fs.appendFileSync(logPath, `[DEBUG] First worklog structure:\n`);
+                fs.appendFileSync(logPath, `[DEBUG] First worklog sample:\n`);
                 fs.appendFileSync(logPath, `[DEBUG] log.issue = ${JSON.stringify(log.issue)}\n`);
                 fs.appendFileSync(logPath, `[DEBUG] details = ${JSON.stringify(details)}\n`);
                 firstLog = false;
             }
 
             if (!details) {
-                fs.appendFileSync(logPath, `[FILTER] Skipped ${log.issue.key}: No Jira details found for ID ${issueId}\n`);
+                const logKey = log.issue?.key || log.issue?.id || 'Unknown';
+                fs.appendFileSync(logPath, `[FILTER] Skipped ${logKey}: No Jira details found for ID ${issueId}\n`);
                 skippedCount++;
                 continue;
             }
 
             // Check if valid (normalize both sides for comparison)
-            const issueTypeLower = details.issueType?.toLowerCase().replace(/\s+/g, '_') || '';
-            const isValidType = validTypes.some(vt => vt.toLowerCase().replace(/\s+/g, '_') === issueTypeLower);
-            const isEvolutivoTM = details.issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa';
+            const issueType = details.issueType || 'Unknown';
+            const issueTypeLower = issueType.toLowerCase().trim();
+            const isValidType = validTypes.some(vt => vt.toLowerCase().trim() === issueTypeLower);
+            const isEvolutivoTM = issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa';
             const isValid = isValidType || isEvolutivoTM;
 
             if (!isValid) {
                 const billingModeStr = typeof details.billingMode === 'object'
                     ? JSON.stringify(details.billingMode)
                     : (details.billingMode || 'N/A');
-                fs.appendFileSync(logPath, `[FILTER] Skipped ${details.key}: Type "${details.issueType}" is NOT in valid list. Billing: ${billingModeStr}\n`);
+                fs.appendFileSync(logPath, `[FILTER] Skipped ${details.key}: Type "${issueType}" is NOT in valid list. Billing: ${billingModeStr}\n`);
                 skippedCount++;
                 continue;
             }
