@@ -157,8 +157,8 @@ export async function importRegularizations(formData: FormData) {
         }
 
         // Validate type
-        if (!['EXCESS', 'RETURN', 'MANUAL_CONSUMPTION'].includes(type)) {
-            errors.push(`Fila ${i + 2}: Tipo inválido "${type}". Debe ser EXCESS, RETURN o MANUAL_CONSUMPTION`);
+        if (!['EXCESS', 'RETURN', 'MANUAL_CONSUMPTION', 'SOBRANTE_ANTERIOR'].includes(type)) {
+            errors.push(`Fila ${i + 2}: Tipo inválido "${type}". Debe ser EXCESS, RETURN, MANUAL_CONSUMPTION o SOBRANTE_ANTERIOR`);
             continue;
         }
 

@@ -59,7 +59,7 @@ export async function getRegularization(id: number) {
 export async function createRegularization(data: {
     workPackageId: string;
     date: Date;
-    type: string; // "EXCESS", "RETURN", "MANUAL_CONSUMPTION"
+    type: "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR"; // "EXCESS", "RETURN", "MANUAL_CONSUMPTION", "SOBRANTE_ANTERIOR"
     quantity: number;
     description?: string;
     ticketId?: string;
@@ -141,5 +141,20 @@ export async function getWorkPackagesForRegularization() {
     } catch (error) {
         console.error("Error fetching work packages:", error);
         return [];
+    }
+}
+
+// Repair Database ID Sequence (PostgreSQL only)
+export async function repairRegularizationSequence() {
+    try {
+        // This resets the sequence to the current max ID + 1
+        // Wrap table name in double quotes for case sensitivity if Prisma generated it like that
+        await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Regularization"', 'id'), coalesce(max(id),0) + 1, false) FROM "Regularization";`);
+
+        revalidatePath('/admin/regularizations');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error repairing sequence:", error);
+        return { success: false, error: `Error reparando secuencia: ${error.message}` };
     }
 }

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { revalidatePath } from "next/cache";
 import { CorrectionModelsManager } from "./components/models-manager";
+import { DatabaseMaintenance } from "./components/database-maintenance";
 
 export default async function SettingsPage() {
 
@@ -104,6 +105,10 @@ export default async function SettingsPage() {
                             data={await getParametersByCategory("CUSTOM_FIELD_WP")}
                         />
                     </div>
+                </div>
+                {/* Database Maintenance */}
+                <div className="col-span-full pt-8 border-t">
+                    <DatabaseMaintenance />
                 </div>
             </div>
         </div>
