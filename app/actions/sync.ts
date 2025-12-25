@@ -96,20 +96,19 @@ export async function syncWorkPackage(wpId: string) {
         // 4. Collect Tempo Account IDs (current, old, and mappings)
         const accountIdsSet = new Set<string>();
 
+        // Always add current WP ID and its CSE variant as primary candidates
+        accountIdsSet.add(wp.id);
+        fs.appendFileSync(logPath, `[INFO] Adding current ID as candidate: ${wp.id}\n`);
+
+        if (wp.id.startsWith('AMA')) {
+            const cseVariant = wp.id.replace(/^AMA/, 'CSE');
+            accountIdsSet.add(cseVariant);
+            fs.appendFileSync(logPath, `[INFO] Adding CSE variant as candidate: ${cseVariant}\n`);
+        }
+
         if (wp.tempoAccountId) {
             accountIdsSet.add(wp.tempoAccountId);
-            fs.appendFileSync(logPath, `[INFO] Using explicit Tempo Account ID: ${wp.tempoAccountId}\n`);
-        } else {
-            // If no explicit ID, current ID is the primary candidate
-            accountIdsSet.add(wp.id);
-            fs.appendFileSync(logPath, `[INFO] No explicit Tempo Account ID. Adding current ID as candidate: ${wp.id}\n`);
-
-            // Also add standard mapping AMA -> CSE if applicable
-            if (wp.id.startsWith('AMA')) {
-                const cseVariant = wp.id.replace(/^AMA/, 'CSE');
-                accountIdsSet.add(cseVariant);
-                fs.appendFileSync(logPath, `[INFO] Adding CSE variant as candidate: ${cseVariant}\n`);
-            }
+            fs.appendFileSync(logPath, `[INFO] Adding explicit Tempo Account ID: ${wp.tempoAccountId}\n`);
         }
 
         if (wp.oldWpId) {
