@@ -418,6 +418,9 @@ export async function syncWorkPackage(wpId: string) {
             fs.appendFileSync(logPath, `[INFO] No active correction model, using raw hours\n`);
         }
 
+        fs.appendFileSync(logPath, `[INFO] Filter candidates: ${accountIds.join(', ')}\n`);
+        fs.appendFileSync(logPath, `[INFO] Total raw worklogs fetched: ${allWorklogs.length}\n`);
+
         const monthlyHours = new Map<string, number>();
         const worklogDetailsToSave: any[] = []; // Collect worklog details
         let validCount = 0;
@@ -432,19 +435,17 @@ export async function syncWorkPackage(wpId: string) {
             if (firstLog) {
                 fs.appendFileSync(logPath, `[DEBUG] First worklog structure:\n`);
                 fs.appendFileSync(logPath, `[DEBUG] log.issue = ${JSON.stringify(log.issue)}\n`);
-                fs.appendFileSync(logPath, `[DEBUG] log.issue.key = ${log.issue.key}\n`);
                 fs.appendFileSync(logPath, `[DEBUG] details = ${JSON.stringify(details)}\n`);
                 firstLog = false;
             }
 
             if (!details) {
+                fs.appendFileSync(logPath, `[FILTER] Skipped ${log.issue.key}: No Jira details found for ID ${issueId}\n`);
                 skippedCount++;
                 continue;
             }
 
             // Check if valid (normalize both sides for comparison)
-            // DB values use underscores (e.g., "INCIDENCIA_DE_CORRECTIVO")
-            // Jira values use spaces (e.g., "Incidencia de Correctivo")
             const issueTypeLower = details.issueType?.toLowerCase().replace(/\s+/g, '_') || '';
             const isValidType = validTypes.some(vt => vt.toLowerCase().replace(/\s+/g, '_') === issueTypeLower);
             const isEvolutivoTM = details.issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa';
@@ -454,7 +455,7 @@ export async function syncWorkPackage(wpId: string) {
                 const billingModeStr = typeof details.billingMode === 'object'
                     ? JSON.stringify(details.billingMode)
                     : (details.billingMode || 'N/A');
-                fs.appendFileSync(logPath, `[FILTER] Skipped ${details.key}: ${details.issueType} - Billing: ${billingModeStr}\n`);
+                fs.appendFileSync(logPath, `[FILTER] Skipped ${details.key}: Type "${details.issueType}" is NOT in valid list. Billing: ${billingModeStr}\n`);
                 skippedCount++;
                 continue;
             }
