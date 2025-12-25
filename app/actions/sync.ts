@@ -490,7 +490,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const issueTypeLower = issueType.toLowerCase().trim();
             const isValidType = validTypes.some(vt => vt.toLowerCase().trim() === issueTypeLower);
             const isEvolutivoTM = issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa';
-            const isValid = isValidType || isEvolutivoTM;
+            const isIaasService = wp.hasIaasService && issueTypeLower === 'servicio iaas';
+            const isValid = isValidType || isEvolutivoTM || isIaasService;
 
             if (!isValid) {
                 const billingModeStr = typeof details.billingMode === 'object'
