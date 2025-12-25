@@ -92,6 +92,7 @@ type Props = {
 export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits }: Props) {
     const updateAction = updateWorkPackage.bind(null, wp.id);
     const [state, formAction] = useFormState(updateAction, initialState);
+    const [contractType, setContractType] = useState(wp.contractType);
 
     // Get current period (first one)
     const currentPeriod = wp.validityPeriods?.[0];
@@ -118,7 +119,11 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
 
                         <div className="space-y-2">
                             <Label htmlFor="contractType">Tipo de Contrato</Label>
-                            <Select name="contractType" defaultValue={wp.contractType}>
+                            <Select
+                                name="contractType"
+                                defaultValue={wp.contractType}
+                                onValueChange={(value) => setContractType(value)}
+                            >
                                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                                 <SelectContent>
                                     {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
@@ -157,8 +162,8 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             />
                         </div>
 
-                        {/* IAAS Service checkbox - only for EVENTOS */}
-                        {wp.contractType?.toUpperCase() === 'EVENTOS' && (
+                        {/* IAAS Service checkbox - reactive to contract type */}
+                        {contractType?.toUpperCase() === 'EVENTOS' && (
                             <div className="flex items-center space-x-2 pt-2">
                                 <input
                                     type="checkbox"
