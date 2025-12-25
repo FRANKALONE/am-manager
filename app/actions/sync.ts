@@ -32,16 +32,32 @@ function applyCorrectionModel(hours: number, wpCorrection: any): number {
 }
 
 export async function syncWorkPackage(wpId: string, debug: boolean = false) {
-    const fs = require('fs');
-    const path = require('path');
+    let fs: any = null;
+    let path: any = null;
+    try {
+        fs = require('fs');
+        path = require('path');
+    } catch (e) {
+        // Module not available in this environment (e.g. Edge)
+    }
+
     const https = require('https');
-    const logPath = path.join(process.cwd(), 'sync-debug.log');
 
     const debugLogs: string[] = [];
     const addLog = (msg: string) => {
         const timestamped = `[${new Date().toISOString()}] ${msg}`;
         if (debug) debugLogs.push(timestamped);
-        fs.appendFileSync(logPath, timestamped + '\n');
+
+        // Only write to file if fs is available and NOT in Vercel production
+        if (fs && path && process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            try {
+                const logPath = path.join(process.cwd(), 'sync-debug.log');
+                fs.appendFileSync(logPath, timestamped + '\n');
+            } catch (e) {
+                // Silently ignore
+            }
+        }
+        console.log(timestamped);
     };
 
     try {
