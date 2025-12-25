@@ -93,19 +93,33 @@ export async function syncWorkPackage(wpId: string) {
         // Keep 'now' for correction model logic later
         const now = new Date();
 
-        // 4. Check Tempo Account IDs (current and old)
-        const accountIds = [];
+        // 4. Collect Tempo Account IDs (current, old, and mappings)
+        const accountIdsSet = new Set<string>();
+
         if (wp.tempoAccountId) {
-            accountIds.push(wp.tempoAccountId);
-            fs.appendFileSync(logPath, `[INFO] Tempo Account ID (current): ${wp.tempoAccountId}\n`);
-        }
-        if (wp.oldWpId) {
-            accountIds.push(wp.oldWpId);
-            fs.appendFileSync(logPath, `[INFO] Tempo Account ID (old): ${wp.oldWpId}\n`);
+            accountIdsSet.add(wp.tempoAccountId);
+            fs.appendFileSync(logPath, `[INFO] Using explicit Tempo Account ID: ${wp.tempoAccountId}\n`);
+        } else {
+            // If no explicit ID, current ID is the primary candidate
+            accountIdsSet.add(wp.id);
+            fs.appendFileSync(logPath, `[INFO] No explicit Tempo Account ID. Adding current ID as candidate: ${wp.id}\n`);
+
+            // Also add standard mapping AMA -> CSE if applicable
+            if (wp.id.startsWith('AMA')) {
+                const cseVariant = wp.id.replace(/^AMA/, 'CSE');
+                accountIdsSet.add(cseVariant);
+                fs.appendFileSync(logPath, `[INFO] Adding CSE variant as candidate: ${cseVariant}\n`);
+            }
         }
 
+        if (wp.oldWpId) {
+            accountIdsSet.add(wp.oldWpId);
+            fs.appendFileSync(logPath, `[INFO] Adding old WP ID as candidate: ${wp.oldWpId}\n`);
+        }
+
+        const accountIds = Array.from(accountIdsSet);
         if (accountIds.length === 0) {
-            fs.appendFileSync(logPath, `[INFO] No explicit Tempo Account ID found. Falling back to WP ID: ${wp.id}\n`);
+            // Should not happen now, but as a safety measure
             accountIds.push(wp.id);
         }
 
