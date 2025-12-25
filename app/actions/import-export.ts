@@ -269,14 +269,13 @@ export async function importBulkData(formData: FormData) {
                     const periodData = {
                         startDate,
                         endDate,
-                        totalQuantity: periodTotalQuantity ? parseFloat(periodTotalQuantity) : 0,
+                        totalQuantity: (periodTotalQuantity && !isNaN(parseFloat(periodTotalQuantity))) ? parseFloat(periodTotalQuantity) : 0,
                         scopeUnit: periodScopeUnit || "HORAS",
-                        rate: periodRate ? parseFloat(periodRate) : 0,
+                        rate: (periodRate && !isNaN(parseFloat(periodRate))) ? parseFloat(periodRate) : 0,
                         isPremium: periodIsPremium === "TRUE",
-                        premiumPrice: periodPremiumPrice ? parseFloat(periodPremiumPrice) : null,
-                        correctionFactor: periodCorrectionFactor ? parseFloat(periodCorrectionFactor) : 1.0,
+                        premiumPrice: (periodPremiumPrice && !isNaN(parseFloat(periodPremiumPrice))) ? parseFloat(periodPremiumPrice) : null,
                         regularizationType: periodRegularizationType || null,
-                        regularizationRate: periodRegularizationRate ? parseFloat(periodRegularizationRate) : null,
+                        regularizationRate: (periodRegularizationRate && !isNaN(parseFloat(periodRegularizationRate))) ? parseFloat(periodRegularizationRate) : null,
                         surplusStrategy: periodSurplusStrategy || null
                     };
 
