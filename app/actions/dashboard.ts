@@ -426,8 +426,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         // Consumido = Σ columna "Consumido"
         const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
 
-        // Disponible = Contratado - Consumido
-        const remaining = totalScope - totalConsumed;
+        // Disponible = Contratado - Consumido + Sobrantes de periodos anteriores
+        const remaining = totalScope - totalConsumed + sobrantesBeforeSelection;
         const percentage = totalScope > 0 ? (totalConsumed / totalScope) * 100 : 0;
 
         // Calculate billed percentage (what has been invoiced up to current month)
