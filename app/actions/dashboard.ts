@@ -206,10 +206,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 const manualConsumption = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
                 const returnReg = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const excessReg = regs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                const excessReg = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
 
                 const consumed = ticketsInMonth + manualConsumption - returnReg;
-                const monthlyDifference = monthlyContractedEvents - consumed;
+                const monthlyDifference = monthlyContractedEvents - consumed + excessReg;
 
                 const isStrictFuture = iterDate > now;
 
@@ -272,6 +272,25 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         // Calculate accumulated balance from all previous periods
         let accumulatedBalance = 0;
 
+        // --- NEW: Add SOBRANTE_ANTERIOR that are before any period or in gaps ---
+        const firstPeriodStartDate = new Date(selectedPeriod.startDate);
+        const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+            const regDate = new Date(reg.date);
+            if (reg.type !== 'SOBRANTE_ANTERIOR') return false;
+            if (regDate >= firstPeriodStartDate) return false;
+
+            // Only count if it's NOT inside a previous period (to avoid double counting, 
+            // as those are handled in the previousPeriods loop)
+            const isInPreviousPeriod = wp.validityPeriods.some(p => {
+                const pStart = new Date(p.startDate);
+                const pEnd = new Date(p.endDate);
+                return pEnd < firstPeriodStartDate && regDate >= pStart && regDate <= pEnd;
+            });
+            return !isInPreviousPeriod;
+        }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+
+        accumulatedBalance += sobrantesBeforeSelection;
+
         // Find all periods before the selected one and calculate their final balance
         const previousPeriods = wp.validityPeriods.filter(p => {
             const pEnd = new Date(p.endDate);
@@ -307,7 +326,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
                 pConsumed = pConsumed - pReturnTotal;
 
-                const pRegTotal = pRegs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
 
                 let pMonthlyContractedAmount = 0;
                 if (pIsBolsaPuntual) {
@@ -351,9 +370,9 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             consumed = consumed - returnTotal; // Adjust consumed with returns
 
-            // Only EXCESS regularizations appear in regularization column
+            // Only EXCESS and SOBRANTE_ANTERIOR regularizations appear in regularization column
             const regularizationTotal = regularizationsThisMonth
-                .filter(r => r.type === 'EXCESS')
+                .filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR')
                 .reduce((sum, r) => sum + r.quantity, 0);
 
             const isStrictFuture = (y > now.getFullYear()) || (y === now.getFullYear() && m > (now.getMonth() + 1));
@@ -445,7 +464,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         }) || [];
 
         const excessTotal = periodRegularizations
-            .filter(r => r.type === 'EXCESS')
+            .filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR')
             .reduce((sum, r) => sum + r.quantity, 0);
 
         const returnTotal = periodRegularizations
@@ -545,11 +564,10 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             ]
         });
 
-        // Get RETURN regularizations for this month
-        const returnRegularizations = await prisma.regularization.findMany({
+        // Get all regularizations for this month (EXCESS, RETURN, SOBRANTE_ANTERIOR, MANUAL_CONSUMPTION)
+        const regularizations = await prisma.regularization.findMany({
             where: {
                 workPackageId: wpId,
-                type: 'RETURN',
                 date: {
                     gte: new Date(year, month - 1, 1),
                     lte: new Date(year, month, 0, 23, 59, 59)
@@ -598,14 +616,19 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             portalUrl: wp?.client?.portalUrl || null
         }));
 
-        // Add RETURN regularizations as a separate section if any exist
+        // Add all regularizations as a separate section if any exist
         const response: any = {
             ticketTypes: result,
-            returnRegularizations: returnRegularizations.map(reg => ({
+            regularizations: regularizations.map(reg => ({
                 id: reg.id,
+                type: reg.type,
                 date: reg.date,
                 quantity: reg.quantity,
-                description: reg.description || 'Devolución de horas'
+                description: reg.description || (
+                    reg.type === 'RETURN' ? 'Devolución de horas' :
+                        reg.type === 'EXCESS' ? 'Exceso / Regularización' :
+                            reg.type === 'SOBRANTE_ANTERIOR' ? 'Sobrante Periodo Anterior' : 'Regularización'
+                )
             })),
             portalUrl: wp?.client?.portalUrl || null
         };

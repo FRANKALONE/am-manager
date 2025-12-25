@@ -125,8 +125,9 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="EXCESS">Exceso</SelectItem>
-                                        <SelectItem value="RETURN">Devolución</SelectItem>
+                                        <SelectItem value="EXCESS">Exceso Consumo</SelectItem>
+                                        <SelectItem value="RETURN">Devolución/Anulación</SelectItem>
+                                        <SelectItem value="SOBRANTE_ANTERIOR">Sobrante Periodo Anterior</SelectItem>
                                         <SelectItem value="MANUAL_CONSUMPTION">Consumo Manual</SelectItem>
                                     </SelectContent>
                                 </Select>

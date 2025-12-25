@@ -38,6 +38,8 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                 return <Badge variant="destructive">Exceso</Badge>;
             case "RETURN":
                 return <Badge className="bg-green-600 hover:bg-green-700">Devolución</Badge>;
+            case "SOBRANTE_ANTERIOR":
+                return <Badge className="bg-blue-600 hover:bg-blue-700">Sobrante Anterior</Badge>;
             case "MANUAL_CONSUMPTION":
                 return <Badge className="bg-blue-600 hover:bg-blue-700">Consumo Manual</Badge>;
             default:
@@ -192,6 +194,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                     <SelectItem value="all">Todos</SelectItem>
                                     <SelectItem value="EXCESS">Exceso</SelectItem>
                                     <SelectItem value="RETURN">Devolución</SelectItem>
+                                    <SelectItem value="SOBRANTE_ANTERIOR">Sobrante Anterior</SelectItem>
                                     <SelectItem value="MANUAL_CONSUMPTION">Consumo Manual</SelectItem>
                                 </SelectContent>
                             </Select>

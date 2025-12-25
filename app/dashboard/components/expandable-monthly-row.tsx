@@ -30,7 +30,7 @@ export function ExpandableMonthlyRow({
     onRequestReview
 }: MonthlyRowProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [details, setDetails] = useState<any>({ ticketTypes: [], returnRegularizations: [] });
+    const [details, setDetails] = useState<any>({ ticketTypes: [], regularizations: [] });
     const [loading, setLoading] = useState(false);
     const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
 
@@ -49,7 +49,7 @@ export function ExpandableMonthlyRow({
     };
 
     const handleToggle = async () => {
-        if (!isOpen && details.ticketTypes.length === 0 && details.returnRegularizations.length === 0) {
+        if (!isOpen && details.ticketTypes.length === 0 && details.regularizations.length === 0) {
             setLoading(true);
             const ym = getYearMonth();
             if (ym) {
@@ -127,8 +127,8 @@ export function ExpandableMonthlyRow({
                             <div className="p-4 space-y-3">
                                 {loading && <p className="text-sm text-muted-foreground">Cargando detalles...</p>}
 
-                                {!loading && (!details.ticketTypes || details.ticketTypes.length === 0) && (!details.returnRegularizations || details.returnRegularizations.length === 0) && (
-                                    <p className="text-sm text-muted-foreground">No hay worklogs ni devoluciones para este mes</p>
+                                {!loading && (!details.ticketTypes || details.ticketTypes.length === 0) && (!details.regularizations || details.regularizations.length === 0) && (
+                                    <p className="text-sm text-muted-foreground">No hay worklogs ni regularizaciones para este mes</p>
                                 )}
 
                                 {/* Level 1: Ticket Types Summary - Always visible when expanded */}
@@ -253,29 +253,40 @@ export function ExpandableMonthlyRow({
                                     </div>
                                 )}
 
-                                {/* Return Regularizations Section */}
-                                {!loading && details.returnRegularizations && details.returnRegularizations.length > 0 && (
+                                {/* Regularizations Section */}
+                                {!loading && details.regularizations && details.regularizations.length > 0 && (
                                     <div className="space-y-2 mt-4">
                                         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                                            <span className="text-green-700">Devoluciones de Horas</span>
+                                            <span className="text-primary">Regularizaciones y Ajustes</span>
                                         </h4>
-                                        <div className="border rounded-lg bg-green-50/50 border-green-200">
+                                        <div className="border rounded-lg bg-blue-50/30 border-blue-100">
                                             <table className="w-full text-sm">
-                                                <thead className="bg-green-100/50">
-                                                    <tr className="border-b border-green-200">
-                                                        <th className="p-3 text-left font-medium text-green-900">Fecha</th>
-                                                        <th className="p-3 text-left font-medium text-green-900">Descripción</th>
-                                                        <th className="p-3 text-right font-medium text-green-900">Horas Devueltas</th>
+                                                <thead className="bg-blue-100/30">
+                                                    <tr className="border-b border-blue-100">
+                                                        <th className="p-3 text-left font-medium text-blue-900 w-24">Fecha</th>
+                                                        <th className="p-3 text-left font-medium text-blue-900 w-40">Tipo</th>
+                                                        <th className="p-3 text-left font-medium text-blue-900">Descripción</th>
+                                                        <th className="p-3 text-right font-medium text-blue-900 w-24">Cantidad</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {details.returnRegularizations.map((reg: any) => (
-                                                        <tr key={reg.id} className="border-b last:border-0 border-green-200">
-                                                            <td className="p-3">{new Date(reg.date).toLocaleDateString('es-ES')}</td>
-                                                            <td className="p-3 text-muted-foreground">{reg.description}</td>
-                                                            <td className="p-3 text-right font-bold text-green-700">+{reg.quantity.toFixed(2)}h</td>
-                                                        </tr>
-                                                    ))}
+                                                    {details.regularizations.map((reg: any) => {
+                                                        const isNegative = reg.type === 'MANUAL_CONSUMPTION';
+                                                        const isNeutral = reg.type === 'RETURN';
+
+                                                        return (
+                                                            <tr key={reg.id} className="border-b last:border-0 border-blue-100">
+                                                                <td className="p-3 whitespace-nowrap">{new Date(reg.date).toLocaleDateString('es-ES')}</td>
+                                                                <td className="p-3 font-medium text-xs uppercase tracking-wider text-blue-800">
+                                                                    {reg.type.replace(/_/g, ' ')}
+                                                                </td>
+                                                                <td className="p-3 text-muted-foreground">{reg.description}</td>
+                                                                <td className={`p-3 text-right font-bold ${isNegative ? 'text-red-600' : 'text-green-700'}`}>
+                                                                    {isNegative ? '-' : '+'}{reg.quantity.toFixed(1)}h
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
