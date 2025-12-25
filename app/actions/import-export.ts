@@ -89,6 +89,42 @@ export async function exportBulkData() {
 
 // --- IMPORT LOGIC ---
 
+// Helper function to detect CSV delimiter
+function detectDelimiter(text: string): string {
+    const firstLine = text.split('\n')[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    return commaCount > semicolonCount ? ',' : ';';
+}
+
+// Helper function to parse CSV row respecting quoted fields
+function parseCSVRow(row: string, delimiter: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        const nextChar = row[i + 1];
+
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === delimiter && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current.trim());
+    return result;
+}
+
 export async function importBulkData(formData: FormData) {
     const file = formData.get("file") as File;
     if (!file) return { error: "No se ha subido ningún archivo" };
@@ -105,21 +141,45 @@ export async function importBulkData(formData: FormData) {
         text = decoder.decode(buffer);
     }
 
+    // Remove BOM if present
     if (text.charCodeAt(0) === 0xFEFF) {
         text = text.slice(1);
     }
 
     const rows = text.split("\n").filter(line => line.trim() !== "");
-    const dataRows = rows.slice(1);
 
+    if (rows.length === 0) {
+        return { error: "El archivo CSV está vacío" };
+    }
+
+    // Detect delimiter from first line
+    const delimiter = detectDelimiter(text);
+    console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
+
+    const headerRow = rows[0];
+    const expectedColumns = 25; // Based on the export format
+    const headerCols = parseCSVRow(headerRow, delimiter);
+
+    if (headerCols.length < expectedColumns) {
+        return {
+            error: `Formato de CSV inválido. Se esperaban ${expectedColumns} columnas, pero se encontraron ${headerCols.length}. Delimitador detectado: ${delimiter === ',' ? 'coma (,)' : 'punto y coma (;)'}`
+        };
+    }
+
+    const dataRows = rows.slice(1);
     let processedCount = 0;
-    let errors = [];
+    let errors: string[] = [];
 
     for (let i = 0; i < dataRows.length; i++) {
         const row = dataRows[i].trim();
         if (!row) continue;
 
-        const cols = row.split(";").map(c => c.trim());
+        const cols = parseCSVRow(row, delimiter);
+
+        if (cols.length < expectedColumns) {
+            errors.push(`Fila ${i + 2}: Número incorrecto de columnas (${cols.length}/${expectedColumns})`);
+            continue;
+        }
 
         const [
             clientId, clientName, clientManager, clientAmOnboardingDate, clientCustomAttrs,
@@ -134,7 +194,7 @@ export async function importBulkData(formData: FormData) {
         ] = cols;
 
         if (!clientId || !clientName) {
-            errors.push(`Fila ${i + 2}: Falta ID o Nombre de Cliente`);
+            errors.push(`Fila ${i + 2}: Falta ID de Cliente (columna 1) o Nombre de Cliente (columna 2)`);
             continue;
         }
 
@@ -195,40 +255,43 @@ export async function importBulkData(formData: FormData) {
                     const startDate = new Date(periodStartDate);
                     const endDate = new Date(periodEndDate);
 
-                    if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                        const existingPeriods = await prisma.validityPeriod.findMany({
-                            where: { workPackageId: wpId },
-                            orderBy: { id: 'asc' },
-                            take: 1
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                        errors.push(`Fila ${i + 2}: Fechas inválidas - Inicio: "${periodStartDate}", Fin: "${periodEndDate}"`);
+                        continue;
+                    }
+
+                    const existingPeriods = await prisma.validityPeriod.findMany({
+                        where: { workPackageId: wpId },
+                        orderBy: { id: 'asc' },
+                        take: 1
+                    });
+
+                    const periodData = {
+                        startDate,
+                        endDate,
+                        totalQuantity: periodTotalQuantity ? parseFloat(periodTotalQuantity) : 0,
+                        scopeUnit: periodScopeUnit || "HORAS",
+                        rate: periodRate ? parseFloat(periodRate) : 0,
+                        isPremium: periodIsPremium === "TRUE",
+                        premiumPrice: periodPremiumPrice ? parseFloat(periodPremiumPrice) : null,
+                        correctionFactor: periodCorrectionFactor ? parseFloat(periodCorrectionFactor) : 1.0,
+                        regularizationType: periodRegularizationType || null,
+                        regularizationRate: periodRegularizationRate ? parseFloat(periodRegularizationRate) : null,
+                        surplusStrategy: periodSurplusStrategy || null
+                    };
+
+                    if (existingPeriods[0]) {
+                        await prisma.validityPeriod.update({
+                            where: { id: existingPeriods[0].id },
+                            data: periodData
                         });
-
-                        const periodData = {
-                            startDate,
-                            endDate,
-                            totalQuantity: periodTotalQuantity ? parseFloat(periodTotalQuantity) : 0,
-                            scopeUnit: periodScopeUnit || "HORAS",
-                            rate: periodRate ? parseFloat(periodRate) : 0,
-                            isPremium: periodIsPremium === "TRUE",
-                            premiumPrice: periodPremiumPrice ? parseFloat(periodPremiumPrice) : null,
-                            correctionFactor: periodCorrectionFactor ? parseFloat(periodCorrectionFactor) : 1.0,
-                            regularizationType: periodRegularizationType || null,
-                            regularizationRate: periodRegularizationRate ? parseFloat(periodRegularizationRate) : null,
-                            surplusStrategy: periodSurplusStrategy || null
-                        };
-
-                        if (existingPeriods[0]) {
-                            await prisma.validityPeriod.update({
-                                where: { id: existingPeriods[0].id },
-                                data: periodData
-                            });
-                        } else {
-                            await prisma.validityPeriod.create({
-                                data: {
-                                    workPackageId: wpId,
-                                    ...periodData
-                                }
-                            });
-                        }
+                    } else {
+                        await prisma.validityPeriod.create({
+                            data: {
+                                workPackageId: wpId,
+                                ...periodData
+                            }
+                        });
                     }
                 }
             }
@@ -236,7 +299,8 @@ export async function importBulkData(formData: FormData) {
 
         } catch (error) {
             console.error(`Row ${i + 2} error:`, error);
-            errors.push(`Fila ${i + 2}: Error procesando datos.`);
+            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+            errors.push(`Fila ${i + 2}: ${errorMsg}`);
         }
     }
 
@@ -246,6 +310,8 @@ export async function importBulkData(formData: FormData) {
     return {
         success: true,
         count: processedCount,
+        totalRows: dataRows.length,
+        delimiter: delimiter === ',' ? 'coma' : 'punto y coma',
         errors: errors.length > 0 ? errors : undefined
     };
 }

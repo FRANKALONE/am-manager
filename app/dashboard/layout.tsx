@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import { cn } from "@/utils";
 
 import { SharedHeader } from "@/app/components/shared-header";
+import { Footer } from "@/app/components/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,12 +18,13 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className={cn("min-h-screen bg-slate-50 dark:bg-slate-950", inter.className)}>
+        <div className={cn("min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col", inter.className)}>
             <SharedHeader title="Dashboard de Consumos" />
 
-            <main className="container mx-auto py-8 px-4 md:px-6">
+            <main className="container mx-auto py-8 px-4 md:px-6 flex-1">
                 {children}
             </main>
+            <Footer />
         </div>
     );
 }

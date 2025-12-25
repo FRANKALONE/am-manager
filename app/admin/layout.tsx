@@ -1,5 +1,6 @@
 import { AdminSidebar } from "./components/sidebar";
 import { SharedHeader } from "@/app/components/shared-header";
+import { Footer } from "@/app/components/footer";
 
 export default function AdminLayout({
     children,
@@ -17,6 +18,7 @@ export default function AdminLayout({
                 <main className="flex-1 p-8">
                     {children}
                 </main>
+                <Footer />
             </div>
         </div>
     );

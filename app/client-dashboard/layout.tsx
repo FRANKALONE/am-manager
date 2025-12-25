@@ -1,4 +1,5 @@
 import { SharedHeader } from "@/app/components/shared-header";
+import { Footer } from "@/app/components/footer";
 
 export const metadata = {
     title: "Dashboard AM Clientes",
@@ -11,11 +12,12 @@ export default function ClientDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
             <SharedHeader title="Dashboard AM Clientes" />
-            <main>
+            <main className="flex-1">
                 {children}
             </main>
+            <Footer />
         </div>
     );
 }

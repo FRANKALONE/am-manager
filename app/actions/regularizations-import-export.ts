@@ -53,6 +53,42 @@ export async function exportRegularizations() {
 
 // --- IMPORT REGULARIZATIONS ---
 
+// Helper function to detect CSV delimiter
+function detectDelimiter(text: string): string {
+    const firstLine = text.split('\n')[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    return commaCount > semicolonCount ? ',' : ';';
+}
+
+// Helper function to parse CSV row respecting quoted fields
+function parseCSVRow(row: string, delimiter: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        const nextChar = row[i + 1];
+
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === delimiter && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current.trim());
+    return result;
+}
+
 export async function importRegularizations(formData: FormData) {
     const file = formData.get("file") as File;
     if (!file) return { error: "No se ha subido ningún archivo" };
@@ -75,16 +111,40 @@ export async function importRegularizations(formData: FormData) {
     }
 
     const rows = text.split("\n").filter(line => line.trim() !== "");
+
+    if (rows.length === 0) {
+        return { error: "El archivo CSV está vacío" };
+    }
+
+    // Detect delimiter from first line
+    const delimiter = detectDelimiter(text);
+    console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
+
+    const headerRow = rows[0];
+    const expectedColumns = 11; // Based on the export format
+    const headerCols = parseCSVRow(headerRow, delimiter);
+
+    if (headerCols.length < expectedColumns) {
+        return {
+            error: `Formato de CSV inválido. Se esperaban ${expectedColumns} columnas, pero se encontraron ${headerCols.length}. Delimitador detectado: ${delimiter === ',' ? 'coma (,)' : 'punto y coma (;)'}`
+        };
+    }
+
     const dataRows = rows.slice(1); // Skip header
 
     let processedCount = 0;
-    let errors = [];
+    let errors: string[] = [];
 
     for (let i = 0; i < dataRows.length; i++) {
         const row = dataRows[i].trim();
         if (!row) continue;
 
-        const cols = row.split(";").map(c => c.trim());
+        const cols = parseCSVRow(row, delimiter);
+
+        if (cols.length < expectedColumns) {
+            errors.push(`Fila ${i + 2}: Número incorrecto de columnas (${cols.length}/${expectedColumns})`);
+            continue;
+        }
 
         const [
             id, date, clientId, clientName, wpId, wpName,
@@ -92,7 +152,7 @@ export async function importRegularizations(formData: FormData) {
         ] = cols;
 
         if (!wpId || !date || !type || !quantity) {
-            errors.push(`Fila ${i + 2}: Faltan campos obligatorios (WorkPackageID, Fecha, Tipo, Cantidad)`);
+            errors.push(`Fila ${i + 2}: Faltan campos obligatorios - WorkPackageID: "${wpId}", Fecha: "${date}", Tipo: "${type}", Cantidad: "${quantity}"`);
             continue;
         }
 
@@ -115,15 +175,29 @@ export async function importRegularizations(formData: FormData) {
             });
 
             if (!wpExists) {
-                errors.push(`Fila ${i + 2}: Work Package "${wpId}" no existe`);
+                errors.push(`Fila ${i + 2}: Work Package "${wpId}" no existe en la base de datos`);
+                continue;
+            }
+
+            // Validate date format
+            const parsedDate = new Date(date);
+            if (isNaN(parsedDate.getTime())) {
+                errors.push(`Fila ${i + 2}: Fecha inválida "${date}". Use formato YYYY-MM-DD`);
+                continue;
+            }
+
+            // Validate quantity is a number
+            const parsedQuantity = parseFloat(quantity);
+            if (isNaN(parsedQuantity)) {
+                errors.push(`Fila ${i + 2}: Cantidad inválida "${quantity}". Debe ser un número`);
                 continue;
             }
 
             const regData = {
-                date: new Date(date),
+                date: parsedDate,
                 workPackageId: wpId,
                 type,
-                quantity: parseFloat(quantity),
+                quantity: parsedQuantity,
                 description: description || null,
                 ticketId: ticketId || null,
                 note: note || null
@@ -146,7 +220,8 @@ export async function importRegularizations(formData: FormData) {
 
         } catch (error) {
             console.error(`Row ${i + 2} error:`, error);
-            errors.push(`Fila ${i + 2}: Error procesando datos - ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+            errors.push(`Fila ${i + 2}: ${errorMsg}`);
         }
     }
 
@@ -155,6 +230,8 @@ export async function importRegularizations(formData: FormData) {
     return {
         success: true,
         count: processedCount,
+        totalRows: dataRows.length,
+        delimiter: delimiter === ',' ? 'coma' : 'punto y coma',
         errors: errors.length > 0 ? errors : undefined
     };
 }
