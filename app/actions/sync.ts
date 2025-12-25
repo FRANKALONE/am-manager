@@ -31,14 +31,21 @@ function applyCorrectionModel(hours: number, wpCorrection: any): number {
     }
 }
 
-export async function syncWorkPackage(wpId: string) {
+export async function syncWorkPackage(wpId: string, debug: boolean = false) {
     const fs = require('fs');
     const path = require('path');
     const https = require('https');
     const logPath = path.join(process.cwd(), 'sync-debug.log');
 
+    const debugLogs: string[] = [];
+    const addLog = (msg: string) => {
+        const timestamped = `[${new Date().toISOString()}] ${msg}`;
+        if (debug) debugLogs.push(timestamped);
+        fs.appendFileSync(logPath, timestamped + '\n');
+    };
+
     try {
-        fs.appendFileSync(logPath, `\n[${new Date().toISOString()}] ===== SYNC STARTED: ${wpId} =====\n`);
+        addLog(`===== SYNC STARTED: ${wpId} (Debug: ${debug}) =====`);
 
         // 1. Get Work Package with validity periods
         const wp = await prisma.workPackage.findUnique({
@@ -60,25 +67,25 @@ export async function syncWorkPackage(wpId: string) {
         });
 
         if (!wp) {
-            fs.appendFileSync(logPath, `[ERROR] WP not found: ${wpId}\n`);
-            return { error: "Work Package no encontrado" };
+            addLog(`[ERROR] WP not found: ${wpId}`);
+            return { error: "Work Package no encontrado", logs: debug ? debugLogs : undefined };
         }
 
-        fs.appendFileSync(logPath, `[INFO] WP found: ${wp.id}, Type: ${wp.contractType}\n`);
+        addLog(`[INFO] WP found: ${wp.id}, Type: ${wp.contractType}`);
 
 
         // 2. Only sync for "Bolsa", "BD" (Bolsa Dedicada), and "Eventos" contract types
         const contractType = wp.contractType?.toUpperCase();
         if (contractType !== 'BOLSA' && contractType !== 'BD' && contractType !== 'EVENTOS') {
-            fs.appendFileSync(logPath, `[INFO] Skipping sync - Contract type not supported: ${wp.contractType}\n`);
-            return { success: true, message: "Sync no aplicable para este tipo de contrato", processed: 0, totalHours: 0 };
+            addLog(`[INFO] Skipping sync - Contract type not supported: ${wp.contractType}`);
+            return { success: true, message: "Sync no aplicable para este tipo de contrato", processed: 0, totalHours: 0, logs: debug ? debugLogs : undefined };
         }
 
 
         // 3. Calculate date range from ALL validity periods
         if (wp.validityPeriods.length === 0) {
-            fs.appendFileSync(logPath, `[ERROR] No validity periods defined\n`);
-            return { error: "No hay periodos de validez definidos" };
+            addLog(`[ERROR] No validity periods defined`);
+            return { error: "No hay periodos de validez definidos", logs: debug ? debugLogs : undefined };
         }
 
         // Find earliest start date and latest end date across all periods
@@ -87,8 +94,8 @@ export async function syncWorkPackage(wpId: string) {
         const earliestStart = new Date(Math.min(...allStartDates));
         const latestEnd = new Date(Math.max(...allEndDates));
 
-        fs.appendFileSync(logPath, `[INFO] Syncing ALL periods: ${earliestStart.toISOString().split('T')[0]} to ${latestEnd.toISOString().split('T')[0]}\n`);
-        fs.appendFileSync(logPath, `[INFO] Total validity periods: ${wp.validityPeriods.length}\n`);
+        addLog(`[INFO] Syncing ALL periods: ${earliestStart.toISOString().split('T')[0]} to ${latestEnd.toISOString().split('T')[0]}`);
+        addLog(`[INFO] Total validity periods: ${wp.validityPeriods.length}`);
 
         // Keep 'now' for correction model logic later
         const now = new Date();
@@ -98,22 +105,22 @@ export async function syncWorkPackage(wpId: string) {
 
         // Always add current WP ID and its CSE variant as primary candidates
         accountIdsSet.add(wp.id);
-        fs.appendFileSync(logPath, `[INFO] Adding current ID as candidate: ${wp.id}\n`);
+        addLog(`[INFO] Adding current ID as candidate: ${wp.id}`);
 
         if (wp.id.startsWith('AMA')) {
             const cseVariant = wp.id.replace(/^AMA/, 'CSE');
             accountIdsSet.add(cseVariant);
-            fs.appendFileSync(logPath, `[INFO] Adding CSE variant as candidate: ${cseVariant}\n`);
+            addLog(`[INFO] Adding CSE variant as candidate: ${cseVariant}`);
         }
 
         if (wp.tempoAccountId) {
             accountIdsSet.add(wp.tempoAccountId);
-            fs.appendFileSync(logPath, `[INFO] Adding explicit Tempo Account ID: ${wp.tempoAccountId}\n`);
+            addLog(`[INFO] Adding explicit Tempo Account ID: ${wp.tempoAccountId}`);
         }
 
         if (wp.oldWpId) {
             accountIdsSet.add(wp.oldWpId);
-            fs.appendFileSync(logPath, `[INFO] Adding old WP ID as candidate: ${wp.oldWpId}\n`);
+            addLog(`[INFO] Adding old WP ID as candidate: ${wp.oldWpId}`);
         }
 
         const accountIds = Array.from(accountIdsSet);
@@ -126,13 +133,13 @@ export async function syncWorkPackage(wpId: string) {
         const from = earliestStart.toISOString().split('T')[0];
         const to = latestEnd.toISOString().split('T')[0];
 
-        fs.appendFileSync(logPath, `[INFO] Fetching worklogs from ${from} to ${to} for ${accountIds.length} account(s)\n`);
+        addLog(`[INFO] Fetching worklogs from ${from} to ${to} for ${accountIds.length} account(s)`);
 
         let allWorklogs: any[] = [];
 
         // Fetch worklogs for each account ID
         for (const accountId of accountIds) {
-            fs.appendFileSync(logPath, `[INFO] Fetching worklogs for account: ${accountId}\n`);
+            addLog(`[INFO] Fetching worklogs for account: ${accountId}`);
 
             let offset = 0;
             const limit = 1000;
@@ -152,24 +159,24 @@ export async function syncWorkPackage(wpId: string) {
                         res.on('end', () => {
                             try {
                                 if (data.length === 0) {
-                                    fs.appendFileSync(logPath, `[ERROR] Empty response from Tempo for ${accountId}\n`);
+                                    addLog(`[ERROR] Empty response from Tempo for ${accountId}`);
                                     resolve({ results: [] });
                                     return;
                                 }
                                 const parsed = JSON.parse(data);
                                 if (res.statusCode !== 200) {
-                                    fs.appendFileSync(logPath, `[ERROR] Tempo API Error (${res.statusCode}): ${data.substring(0, 200)}\n`);
+                                    addLog(`[ERROR] Tempo API Error (${res.statusCode}): ${data.substring(0, 200)}`);
                                 }
                                 resolve(parsed);
                             } catch (e) {
-                                fs.appendFileSync(logPath, `[ERROR] Failed to parse Tempo response for ${accountId}\n`);
-                                fs.appendFileSync(logPath, `[ERROR] Data preview: ${data.substring(0, 200)}\n`);
+                                addLog(`[ERROR] Failed to parse Tempo response for ${accountId}`);
+                                addLog(`[ERROR] Data preview: ${data.substring(0, 200)}`);
                                 reject(e);
                             }
                         });
                     });
                     req.on('error', (err: any) => {
-                        fs.appendFileSync(logPath, `[ERROR] Tempo request error: ${err.message}\n`);
+                        addLog(`[ERROR] Tempo request error: ${err.message}`);
                         reject(err);
                     });
                     req.end();
@@ -177,21 +184,21 @@ export async function syncWorkPackage(wpId: string) {
 
                 if (tempoRes.results && tempoRes.results.length > 0) {
                     allWorklogs.push(...tempoRes.results);
-                    fs.appendFileSync(logPath, `[INFO] Fetched ${tempoRes.results.length} worklogs for ${accountId} (offset ${offset})\n`);
+                    addLog(`[INFO] Fetched ${tempoRes.results.length} worklogs for ${accountId} (offset ${offset})`);
                     hasMore = tempoRes.results.length === limit;
                     offset += limit;
                 } else {
                     if (tempoRes.errors) {
-                        fs.appendFileSync(logPath, `[ERROR] Tempo returned errors for ${accountId}: ${JSON.stringify(tempoRes.errors)}\n`);
+                        addLog(`[ERROR] Tempo returned errors for ${accountId}: ${JSON.stringify(tempoRes.errors)}`);
                     } else {
-                        fs.appendFileSync(logPath, `[DEBUG] No more results from Tempo for ${accountId}\n`);
+                        addLog(`[DEBUG] No more results from Tempo for ${accountId}`);
                     }
                     hasMore = false;
                 }
             }
         }
 
-        fs.appendFileSync(logPath, `[INFO] Total worklogs fetched from all accounts: ${allWorklogs.length}\n`);
+        addLog(`[INFO] Total worklogs fetched from all accounts: ${allWorklogs.length}`);
 
         // 6. Get unique issue IDs and author account IDs
         const uniqueIssueIds = Array.from(new Set(allWorklogs
@@ -199,7 +206,7 @@ export async function syncWorkPackage(wpId: string) {
             .filter(Boolean)
         ));
         const uniqueAuthorIds = Array.from(new Set(allWorklogs.map((log: any) => log.author?.accountId).filter(Boolean)));
-        fs.appendFileSync(logPath, `[INFO] Fetching details for ${uniqueIssueIds.length} unique issues\n`);
+        addLog(`[INFO] Fetching details for ${uniqueIssueIds.length} unique issues`);
 
         // 7. Fetch issue details from Jira
         const issueDetails = new Map<string, any>();
@@ -229,23 +236,23 @@ export async function syncWorkPackage(wpId: string) {
                     }
                 }, (res: any) => {
                     let data = '';
-                    fs.appendFileSync(logPath, `[DEBUG] Jira response status: ${res.statusCode}\n`);
+                    addLog(`[DEBUG] Jira response status: ${res.statusCode}`);
                     res.on('data', (c: any) => data += c);
                     res.on('end', () => {
                         try {
                             const parsed = JSON.parse(data);
                             if (res.statusCode !== 200) {
-                                fs.appendFileSync(logPath, `[ERROR] Jira API error: ${JSON.stringify(parsed)}\n`);
+                                addLog(`[ERROR] Jira API error: ${JSON.stringify(parsed)}`);
                             }
                             resolve(parsed);
                         } catch (e) {
-                            fs.appendFileSync(logPath, `[ERROR] Failed to parse Jira response: ${data.substring(0, 200)}\n`);
+                            addLog(`[ERROR] Failed to parse Jira response: ${data.substring(0, 200)}`);
                             resolve({ issues: [] });
                         }
                     });
                 });
                 req.on('error', (err: any) => {
-                    fs.appendFileSync(logPath, `[ERROR] Jira request error: ${err.message}\n`);
+                    addLog(`[ERROR] Jira request error: ${err.message}`);
                     reject(err);
                 });
                 req.write(bodyData);
@@ -267,16 +274,19 @@ export async function syncWorkPackage(wpId: string) {
                         created: issue.fields.created // Add creation date
                     });
                 });
+                addLog(`[INFO] Batch process: Fetched ${jiraRes.issues.length} of ${uniqueIssueIds.length} issues`);
             } else if (jiraRes.errorMessages || jiraRes.errors) {
-                fs.appendFileSync(logPath, `[ERROR] Jira returned errors: ${JSON.stringify(jiraRes)}\n`);
+                addLog(`[ERROR] Jira returned errors: ${JSON.stringify(jiraRes)}`);
+            } else {
+                addLog(`[WARN] Jira returned no issues for batch. JQL: ${jql}`);
             }
         }
 
-        fs.appendFileSync(logPath, `[INFO] Fetched details for ${issueDetails.size} issues\n`);
+        addLog(`[INFO] Fetched details for ${issueDetails.size} issues`);
 
         // 7.5. Fetch user details from Jira for author names
         const authorNames = new Map<string, string>();
-        fs.appendFileSync(logPath, `[INFO] Fetching user details for ${uniqueAuthorIds.length} authors\n`);
+        addLog(`[INFO] Fetching user details for ${uniqueAuthorIds.length} authors`);
 
         for (const accountId of uniqueAuthorIds) {
             try {
@@ -300,17 +310,17 @@ export async function syncWorkPackage(wpId: string) {
                                 if (res.statusCode === 200) {
                                     resolve(JSON.parse(data));
                                 } else {
-                                    fs.appendFileSync(logPath, `[WARN] Failed to fetch user ${accountId}: ${res.statusCode}\n`);
+                                    addLog(`[WARN] Failed to fetch user ${accountId}: ${res.statusCode}`);
                                     resolve(null);
                                 }
                             } catch (e) {
-                                fs.appendFileSync(logPath, `[ERROR] Failed to parse user response for ${accountId}\n`);
+                                addLog(`[ERROR] Failed to parse user response for ${accountId}`);
                                 resolve(null);
                             }
                         });
                     });
                     req.on('error', (err: any) => {
-                        fs.appendFileSync(logPath, `[ERROR] User request error for ${accountId}: ${err.message}\n`);
+                        addLog(`[ERROR] User request error for ${accountId}: ${err.message}`);
                         resolve(null);
                     });
                     req.end();
@@ -318,21 +328,21 @@ export async function syncWorkPackage(wpId: string) {
 
                 if (userRes && userRes.displayName) {
                     authorNames.set(accountId, userRes.displayName);
-                    fs.appendFileSync(logPath, `[INFO] User ${accountId}: ${userRes.displayName}\n`);
+                    addLog(`[INFO] User ${accountId}: ${userRes.displayName}`);
                 }
             } catch (error: any) {
-                fs.appendFileSync(logPath, `[ERROR] Exception fetching user ${accountId}: ${error.message}\n`);
+                addLog(`[ERROR] Exception fetching user ${accountId}: ${error.message}`);
             }
         }
 
-        fs.appendFileSync(logPath, `[INFO] Fetched ${authorNames.size} author names\n`);
+        addLog(`[INFO] Fetched ${authorNames.size} author names`);
 
         // 7.6. Fetch Evolutivos with "Bolsa de Horas" billing mode
         const evolutivoEstimates: any[] = [];
         if (wp.jiraProjectKeys) {
             const projectKeys = wp.jiraProjectKeys.split(',').map(k => k.trim()).filter(Boolean);
             if (projectKeys.length > 0) {
-                fs.appendFileSync(logPath, `[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}\n`);
+                addLog(`[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}`);
 
                 const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND "Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa")`;
                 const bodyData = JSON.stringify({
@@ -361,17 +371,17 @@ export async function syncWorkPackage(wpId: string) {
                                 if (res.statusCode === 200) {
                                     resolve(JSON.parse(data));
                                 } else {
-                                    fs.appendFileSync(logPath, `[WARN] Failed to fetch Evolutivos: ${res.statusCode}\n`);
+                                    addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
                                     resolve({ issues: [] });
                                 }
                             } catch (e) {
-                                fs.appendFileSync(logPath, `[ERROR] Failed to parse Evolutivos response\n`);
+                                addLog(`[ERROR] Failed to parse Evolutivos response`);
                                 resolve({ issues: [] });
                             }
                         });
                     });
                     req.on('error', (err: any) => {
-                        fs.appendFileSync(logPath, `[ERROR] Evolutivos request error: ${err.message}\n`);
+                        addLog(`[ERROR] Evolutivos request error: ${err.message}`);
                         resolve({ issues: [] });
                     });
                     req.write(bodyData);
@@ -379,7 +389,7 @@ export async function syncWorkPackage(wpId: string) {
                 });
 
                 if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
-                    fs.appendFileSync(logPath, `[INFO] Found ${evolutivosRes.issues.length} Evolutivos with Bolsa de Horas or T&M contra bolsa\n`);
+                    addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos with Bolsa de Horas or T&M contra bolsa`);
 
                     evolutivosRes.issues.forEach((issue: any) => {
                         if (issue.fields.timeoriginalestimate) {
@@ -397,11 +407,11 @@ export async function syncWorkPackage(wpId: string) {
                                 month
                             });
 
-                            fs.appendFileSync(logPath, `[INFO] Evolutivo ${issue.key}: ${hours}h estimated (created ${year}-${String(month).padStart(2, '0')})\n`);
+                            addLog(`[INFO] Evolutivo ${issue.key}: ${hours}h estimated (created ${year}-${String(month).padStart(2, '0')})`);
                         }
                     });
                 } else {
-                    fs.appendFileSync(logPath, `[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found\n`);
+                    addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
                 }
             }
         }
@@ -412,10 +422,10 @@ export async function syncWorkPackage(wpId: string) {
         });
         const validTypes = validTicketParams.map(p => p.value);
 
-        fs.appendFileSync(logPath, `[INFO] Valid ticket types configured: ${validTypes.join(', ')}\n`);
+        addLog(`[INFO] Valid ticket types configured: ${validTypes.join(', ')}`);
 
         if (validTypes.length === 0) {
-            fs.appendFileSync(logPath, `[WARN] No valid ticket types configured! No worklogs will be processed.\n`);
+            addLog(`[WARN] No valid ticket types configured! No worklogs will be processed.`);
         }
 
         // 8.5. Find active correction model (before loop)
@@ -426,13 +436,13 @@ export async function syncWorkPackage(wpId: string) {
         });
 
         if (activeCorrection) {
-            fs.appendFileSync(logPath, `[INFO] Using correction model: ${activeCorrection.correctionModel.name}\n`);
+            addLog(`[INFO] Using correction model: ${activeCorrection.correctionModel.name}`);
         } else {
-            fs.appendFileSync(logPath, `[INFO] No active correction model, using raw hours\n`);
+            addLog(`[INFO] No active correction model, using raw hours`);
         }
 
-        fs.appendFileSync(logPath, `[INFO] Filter candidates: ${accountIds.join(', ')}\n`);
-        fs.appendFileSync(logPath, `[INFO] Total raw worklogs fetched: ${allWorklogs.length}\n`);
+        addLog(`[INFO] Filter candidates: ${accountIds.join(', ')}`);
+        addLog(`[INFO] Total raw worklogs fetched: ${allWorklogs.length}`);
 
         const monthlyHours = new Map<string, number>();
         const worklogDetailsToSave: any[] = []; // Collect worklog details
@@ -446,15 +456,15 @@ export async function syncWorkPackage(wpId: string) {
 
             // DEBUG: Log the first few worklogs to see structure
             if (firstLog) {
-                fs.appendFileSync(logPath, `[DEBUG] First worklog sample:\n`);
-                fs.appendFileSync(logPath, `[DEBUG] log.issue = ${JSON.stringify(log.issue)}\n`);
-                fs.appendFileSync(logPath, `[DEBUG] details = ${JSON.stringify(details)}\n`);
+                addLog(`[DEBUG] First worklog sample:`);
+                addLog(`[DEBUG] log.issue = ${JSON.stringify(log.issue)}`);
+                addLog(`[DEBUG] details = ${JSON.stringify(details)}`);
                 firstLog = false;
             }
 
             if (!details) {
                 const logKey = log.issue?.key || log.issue?.id || 'Unknown';
-                fs.appendFileSync(logPath, `[FILTER] Skipped ${logKey}: No Jira details found for ID ${issueId}\n`);
+                addLog(`[FILTER] Skipped ${logKey}: No Jira details found for ID ${issueId}`);
                 skippedCount++;
                 continue;
             }
@@ -470,7 +480,7 @@ export async function syncWorkPackage(wpId: string) {
                 const billingModeStr = typeof details.billingMode === 'object'
                     ? JSON.stringify(details.billingMode)
                     : (details.billingMode || 'N/A');
-                fs.appendFileSync(logPath, `[FILTER] Skipped ${details.key}: Type "${issueType}" is NOT in valid list. Billing: ${billingModeStr}\n`);
+                addLog(`[FILTER] Skipped ${details.key}: Type "${issueType}" is NOT in valid list. Billing: ${billingModeStr}`);
                 skippedCount++;
                 continue;
             }
@@ -510,11 +520,11 @@ export async function syncWorkPackage(wpId: string) {
             });
 
             if (rawHours !== correctedHours) {
-                fs.appendFileSync(logPath, `[CORRECTION] ${rawHours.toFixed(2)}h -> ${correctedHours.toFixed(2)}h\n`);
+                addLog(`[CORRECTION] ${rawHours.toFixed(2)}h -> ${correctedHours.toFixed(2)}h`);
             }
         }
 
-        fs.appendFileSync(logPath, `[INFO] Filtered: ${validCount} valid, ${skippedCount} skipped\n`);
+        addLog(`[INFO] Filtered: ${validCount} valid, ${skippedCount} skipped`);
 
         // 8.6. Add Evolutivo estimates to monthly consumption
         evolutivoEstimates.forEach(evo => {
@@ -538,14 +548,14 @@ export async function syncWorkPackage(wpId: string) {
         });
 
         if (evolutivoEstimates.length > 0) {
-            fs.appendFileSync(logPath, `[INFO] Added ${evolutivoEstimates.length} Evolutivo estimates to consumption\n`);
+            addLog(`[INFO] Added ${evolutivoEstimates.length} Evolutivo estimates to consumption`);
         }
 
         // 8.7. Process regularizations
         // - MANUAL_CONSUMPTION: Add to consumed hours
         // - EXCESS/RETURN: Keep separate (regularization column)
         if (wp.regularizations && wp.regularizations.length > 0) {
-            fs.appendFileSync(logPath, `[INFO] Processing ${wp.regularizations.length} regularizations\n`);
+            addLog(`[INFO] Processing ${wp.regularizations.length} regularizations`);
 
             wp.regularizations.forEach(reg => {
                 const regDate = new Date(reg.date);
@@ -559,7 +569,7 @@ export async function syncWorkPackage(wpId: string) {
                     const currentHours = monthlyHours.get(key) || 0;
                     monthlyHours.set(key, currentHours + reg.quantity);
 
-                    fs.appendFileSync(logPath, `[INFO] Manual Consumption: +${reg.quantity}h in ${key} (${reg.ticketId || 'N/A'})\n`);
+                    addLog(`[INFO] Manual Consumption: +${reg.quantity}h in ${key} (${reg.ticketId || 'N/A'})`);
 
                     // Add to worklog details for display
                     worklogDetailsToSave.push({
@@ -580,7 +590,7 @@ export async function syncWorkPackage(wpId: string) {
                     // const currentHours = monthlyHours.get(key) || 0;
                     // monthlyHours.set(key, currentHours - reg.quantity);
 
-                    fs.appendFileSync(logPath, `[INFO] Regularization ${reg.type}: -${reg.quantity}h in ${key} (${reg.description || 'N/A'})\n`);
+                    addLog(`[INFO] Regularization ${reg.type}: -${reg.quantity}h in ${key} (${reg.description || 'N/A'})`);
 
                     // DON'T add to worklog details - regularizations are calculated separately in dashboard
                 }
@@ -590,14 +600,14 @@ export async function syncWorkPackage(wpId: string) {
         // 8.5. For Events WP: Fetch ALL tickets from project using JIRA API v3
         if (wp.contractType?.toUpperCase() === 'EVENTOS') {
             console.log('[EVENTS DEBUG] Entering Events sync section');
-            fs.appendFileSync(logPath, `[INFO] Fetching all tickets for Events WP...\n`);
+            addLog(`[INFO] Fetching all tickets for Events WP...`);
 
             const jiraUrl = process.env.JIRA_URL?.trim();
             const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
             const jiraToken = process.env.JIRA_API_TOKEN?.trim();
 
             if (!jiraUrl || !jiraEmail || !jiraToken) {
-                fs.appendFileSync(logPath, `[ERROR] Missing JIRA credentials for Events sync\n`);
+                addLog(`[ERROR] Missing JIRA credentials for Events sync`);
             } else {
                 const projectKeys = wp.jiraProjectKeys?.split(',').map(k => k.trim()).join(', ') || '';
                 if (projectKeys) {
@@ -627,12 +637,12 @@ export async function syncWorkPackage(wpId: string) {
 
                         if (wp.hasIaasService) {
                             issueTypes.push("Servicio IAAS");
-                            fs.appendFileSync(logPath, `[INFO] IAAS Service enabled - including Servicio IAAS tickets\n`);
+                            addLog(`[INFO] IAAS Service enabled - including Servicio IAAS tickets`);
                         }
 
                         const jql = `project in (${projectKeys}) AND created >= "${startDateStr}" AND created <= "${endDateStr}" AND issuetype in (${issueTypes.map(t => `"${t}"`).join(', ')})`;
 
-                        fs.appendFileSync(logPath, `[INFO] Fetching tickets for period ${startDateStr} to ${endDateStr}...\n`);
+                        addLog(`[INFO] Fetching tickets for period ${startDateStr} to ${endDateStr}...`);
 
                         // Fetch with pagination using nextPageToken
                         let nextPageToken: string | null = null;
@@ -665,27 +675,27 @@ export async function syncWorkPackage(wpId: string) {
                                         try {
                                             resolve(JSON.parse(data));
                                         } catch (e) {
-                                            fs.appendFileSync(logPath, `[ERROR] Failed to parse JIRA response\n`);
+                                            addLog(`[ERROR] Failed to parse JIRA response`);
                                             resolve({ issues: [] });
                                         }
                                     });
                                 });
                                 req.on('error', (err: any) => {
-                                    fs.appendFileSync(logPath, `[ERROR] JIRA request failed: ${err.message}\n`);
+                                    addLog(`[ERROR] JIRA request failed: ${err.message}`);
                                     resolve({ issues: [] });
                                 });
                                 req.end();
                             });
 
                             if (jiraRes.errorMessages) {
-                                fs.appendFileSync(logPath, `[ERROR] JIRA returned errors: ${JSON.stringify(jiraRes.errorMessages)}\n`);
+                                addLog(`[ERROR] JIRA returned errors: ${JSON.stringify(jiraRes.errorMessages)}`);
                                 break;
                             }
 
                             if (jiraRes.issues && jiraRes.issues.length > 0) {
                                 totalFetched += jiraRes.issues.length;
                                 console.log('[EVENTS DEBUG] Fetched', jiraRes.issues.length, 'tickets, total:', totalFetched);
-                                fs.appendFileSync(logPath, `[INFO] Fetched ${jiraRes.issues.length} tickets (total: ${totalFetched})\n`);
+                                addLog(`[INFO] Fetched ${jiraRes.issues.length} tickets (total: ${totalFetched})`);
 
                                 // Save tickets to database
                                 for (const issue of jiraRes.issues) {
@@ -717,7 +727,7 @@ export async function syncWorkPackage(wpId: string) {
 
                         } while (nextPageToken);
 
-                        fs.appendFileSync(logPath, `[INFO] Total tickets saved for period: ${totalFetched}\n`);
+                        addLog(`[INFO] Total tickets saved for period: ${totalFetched}`);
                     }
                 }
             }
@@ -744,7 +754,7 @@ export async function syncWorkPackage(wpId: string) {
                 }
             });
 
-            fs.appendFileSync(logPath, `[DB] Saved: ${key} = ${hours.toFixed(2)}h (corrected)\n`);
+            addLog(`[DB] Saved: ${key} = ${hours.toFixed(2)}h (corrected)`);
         }
 
         // 10.5. Save worklog details for monthly breakdown
@@ -752,7 +762,7 @@ export async function syncWorkPackage(wpId: string) {
             await prisma.worklogDetail.createMany({
                 data: worklogDetailsToSave
             });
-            fs.appendFileSync(logPath, `[DB] Saved ${worklogDetailsToSave.length} worklog details\n`);
+            addLog(`[DB] Saved ${worklogDetailsToSave.length} worklog details`);
         }
 
         // 10.6. Create/Update Ticket records with status information
@@ -807,13 +817,13 @@ export async function syncWorkPackage(wpId: string) {
         }
 
         if (uniqueTickets.size > 0) {
-            fs.appendFileSync(logPath, `[DB] Upserted ${uniqueTickets.size} ticket records with status\n`);
+            addLog(`[DB] Upserted ${uniqueTickets.size} ticket records with status`);
             console.log(`[SYNC DEBUG] Upserted ${uniqueTickets.size} tickets with status`);
             // Log first few tickets for debugging
             const firstTickets = Array.from(uniqueTickets.entries()).slice(0, 3);
             firstTickets.forEach(([key, data]) => {
                 console.log(`[SYNC DEBUG] Ticket ${key}: status="${data.status}"`);
-                fs.appendFileSync(logPath, `[DB] Ticket ${key}: status="${data.status}"\n`);
+                addLog(`[DB] Ticket ${key}: status="${data.status}"`);
             });
         }
 
@@ -827,15 +837,15 @@ export async function syncWorkPackage(wpId: string) {
             }
         });
 
-        fs.appendFileSync(logPath, `[SUCCESS] Sync complete: ${totalHours.toFixed(2)}h total\n`);
-        fs.appendFileSync(logPath, `===== SYNC FINISHED =====\n`);
+        addLog(`[SUCCESS] Sync complete: ${totalHours.toFixed(2)}h total`);
+        addLog(`===== SYNC FINISHED =====`);
 
         revalidatePath(`/dashboard`);
-        return { success: true, totalHours, processed: validCount };
+        return { success: true, totalHours, processed: validCount, logs: debug ? debugLogs : undefined };
 
     } catch (error: any) {
-        fs.appendFileSync(logPath, `[ERROR] ${error.message}\n${error.stack}\n`);
-        return { error: error.message || "Error desconocido" };
+        addLog(`[ERROR] ${error.message}\n${error.stack}`);
+        return { error: error.message || "Error desconocido", logs: debug ? debugLogs : undefined };
     }
 }
 

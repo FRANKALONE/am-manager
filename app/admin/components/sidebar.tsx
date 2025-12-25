@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Terminal } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
@@ -51,6 +51,9 @@ export async function AdminSidebar() {
                     )}
                     <SidebarLink href="/admin/settings" label="Configuración">
                         <Settings className="h-4 w-4" />
+                    </SidebarLink>
+                    <SidebarLink href="/admin/settings/sync-debug" label="Diagnóstico Sync">
+                        <Terminal className="h-4 w-4" />
                     </SidebarLink>
                     <div className="pt-2">
                         <SidebarLink href="/help" label="Documentación">
