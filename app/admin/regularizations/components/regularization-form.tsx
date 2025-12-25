@@ -41,7 +41,7 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
         const result = await createRegularization({
             workPackageId: formData.workPackageId,
             date: new Date(formData.date),
-            type: formData.type,
+            type: formData.type as "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR",
             quantity: parseFloat(formData.quantity),
             description: formData.description || undefined,
             ticketId: formData.ticketId || undefined,
