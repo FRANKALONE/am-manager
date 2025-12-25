@@ -23,7 +23,7 @@ export function RegularizationManager({ wpId, regularizations }: { wpId: string,
             await createRegularization({
                 workPackageId: wpId,
                 date: new Date(date),
-                type,
+                type: type as "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR",
                 quantity: parseFloat(quantity),
                 description
             });
@@ -60,8 +60,8 @@ export function RegularizationManager({ wpId, regularizations }: { wpId: string,
                                 <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
                                 <TableCell>
                                     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${r.type === 'EXCESS'
-                                            ? 'border-transparent bg-red-100 text-red-800'
-                                            : 'border-transparent bg-green-100 text-green-800'
+                                        ? 'border-transparent bg-red-100 text-red-800'
+                                        : 'border-transparent bg-green-100 text-green-800'
                                         }`}>
                                         {r.type === 'EXCESS' ? 'Exceso Consumo' : 'Devolución/Anulación'}
                                     </span>
