@@ -222,8 +222,9 @@ export function ExpandableMonthlyRow({
                                                                             {worklogs.map((w: any, i: number) => {
                                                                                 const isSelected = selectedWorklogs.some(sw => sw.id === w.id);
                                                                                 const isEvolutivo = w.tipoImputacion?.includes('Evolutivo');
+                                                                                const isClaimed = w.isClaimed || false;
                                                                                 return (
-                                                                                    <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''}`}>
+                                                                                    <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''} ${isClaimed ? 'bg-orange-50/50' : ''}`}>
                                                                                         {permissions.request_review && (
                                                                                             <td className="p-2 text-center">
                                                                                                 <input
@@ -232,10 +233,20 @@ export function ExpandableMonthlyRow({
                                                                                                     checked={isSelected}
                                                                                                     onChange={(e) => onWorklogSelect(w, e.target.checked)}
                                                                                                     onClick={(e) => e.stopPropagation()}
+                                                                                                    disabled={isClaimed}
                                                                                                 />
                                                                                             </td>
                                                                                         )}
-                                                                                        <td className="p-2">{new Date(w.startDate).toLocaleDateString('es-ES')}</td>
+                                                                                        <td className="p-2">
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                {new Date(w.startDate).toLocaleDateString('es-ES')}
+                                                                                                {isClaimed && (
+                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700 border border-orange-200" title="Esta imputación está en reclamación">
+                                                                                                        EN RECLAMACIÓN
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </td>
                                                                                         {!isEvolutivo && <td className="p-2">{w.author}</td>}
                                                                                         <td className="p-2">{w.tipoImputacion || '-'}</td>
                                                                                         <td className="p-2 text-right font-medium">{w.timeSpentHours.toFixed(2)}h</td>
