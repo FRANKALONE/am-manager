@@ -213,7 +213,7 @@ export function ExpandableMonthlyRow({
                                                                             <tr className="border-b">
                                                                                 {permissions.request_review && <th className="p-2 w-8"></th>}
                                                                                 <th className="p-2 text-left">Fecha</th>
-                                                                                {worklogs[0]?.tipoImputacion !== 'Evolutivo' && <th className="p-2 text-left">Autor</th>}
+                                                                                {!worklogs[0]?.tipoImputacion?.includes('Evolutivo') && <th className="p-2 text-left">Autor</th>}
                                                                                 <th className="p-2 text-left">Tipo Imputación</th>
                                                                                 <th className="p-2 text-right">Horas</th>
                                                                             </tr>
@@ -221,7 +221,7 @@ export function ExpandableMonthlyRow({
                                                                         <tbody>
                                                                             {worklogs.map((w: any, i: number) => {
                                                                                 const isSelected = selectedWorklogs.some(sw => sw.id === w.id);
-                                                                                const isEvolutivo = w.tipoImputacion === 'Evolutivo';
+                                                                                const isEvolutivo = w.tipoImputacion?.includes('Evolutivo');
                                                                                 return (
                                                                                     <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''}`}>
                                                                                         {permissions.request_review && (
