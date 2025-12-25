@@ -133,9 +133,13 @@ export function DashboardView({
             const syncResult = await syncWorkPackage(selectedWp);
 
             if (syncResult && syncResult.error) {
+                alert(`Error: ${syncResult.error}`);
                 console.error("Sync error:", syncResult.error);
             } else {
-                console.log(`Manual sync complete: ${syncResult?.totalHours}h`);
+                const totalHours = syncResult?.totalHours || 0;
+                const processed = syncResult?.processed || 0;
+                alert(`Sincronización completada.\nProcesados: ${processed} worklogs.\nTotal Horas: ${totalHours.toFixed(1)}h`);
+                console.log(`Manual sync complete: ${totalHours}h`);
                 // Reload metrics after sync
                 const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
                 setMetrics(data);
