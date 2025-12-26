@@ -655,8 +655,8 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                     quantity: reg.quantity,
                     description: reg.description || (
                         reg.type === 'RETURN' ? 'Devolución de horas' :
-                            reg.type === 'EXCESS' ? 'Exceso / Regularización' :
-                                reg.type === 'SOBRANTE_ANTERIOR' ? 'Sobrante Periodo Anterior' : 'Regularización'
+                            reg.type === 'EXCESS' ? 'Regularización' :
+                                reg.type === 'SOBRANTE_ANTERIOR' ? 'Sobrante Periodo Anterior' : 'Ajuste'
                     )
                 })),
             portalUrl: wp?.client?.portalUrl || null

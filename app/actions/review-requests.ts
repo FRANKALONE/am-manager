@@ -207,13 +207,17 @@ export async function approveReviewRequest(
                     ? new Date(worklogs[0].startDate)
                     : new Date();
 
+                // Get unique ticket IDs for the description
+                const ticketIds = Array.from(new Set(worklogs.map(w => w.issueKey).filter(Boolean)));
+                const ticketsText = ticketIds.length > 0 ? ` (Tickets: ${ticketIds.join(', ')})` : '';
+
                 await prisma.regularization.create({
                     data: {
                         workPackageId: currentRequest.workPackageId,
                         date: regularizationDate,
                         type: "RETURN",
                         quantity: totalHours,
-                        description: `Devolución de horas (Reclamación aprobada el ${new Date().toLocaleDateString('es-ES')})`,
+                        description: `Devolución de horas${ticketsText}`,
                         note: notes
                     }
                 });

@@ -290,10 +290,12 @@ export function ExpandableMonthlyRow({
                                                             <tr key={reg.id} className="border-b last:border-0 border-blue-100">
                                                                 <td className="p-3 whitespace-nowrap">{new Date(reg.date).toLocaleDateString('es-ES')}</td>
                                                                 <td className="p-3 font-medium text-xs uppercase tracking-wider text-blue-800">
-                                                                    {reg.type.replace(/_/g, ' ')}
+                                                                    {reg.type === 'RETURN' ? 'DEVOLUCIÓN' :
+                                                                        reg.type === 'EXCESS' ? 'REGULARIZACIÓN' :
+                                                                            reg.type.replace(/_/g, ' ')}
                                                                 </td>
                                                                 <td className="p-3 text-muted-foreground">{reg.description}</td>
-                                                                <td className={`p-3 text-right font-bold ${isNegative ? 'text-red-600' : 'text-green-700'}`}>
+                                                                <td className={`p-3 text-right font-bold ${isNegative || reg.type === 'RETURN' ? 'text-red-600' : 'text-green-700'}`}>
                                                                     {isNegative ? '-' : '+'}{reg.quantity.toFixed(1)}h
                                                                 </td>
                                                             </tr>
