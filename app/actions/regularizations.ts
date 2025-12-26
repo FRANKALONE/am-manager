@@ -144,17 +144,35 @@ export async function getWorkPackagesForRegularization() {
     }
 }
 
-// Repair Database ID Sequence (PostgreSQL only)
+// Repair Database ID Sequences (PostgreSQL only)
 export async function repairRegularizationSequence() {
     try {
-        // This resets the sequence to the current max ID + 1
-        // Wrap table name in double quotes for case sensitivity if Prisma generated it like that
-        await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Regularization"', 'id'), coalesce(max(id),0) + 1, false) FROM "Regularization";`);
+        const tables = [
+            'Parameter',
+            'Regularization',
+            'ValidityPeriod',
+            'CorrectionModel',
+            'WPCorrection',
+            'MonthlyMetric',
+            'WorklogDetail',
+            'Ticket',
+            'ImportLog'
+        ];
 
+        for (const table of tables) {
+            try {
+                // This resets the sequence to the current max ID + 1
+                await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"${table}"', 'id'), coalesce(max(id),0) + 1, false) FROM "${table}";`);
+            } catch (e: any) {
+                console.warn(`Could not repair sequence for table ${table}: ${e.message}`);
+            }
+        }
+
+        revalidatePath('/admin/settings');
         revalidatePath('/admin/regularizations');
         return { success: true };
     } catch (error: any) {
-        console.error("Error repairing sequence:", error);
-        return { success: false, error: `Error reparando secuencia: ${error.message}` };
+        console.error("Error repairing sequences:", error);
+        return { success: false, error: `Error reparando secuencias: ${error.message}` };
     }
 }
