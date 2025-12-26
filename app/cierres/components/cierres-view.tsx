@@ -378,6 +378,12 @@ export function CierresView() {
                                                             {c.contractType}
                                                         </span>
                                                     )}
+                                                    {c.needsPO && (
+                                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold border border-amber-200 uppercase flex items-center gap-1">
+                                                            <AlertCircle className="w-2.5 h-2.5" />
+                                                            Pedir PO
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">

@@ -17,6 +17,7 @@ export interface CierreCandidate {
     suggestedAmount: number; // Quantity to bill
     suggestedCashAmount: number; // (Quantity to bill) * (Regularization Rate)
     unit: string;
+    needsPO?: boolean;
 }
 
 export interface EventosMonthStatus {
@@ -277,7 +278,8 @@ export async function getPendingCierres(month: number, year: number) {
                 needsSync: isOutdated,
                 unit: period.scopeUnit || 'HORAS',
                 suggestedAmount: balance < 0 ? Math.abs(balance) : 0,
-                suggestedCashAmount: (balance < 0 ? Math.abs(balance) : 0) * regRate
+                suggestedCashAmount: (balance < 0 ? Math.abs(balance) : 0) * regRate,
+                needsPO: balance < -0.01 && period.regularizationType?.toUpperCase() === 'BAJO_PEDIDO'
             };
 
             if (hasProcessedThisMonth) {

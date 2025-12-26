@@ -115,21 +115,11 @@ export default async function SettingsPage() {
     );
 }
 
-// Client Component Wrapper for Interactivity (Next.js 14 Pattern for simple interactions inside RSC)
+// Client Component for Parameter Management
 import { Plus, Trash2 } from "lucide-react";
+import { ParameterForm } from "./components/parameter-form";
 
 async function ParameterManager({ title, category, data }: { title: string, category: string, data: any[] }) {
-
-    async function addParam(formData: FormData) {
-        "use server";
-        await createParameter({}, formData);
-    }
-
-    async function deleteParam(id: number) {
-        "use server";
-        await deleteParameter(id);
-    }
-
     return (
         <Card>
             <CardHeader>
@@ -137,18 +127,9 @@ async function ParameterManager({ title, category, data }: { title: string, cate
                 <CardDescription>Valores disponibles para {title}</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={addParam} className="flex gap-2 mb-4">
-                    <input type="hidden" name="category" value={category} />
-                    <div className="grid gap-1 flex-1">
-                        <Input name="label" placeholder="Nombre (ej: Bolsa X)" required />
-                    </div>
-                    <div className="grid gap-1 w-1/3">
-                        <Input name="value" placeholder="VALOR_INTERNO" required />
-                    </div>
-                    <Button size="icon" type="submit"><Plus className="w-4 h-4" /></Button>
-                </form>
+                <ParameterForm category={category} />
 
-                <div className="rounded-md border">
+                <div className="rounded-md border mt-4">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -163,7 +144,10 @@ async function ParameterManager({ title, category, data }: { title: string, cate
                                     <TableCell className="font-medium">{item.label}</TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{item.value}</TableCell>
                                     <TableCell>
-                                        <form action={deleteParam.bind(null, item.id)}>
+                                        <form action={async () => {
+                                            "use server";
+                                            await deleteParameter(item.id);
+                                        }}>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>

@@ -870,6 +870,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         addLog(`[SUCCESS] Sync complete: ${totalHours.toFixed(2)}h total`);
         addLog(`===== SYNC FINISHED =====`);
 
+        // Trigger notification check for low balance
+        const { checkLowBalanceNotifications } = await import("./notifications");
+        await checkLowBalanceNotifications(wp.id);
+
         revalidatePath(`/dashboard`);
         return { success: true, totalHours, processed: validCount, logs: debug ? debugLogs : undefined };
 

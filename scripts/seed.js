@@ -25,6 +25,13 @@ const PARAMETERS = [
     { category: 'RENEWAL_TYPE', label: 'Automática', value: 'AUTO', order: 1 },
     { category: 'RENEWAL_TYPE', label: 'Bajo Pedido', value: 'BAJO_PEDIDO', order: 2 },
 
+    // Regularization Types
+    { category: 'REGULARIZATION_TYPE', label: 'Mensual', value: 'MENSUAL', order: 1 },
+    { category: 'REGULARIZATION_TYPE', label: 'Trimestral', value: 'TRIMESTRAL', order: 2 },
+    { category: 'REGULARIZATION_TYPE', label: 'Semestral', value: 'SEMESTRAL', order: 3 },
+    { category: 'REGULARIZATION_TYPE', label: 'Anual', value: 'ANUAL', order: 4 },
+    { category: 'REGULARIZATION_TYPE', label: 'Bajo Pedido', value: 'BAJO_PEDIDO', order: 5 },
+
     // Managers (Initial placeholder)
     { category: 'MANAGER', label: 'Gerente Principal', value: 'GERENTE_MAIN', order: 1 },
 ];

@@ -70,8 +70,12 @@ export async function createParameter(prevState: ParameterState, formData: FormD
 
         revalidatePath("/admin/settings");
         return { message: "Parámetro creado correctamente" };
-    } catch (error) {
-        return { error: "Error al crear el parámetro" };
+    } catch (error: any) {
+        console.error("Error creating parameter:", error);
+        if (error.code === 'P2002') {
+            return { error: "Ya existe un parámetro con ese valor en esta categoría" };
+        }
+        return { error: "Error al crear el parámetro: " + (error.message || "Error desconocido") };
     }
 }
 
