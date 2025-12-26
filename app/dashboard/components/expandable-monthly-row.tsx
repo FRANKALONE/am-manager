@@ -223,8 +223,9 @@ export function ExpandableMonthlyRow({
                                                                                 const isSelected = selectedWorklogs.some(sw => sw.id === w.id);
                                                                                 const isEvolutivo = w.tipoImputacion?.includes('Evolutivo');
                                                                                 const isClaimed = w.isClaimed || false;
+                                                                                const isRefunded = w.isRefunded || false;
                                                                                 return (
-                                                                                    <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''} ${isClaimed ? 'bg-orange-50/50' : ''}`}>
+                                                                                    <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''} ${isClaimed ? 'bg-orange-50/50' : ''} ${isRefunded ? 'bg-red-50/30' : ''}`}>
                                                                                         {permissions.request_review && (
                                                                                             <td className="p-2 text-center">
                                                                                                 <input
@@ -245,11 +246,16 @@ export function ExpandableMonthlyRow({
                                                                                                         EN RECLAMACIÓN
                                                                                                     </span>
                                                                                                 )}
+                                                                                                {isRefunded && (
+                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200" title="Esta imputación ha sido devuelta/regularizada">
+                                                                                                        DEVUELTO
+                                                                                                    </span>
+                                                                                                )}
                                                                                             </div>
                                                                                         </td>
                                                                                         {!isEvolutivo && <td className="p-2">{w.author}</td>}
                                                                                         <td className="p-2">{w.tipoImputacion || '-'}</td>
-                                                                                        <td className="p-2 text-right font-medium">{w.timeSpentHours.toFixed(2)}h</td>
+                                                                                        <td className={`p-2 text-right font-medium ${isRefunded ? 'text-red-600' : ''}`}>{w.timeSpentHours.toFixed(2)}h</td>
                                                                                     </tr>
                                                                                 );
                                                                             })}

@@ -598,6 +598,18 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
         // Get all unique ticket keys from this month (filter out nulls)
         const ticketKeys = Array.from(new Set(worklogs.map(w => w.issueKey).filter((key): key is string => key !== null)));
 
+        // NEW: Identify ticket IDs from RETURN regularizations to highlight refunded worklogs
+        const refundedTicketKeys = new Set<string>();
+        regularizations
+            .filter(reg => reg.type === 'RETURN')
+            .forEach(reg => {
+                const desc = reg.description || "";
+                const matches = desc.match(/[A-Z]+-[0-9]+/g);
+                if (matches) {
+                    matches.forEach(key => refundedTicketKeys.add(key));
+                }
+            });
+
         // Check which tickets have consumption in other months
         const ticketsWithOtherMonths: Record<string, boolean> = {};
         for (const ticketKey of ticketKeys) {
@@ -637,7 +649,8 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             worklogs: logs.map(log => ({
                 ...log,
                 hasOtherMonths: ticketsWithOtherMonths[log.issueKey] || false,
-                isClaimed: claimedWorklogIds.has(log.id)
+                isClaimed: claimedWorklogIds.has(log.id),
+                isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false
             })),
             portalUrl: wp?.client?.portalUrl || null
         }));
