@@ -617,10 +617,16 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
         // Group by ticket type
         const byType: Record<string, any[]> = {};
         worklogs.forEach(w => {
-            if (!byType[w.issueType]) {
-                byType[w.issueType] = [];
+            // Group "Consumo Manual" under "Evolutivo" as requested
+            let targetType = w.issueType;
+            if (targetType === 'Consumo Manual') {
+                targetType = 'Evolutivo';
             }
-            byType[w.issueType].push(w);
+
+            if (!byType[targetType]) {
+                byType[targetType] = [];
+            }
+            byType[targetType].push(w);
         });
 
         // Calculate totals per type and add multi-month info + claimed status
@@ -637,19 +643,22 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
         }));
 
         // Add all regularizations as a separate section if any exist
+        // FILTER OUT MANUAL_CONSUMPTION from this section as they are now in Evolutivos
         const response: any = {
             ticketTypes: result,
-            regularizations: regularizations.map(reg => ({
-                id: reg.id,
-                type: reg.type,
-                date: reg.date,
-                quantity: reg.quantity,
-                description: reg.description || (
-                    reg.type === 'RETURN' ? 'Devolución de horas' :
-                        reg.type === 'EXCESS' ? 'Exceso / Regularización' :
-                            reg.type === 'SOBRANTE_ANTERIOR' ? 'Sobrante Periodo Anterior' : 'Regularización'
-                )
-            })),
+            regularizations: regularizations
+                .filter(reg => reg.type !== 'MANUAL_CONSUMPTION')
+                .map(reg => ({
+                    id: reg.id,
+                    type: reg.type,
+                    date: reg.date,
+                    quantity: reg.quantity,
+                    description: reg.description || (
+                        reg.type === 'RETURN' ? 'Devolución de horas' :
+                            reg.type === 'EXCESS' ? 'Exceso / Regularización' :
+                                reg.type === 'SOBRANTE_ANTERIOR' ? 'Sobrante Periodo Anterior' : 'Regularización'
+                    )
+                })),
             portalUrl: wp?.client?.portalUrl || null
         };
 
