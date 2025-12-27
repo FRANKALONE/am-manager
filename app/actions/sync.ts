@@ -167,7 +167,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     const req = https.request(url, {
                         method: 'GET',
                         headers: {
-                            'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`
+                            'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                            'Accept': 'application/json'
                         }
                     }, (res: any) => {
                         let data = '';
@@ -353,8 +354,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         addLog(`[INFO] Fetched ${authorNames.size} author names`);
 
-        // 7.6. Fetch Evolutivos with "Bolsa de Horas" billing mode
+        // 7.6. Fetch Evolutivos with "Bolsa de Horas" or "T&M contra bolsa" billing mode
         const evolutivoEstimates: any[] = [];
+        const tmEvolutivoKeys = new Set<string>(); // Keep track of T&M tickets to fetch worklogs later
+
         if (wp.jiraProjectKeys) {
             const projectKeys = wp.jiraProjectKeys.split(',').map(k => k.trim()).filter(Boolean);
             if (projectKeys.length > 0) {
@@ -407,7 +410,43 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
                     addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos with Bolsa de Horas or T&M contra bolsa`);
 
+                    // Ensure EVOLUTIVO WP exists for this client if we found any evolutivos
+                    const evoWpId = `EVO-${wp.clientId}`;
+                    const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: evoWpId } });
+                    if (!existingEvoWp) {
+                        addLog(`[INFO] Creating automatic EVOLUTIVO WP for client ${wp.clientName}`);
+                        await prisma.workPackage.create({
+                            data: {
+                                id: evoWpId,
+                                name: `Evolutivos - ${wp.clientName}`,
+                                clientId: wp.clientId,
+                                clientName: wp.clientName,
+                                contractType: 'EVOLUTIVO',
+                                billingType: 'T&M BOLSA',
+                                renewalType: 'AUTOMÁTICA', // Default
+                            }
+                        });
+                    }
+
                     evolutivosRes.issues.forEach((issue: any) => {
+                        const billingModeRaw = issue.fields.customfield_10121;
+                        const billingMode = billingModeRaw?.value || billingModeRaw || null;
+
+                        if (billingMode === 'T&M contra bolsa') {
+                            tmEvolutivoKeys.add(issue.key);
+                        }
+
+                        // Add to issueDetails map so worklogs can be processed correctly
+                        issueDetails.set(issue.id, {
+                            id: issue.id,
+                            key: issue.key,
+                            summary: issue.fields.summary,
+                            issueType: 'Evolutivo',
+                            billingMode: billingMode,
+                            created: issue.fields.created,
+                            estimate: issue.fields.timeoriginalestimate
+                        });
+
                         if (issue.fields.timeoriginalestimate) {
                             const createdDate = new Date(issue.fields.created);
                             const year = createdDate.getFullYear();
@@ -429,6 +468,49 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 } else {
                     addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
                 }
+            }
+        }
+
+        // 7.7. Fetch worklogs for T&M Evolutivos from Tempo (Universal fetch by issue key)
+        const tmWorklogs: any[] = [];
+        for (const ticketKey of Array.from(tmEvolutivoKeys)) {
+            addLog(`[INFO] Fetching universal worklogs for T&M ticket: ${ticketKey}`);
+
+            const tempoRes: any = await new Promise((resolve, reject) => {
+                const url = `https://api.tempo.io/4/worklogs/issue/${ticketKey}`;
+                const req = https.request(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                        'Accept': 'application/json'
+                    }
+                }, (res: any) => {
+                    let data = '';
+                    res.on('data', (c: any) => data += c);
+                    res.on('end', () => {
+                        try {
+                            if (res.statusCode === 200) {
+                                resolve(JSON.parse(data));
+                            } else {
+                                addLog(`[WARN] Tempo API error for ticket ${ticketKey}: ${res.statusCode}`);
+                                resolve({ results: [] });
+                            }
+                        } catch (e) {
+                            addLog(`[ERROR] Failed to parse Tempo response for ticket ${ticketKey}`);
+                            resolve({ results: [] });
+                        }
+                    });
+                });
+                req.on('error', (err: any) => {
+                    addLog(`[ERROR] Tempo request error for ${ticketKey}: ${err.message}`);
+                    resolve({ results: [] });
+                });
+                req.end();
+            });
+
+            if (tempoRes.results) {
+                tmWorklogs.push(...tempoRes.results);
+                addLog(`[INFO] Found ${tempoRes.results.length} worklogs for ${ticketKey}`);
             }
         }
 
@@ -471,15 +553,20 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         }
 
         addLog(`[INFO] Filter candidates: ${accountIds.join(', ')}`);
-        addLog(`[INFO] Total raw worklogs fetched: ${allWorklogs.length}`);
+        addLog(`[INFO] Total raw worklogs fetched from accounts: ${allWorklogs.length}`);
 
         const monthlyHours = new Map<string, number>();
         const worklogDetailsToSave: any[] = []; // Collect worklog details
+        const processedWorklogIds = new Set<number>(); // Deduplication Set
         let validCount = 0;
         let skippedCount = 0;
 
+        // Process combined worklogs (Account logs + T&M specific logs)
+        const combinedWorklogs = [...allWorklogs, ...tmWorklogs];
+        addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (including T&M additions)`);
+
         let firstLog = true;
-        for (const log of allWorklogs) {
+        for (const log of combinedWorklogs) {
             const issueId = log.issue?.id ? String(log.issue.id) : null;
             const details = issueId ? issueDetails.get(issueId) : null;
 
@@ -515,6 +602,13 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 continue;
             }
 
+            // Deduplication Check
+            if (processedWorklogIds.has(log.id)) {
+                addLog(`[DEDUPE] Already processed worklog ${log.id} for ${details.key}`);
+                continue;
+            }
+            processedWorklogIds.add(log.id);
+
             validCount++;
 
             // Calculate raw hours
@@ -546,8 +640,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 timeSpentHours: correctedHours,
                 startDate: new Date(log.startDate),
                 author: authorNames.get(log.author?.accountId) || log.author?.accountId || 'Unknown',
-                tipoImputacion
+                tipoImputacion,
+                originWpId: log.issue?.key === details.key ? (log.account?.id || log.account?.key || null) : null // Basic heuristic or rely on account info
             });
+
+            // If it's a T&M Evolutivo from a different account, log it specifically
+            if (log.issue?.key && tmEvolutivoKeys.has(log.issue.key)) {
+                if (log.account?.key && log.account.key !== wp.id) {
+                    addLog(`[EXT-IMPUTATION] Found T&M worklog for ${log.issue.key} in external WP: ${log.account.key}`);
+                }
+            }
 
             if (rawHours !== correctedHours) {
                 addLog(`[CORRECTION] ${rawHours.toFixed(2)}h -> ${correctedHours.toFixed(2)}h`);

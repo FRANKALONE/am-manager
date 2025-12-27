@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Clock } from "lucide-react";
@@ -202,7 +202,7 @@ export function ExpandableMonthlyRow({
                                                                                 }}
                                                                             >
                                                                                 <Clock className="w-3 h-3 mr-1" />
-                                                                                Solicitar Revisión
+                                                                                Solicitar RevisiÃ³n
                                                                             </Button>
                                                                         </div>
                                                                     )}
@@ -215,7 +215,7 @@ export function ExpandableMonthlyRow({
                                                                                 <th className="p-2 text-left">Fecha</th>
                                                                                 {!worklogs[0]?.tipoImputacion?.includes('Evolutivo') && <th className="p-2 text-left">Autor</th>}
                                                                                 <th className="p-2 text-left">Tipo Imputación</th>
-                                                                                <th className="p-2 text-right">Horas</th>
+                                                                                {permissions.is_admin && <th className="p-2 text-left">Origen (WP)</th>}<th className="p-2 text-right">Horas</th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
@@ -242,19 +242,19 @@ export function ExpandableMonthlyRow({
                                                                                             <div className="flex items-center gap-1.5">
                                                                                                 {new Date(w.startDate).toLocaleDateString('es-ES')}
                                                                                                 {isClaimed && (
-                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700 border border-orange-200" title="Esta imputación está en reclamación">
-                                                                                                        EN RECLAMACIÓN
+                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700 border border-orange-200" title="Esta Imputación estÃ¡ en reclamaciÃ³n">
+                                                                                                        EN RECLAMACIÃ“N
                                                                                                     </span>
                                                                                                 )}
                                                                                                 {isRefunded && (
-                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200" title="Esta imputación ha sido devuelta/regularizada">
+                                                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200" title="Esta Imputación ha sido devuelta/regularizada">
                                                                                                         DEVUELTO
                                                                                                     </span>
                                                                                                 )}
                                                                                             </div>
                                                                                         </td>
                                                                                         {!isEvolutivo && <td className="p-2">{w.author}</td>}
-                                                                                        <td className="p-2">{w.tipoImputacion || '-'}</td>
+                                                                                        <td className="p-2">{w.tipoImputacion || '-'}</td>{permissions.is_admin && <td className="p-2 text-[10px] text-muted-foreground">{w.originWpId || '-'}</td>}
                                                                                         <td className={`p-2 text-right font-medium ${isRefunded ? 'text-red-600' : ''}`}>{w.timeSpentHours.toFixed(2)}h</td>
                                                                                     </tr>
                                                                                 );
@@ -283,7 +283,7 @@ export function ExpandableMonthlyRow({
                                                     <tr className="border-b border-blue-100">
                                                         <th className="p-3 text-left font-medium text-blue-900 w-24">Fecha</th>
                                                         <th className="p-3 text-left font-medium text-blue-900 w-40">Tipo</th>
-                                                        <th className="p-3 text-left font-medium text-blue-900">Descripción</th>
+                                                        <th className="p-3 text-left font-medium text-blue-900">DescripciÃ³n</th>
                                                         <th className="p-3 text-right font-medium text-blue-900 w-24">Cantidad</th>
                                                     </tr>
                                                 </thead>
@@ -296,8 +296,8 @@ export function ExpandableMonthlyRow({
                                                             <tr key={reg.id} className="border-b last:border-0 border-blue-100">
                                                                 <td className="p-3 whitespace-nowrap">{new Date(reg.date).toLocaleDateString('es-ES')}</td>
                                                                 <td className="p-3 font-medium text-xs uppercase tracking-wider text-blue-800">
-                                                                    {reg.type === 'RETURN' ? 'DEVOLUCIÓN' :
-                                                                        reg.type === 'EXCESS' ? 'REGULARIZACIÓN' :
+                                                                    {reg.type === 'RETURN' ? 'DEVOLUCIÃ“N' :
+                                                                        reg.type === 'EXCESS' ? 'REGULARIZACIÃ“N' :
                                                                             reg.type.replace(/_/g, ' ')}
                                                                 </td>
                                                                 <td className="p-3 text-muted-foreground">{reg.description}</td>
@@ -320,3 +320,4 @@ export function ExpandableMonthlyRow({
         </>
     );
 }
+

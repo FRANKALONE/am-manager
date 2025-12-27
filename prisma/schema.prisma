@@ -167,6 +167,7 @@ model WorklogDetail {
   startDate        DateTime
   author           String
   tipoImputacion   String?
+  originWpId       String?
   issueCreatedDate DateTime?
   workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 

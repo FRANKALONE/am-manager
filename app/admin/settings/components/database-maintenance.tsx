@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Wrench, RefreshCw, CheckCircle2, AlertCircle, Trash2, ShieldCheck } from "lucide-react";
 import { repairRegularizationSequence } from "@/app/actions/regularizations";
+import { cleanupManualConsumptions } from "@/app/actions/maintenance";
 
 export function DatabaseMaintenance() {
     const [isRepairing, setIsRepairing] = useState(false);
@@ -24,6 +25,34 @@ export function DatabaseMaintenance() {
                 setResult({ success: true, message: "Secuencias de IDs reparadas correctamente." });
             } else {
                 setResult({ success: false, message: res.error || "Error desconocido al reparar secuencias." });
+            }
+        } catch (error: any) {
+            setResult({ success: false, message: error.message });
+        } finally {
+            setIsRepairing(false);
+        }
+    };
+
+    const handleCleanup = async (dryRun: boolean) => {
+        if (!dryRun && !confirm("¿Seguro que quieres eliminar los consumos manuales duplicados? Esta acción es irreversible.")) {
+            return;
+        }
+
+        setIsRepairing(true);
+        setResult(null);
+
+        try {
+            const res = await cleanupManualConsumptions(undefined, dryRun);
+            if (res.success) {
+                setResult({
+                    success: true,
+                    message: res.message + (res.details && res.details.length > 0 ? " Revisa la consola para más detalles." : "")
+                });
+                if (res.details && res.details.length > 0) {
+                    console.table(res.details);
+                }
+            } else {
+                setResult({ success: false, message: res.error || "Error al realizar la limpieza." });
             }
         } catch (error: any) {
             setResult({ success: false, message: error.message });
@@ -65,6 +94,37 @@ export function DatabaseMaintenance() {
                         )}
                         Reparar Secuencias
                     </Button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-blue-200 rounded-lg bg-blue-50/50">
+                    <div className="space-y-1">
+                        <p className="font-medium text-sm">Limpieza de Evolutivos T&M</p>
+                        <p className="text-xs text-muted-foreground max-w-md">
+                            Elimina consumos manuales que coinciden con tickets ya sincronizados automáticamente por la nueva lógica de Issue Key.
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCleanup(true)}
+                            disabled={isRepairing}
+                            className="border-blue-300 hover:bg-blue-100/50 text-blue-700 font-bold"
+                        >
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Simular
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCleanup(false)}
+                            disabled={isRepairing}
+                            className="font-bold"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Limpiar Reales
+                        </Button>
+                    </div>
                 </div>
 
                 {result && (

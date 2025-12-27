@@ -650,7 +650,8 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 ...log,
                 hasOtherMonths: ticketsWithOtherMonths[log.issueKey] || false,
                 isClaimed: claimedWorklogIds.has(log.id),
-                isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false
+                isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false,
+                originWpId: log.originWpId
             })),
             portalUrl: wp?.client?.portalUrl || null
         }));
