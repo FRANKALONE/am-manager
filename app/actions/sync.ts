@@ -363,7 +363,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             if (projectKeys.length > 0) {
                 addLog(`[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}`);
 
-                const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND "Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa")`;
+                const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo`;
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 1000,
@@ -430,7 +430,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                     evolutivosRes.issues.forEach((issue: any) => {
                         const billingModeRaw = issue.fields.customfield_10121;
-                        const billingMode = billingModeRaw?.value || billingModeRaw || null;
+                        const billingMode = billingModeRaw?.value || billingModeRaw || 'Bolsa de Horas'; // Default to Bolsa if empty
 
                         if (billingMode === 'T&M contra bolsa') {
                             tmEvolutivoKeys.add(issue.key);

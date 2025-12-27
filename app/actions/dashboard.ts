@@ -224,31 +224,69 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                     consumed: consumed,
                     regularization: excessReg,
                     monthlyBalance: monthlyDifference,
-                    accumulated: 0, // No accumulation for events
+                    accumulated: 0, // No running accumulation shown in table for events normally
                     isFuture: isStrictFuture
                 });
 
                 iterDate.setMonth(iterDate.getMonth() + 1);
             }
 
-            // Calculate initial accumulated balance from previous periods or gaps
+            // --- RE-CALCULATE ACCUMULATED STATUS FOR EVENTS ---
+            // Calculate carryover from before this period
+            let eventInitialBalance = 0;
             const firstPeriodStartDate = new Date(selectedPeriod.startDate);
-            const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+
+            // 1. Regularizations before any period
+            eventInitialBalance += wp.regularizations?.filter(reg => {
                 const regDate = new Date(reg.date);
-                if (reg.type !== 'SOBRANTE_ANTERIOR') return false;
                 if (regDate >= firstPeriodStartDate) return false;
-                return true;
-            }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+                const isInAnyPrevPeriod = wp.validityPeriods.some(p => {
+                    const pStart = new Date(p.startDate);
+                    const pEnd = new Date(p.endDate);
+                    return pEnd < firstPeriodStartDate && regDate >= pStart && regDate <= pEnd;
+                });
+                return !isInAnyPrevPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+            }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
+
+            // 2. Previous periods balance
+            const previousPeriods = wp.validityPeriods.filter(p => new Date(p.endDate) < firstPeriodStartDate);
+            for (const prev of previousPeriods) {
+                const pStart = new Date(prev.startDate);
+                const pEnd = new Date(prev.endDate);
+                const pTotalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
+                const pMonthlyContracted = pTotalMonths > 0 ? (prev.totalQuantity || 0) / pTotalMonths : 0;
+
+                let pIter = new Date(pStart);
+                pIter.setDate(1);
+                while (pIter <= pEnd) {
+                    const pm = pIter.getMonth() + 1;
+                    const py = pIter.getFullYear();
+                    const ticketsInMonth = (wp.tickets || []).filter(t => t.year === py && t.month === pm).length;
+                    const pRegs = wp.regularizations?.filter(reg => {
+                        const rd = new Date(reg.date);
+                        return rd.getMonth() + 1 === pm && rd.getFullYear() === py;
+                    }) || [];
+
+                    const pManual = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                    const pReturn = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
+                    const pExcess = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+
+                    eventInitialBalance += (pMonthlyContracted - (ticketsInMonth + pManual - pReturn) + pExcess);
+                    pIter.setMonth(pIter.getMonth() + 1);
+                }
+            }
 
             // Calculate KPIs for Events
-            const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
+            const totalContracted = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
             const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
-
-            // For total scope, we add the historical carryover (sobrantes) to the current period's scope
-            const totalScope = totalContractedCurrent + totalRegularizationCurrent + sobrantesBeforeSelection;
+            // For total scope, we ONLY use current period's contracted + regularizations
+            // Per user feedback: "No quiero que el sobrante del año anterior se sume al contratado"
+            const totalScope = totalContracted + totalRegularizationCurrent;
             const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
-            const remaining = totalScope - totalConsumed;
-            const percentage = totalScope > 0 ? (totalConsumed / totalScope) * 100 : 0;
+
+            // Remaining includes carryover from before this selection
+            const remaining = totalScope - totalConsumed + eventInitialBalance;
+            const percentage = (totalScope + eventInitialBalance) > 0 ? (totalConsumed / (totalScope + eventInitialBalance)) * 100 : 0;
 
             const validityPeriodsFormatted = wp.validityPeriods.map(p => ({
                 id: p.id,
@@ -287,22 +325,24 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         // Calculate accumulated balance from all previous periods
         let accumulatedBalance = 0;
 
-        // --- NEW: Add SOBRANTE_ANTERIOR that are before any period or in gaps ---
+        // --- NEW: Add carryover (sobrantes/balances) that are before the selected period ---
         const firstPeriodStartDate = new Date(selectedPeriod.startDate);
         const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
             const regDate = new Date(reg.date);
-            if (reg.type !== 'SOBRANTE_ANTERIOR') return false;
             if (regDate >= firstPeriodStartDate) return false;
 
-            // Only count if it's NOT inside a previous period (to avoid double counting, 
-            // as those are handled in the previousPeriods loop)
+            // Check if it's NOT inside a previous period (to avoid double counting)
             const isInPreviousPeriod = wp.validityPeriods.some(p => {
                 const pStart = new Date(p.startDate);
                 const pEnd = new Date(p.endDate);
                 return pEnd < firstPeriodStartDate && regDate >= pStart && regDate <= pEnd;
             });
-            return !isInPreviousPeriod;
-        }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+            return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+        }).reduce((sum, r) => {
+            // RETURN in a gap contributes as a positive "refund" to the bag
+            // EXCESS/SOBRANTE also positive
+            return sum + r.quantity;
+        }, 0) || 0;
 
         accumulatedBalance += sobrantesBeforeSelection;
 
@@ -434,17 +474,19 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
 
-        // Contratado = Σ columna "Contratado" + Σ columna "Regularización" + Saldo arrastrado (initialBalanceForPeriod)
+        // Contratado = Σ columna "Contratado" + Σ columna "Regularización"
+        // Per user feedback: "No quiero que el sobrante del año anterior se sume al contratado"
         const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
         const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
 
-        // Scope includes the carryover from past periods/sobrantes + current period scope
-        const totalScope = totalContractedCurrent + totalRegularizationCurrent + initialBalanceForPeriod;
+        const totalScope = totalContractedCurrent + totalRegularizationCurrent;
 
         // Consumido = Σ columna "Consumido"
         const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
-        const remaining = totalScope - totalConsumed;
-        const percentage = totalScope > 0 ? (totalConsumed / totalScope) * 100 : 0;
+
+        // Disponible = Scope + Carryover - Consumido
+        const remaining = totalScope + initialBalanceForPeriod - totalConsumed;
+        const percentage = (totalScope + initialBalanceForPeriod) > 0 ? (totalConsumed / (totalScope + initialBalanceForPeriod)) * 100 : 0;
 
         // Calculate billed percentage (what has been invoiced up to current month)
         // Facturado = Contratado hasta mes actual + Regularizaciones EXCESS hasta mes actual
