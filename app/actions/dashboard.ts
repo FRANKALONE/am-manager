@@ -280,7 +280,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             const totalContracted = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
             const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
             // For total scope, we ONLY use current period's contracted + regularizations
-            // Per user feedback: "No quiero que el sobrante del año anterior se sume al contratado"
+            // Reverting per user request: "No quiero que el sobrante del año anterior se sume al contratado"
             const totalScope = totalContracted + totalRegularizationCurrent;
             const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
 
@@ -475,7 +475,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const periodEnd = new Date(selectedPeriod.endDate);
 
         // Contratado = Σ columna "Contratado" + Σ columna "Regularización"
-        // Per user feedback: "No quiero que el sobrante del año anterior se sume al contratado"
+        // Reverting per user request: "No quiero que el sobrante del año anterior se sume al contratado"
         const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
         const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
 
