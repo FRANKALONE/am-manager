@@ -535,9 +535,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
 
         // Calculate next regularization
+        // Use 'remaining' instead of 'accumulatedBalance' to work correctly for all WP types including BD
         let nextRegularization = null;
-        if (selectedPeriod.regularizationType && selectedPeriod.regularizationRate && accumulatedBalance < 0) {
-            const hoursToRegularize = Math.abs(accumulatedBalance);
+        if (selectedPeriod.regularizationType && selectedPeriod.regularizationRate && remaining < 0) {
+            const hoursToRegularize = Math.abs(remaining);
             const amount = hoursToRegularize * selectedPeriod.regularizationRate;
 
             // Calculate next regularization date based on type
