@@ -91,3 +91,55 @@ export async function cleanupManualConsumptions(wpId?: string, dryRun: boolean =
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Apply migration to add reviewedForDuplicates field to Regularization table
+ */
+export async function applyReviewedForDuplicatesMigration() {
+    try {
+        console.log('[MAINTENANCE] Applying reviewedForDuplicates migration...');
+
+        // Check if column already exists
+        const checkResult = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'Regularization' 
+            AND column_name = 'reviewedForDuplicates'
+        `);
+
+        if (checkResult.length > 0) {
+            return {
+                success: true,
+                alreadyExists: true,
+                message: "El campo 'reviewedForDuplicates' ya existe en la base de datos."
+            };
+        }
+
+        // Add the column
+        await prisma.$executeRawUnsafe(`
+            ALTER TABLE "Regularization" 
+            ADD COLUMN "reviewedForDuplicates" BOOLEAN NOT NULL DEFAULT false
+        `);
+
+        // Add index for better performance
+        await prisma.$executeRawUnsafe(`
+            CREATE INDEX "Regularization_reviewedForDuplicates_idx" 
+            ON "Regularization"("reviewedForDuplicates")
+        `);
+
+        console.log('[MAINTENANCE] Migration applied successfully');
+
+        return {
+            success: true,
+            alreadyExists: false,
+            message: "Migración aplicada correctamente. El campo 'reviewedForDuplicates' ha sido agregado."
+        };
+
+    } catch (error: any) {
+        console.error("[MAINTENANCE] Error applying migration:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}

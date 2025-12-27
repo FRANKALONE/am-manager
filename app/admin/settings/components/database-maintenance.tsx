@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, RefreshCw, CheckCircle2, AlertCircle, Trash2, ShieldCheck } from "lucide-react";
 import { repairRegularizationSequence } from "@/app/actions/regularizations";
-import { cleanupManualConsumptions } from "@/app/actions/maintenance";
+import { cleanupManualConsumptions, applyReviewedForDuplicatesMigration } from "@/app/actions/maintenance";
 
 export function DatabaseMaintenance() {
     const [isRepairing, setIsRepairing] = useState(false);
@@ -95,6 +95,29 @@ export function DatabaseMaintenance() {
                             <RefreshCw className="mr-2 h-4 w-4" />
                         )}
                         Reparar Secuencias
+                    </Button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-green-200 rounded-lg bg-green-50/50">
+                    <div className="space-y-1">
+                        <p className="font-medium text-sm">Aplicar Migración: reviewedForDuplicates</p>
+                        <p className="text-xs text-muted-foreground max-w-md">
+                            Agrega el campo necesario para el sistema de limpieza selectiva de duplicados. Ejecuta esto solo una vez.
+                        </p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleApplyMigration}
+                        disabled={isRepairing}
+                        className="border-green-300 hover:bg-green-100/50 text-green-700 font-bold"
+                    >
+                        {isRepairing ? (
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                        )}
+                        Aplicar Migración
                     </Button>
                 </div>
 
