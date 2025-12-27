@@ -1015,15 +1015,24 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 });
 
                 if (syncWorklog) {
-                    const exactMatch = Math.abs(syncWorklog.timeSpentHours - reg.quantity) < 0.01;
-                    duplicateConsumptions.push({
-                        id: reg.id,
-                        ticketId: reg.ticketId,
-                        month: `${month}/${year}`,
-                        manualHours: reg.quantity,
-                        syncHours: syncWorklog.timeSpentHours,
-                        exactMatch
-                    });
+                    // IMPORTANT: Only mark as duplicate if it's an Evolutivo T&M
+                    // Regular tickets (Incidencias, Consultas, etc.) should NOT be marked as duplicates
+                    // because they are supposed to have manual consumptions
+
+                    // Check if this ticket is an Evolutivo T&M
+                    const isEvolutivoTM = tmEvolutivoKeys.has(reg.ticketId || '');
+
+                    if (isEvolutivoTM) {
+                        const exactMatch = Math.abs(syncWorklog.timeSpentHours - reg.quantity) < 0.01;
+                        duplicateConsumptions.push({
+                            id: reg.id,
+                            ticketId: reg.ticketId,
+                            month: `${month}/${year}`,
+                            manualHours: reg.quantity,
+                            syncHours: syncWorklog.timeSpentHours,
+                            exactMatch
+                        });
+                    }
                 }
             }
 
