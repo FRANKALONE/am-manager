@@ -216,6 +216,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         }
 
         addLog(`[INFO] Total worklogs fetched from all accounts: ${allWorklogs.length}`);
+        if (allWorklogs.length > 0) {
+            addLog(`[DEBUG] Sample worklog: ${JSON.stringify(allWorklogs[0])}`);
+        }
 
         // 6. Get unique issue IDs and author account IDs
         const uniqueIssueIds = Array.from(new Set(allWorklogs
@@ -363,7 +366,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             if (projectKeys.length > 0) {
                 addLog(`[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}`);
 
-                const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo`;
+                const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa") OR "Modo de Facturación" IS EMPTY)`;
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 1000,
@@ -563,7 +566,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         // Process combined worklogs (Account logs + T&M specific logs)
         const combinedWorklogs = [...allWorklogs, ...tmWorklogs];
-        addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (including T&M additions)`);
+        addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (${allWorklogs.length} from accounts + ${tmWorklogs.length} from T&M)`);
 
         let firstLog = true;
         for (const log of combinedWorklogs) {
