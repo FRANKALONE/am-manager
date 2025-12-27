@@ -10,6 +10,7 @@ import { cleanupManualConsumptions } from "@/app/actions/maintenance";
 export function DatabaseMaintenance() {
     const [isRepairing, setIsRepairing] = useState(false);
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [cleanupDetails, setCleanupDetails] = useState<any[]>([]);
 
     const handleRepair = async () => {
         if (!confirm("Esto sincronizará las secuencias de IDs de la base de datos para evitar errores de duplicidad. ¿Continuar?")) {
@@ -40,16 +41,17 @@ export function DatabaseMaintenance() {
 
         setIsRepairing(true);
         setResult(null);
+        setCleanupDetails([]);
 
         try {
             const res = await cleanupManualConsumptions(undefined, dryRun);
             if (res.success) {
                 setResult({
                     success: true,
-                    message: res.message + (res.details && res.details.length > 0 ? " Revisa la consola para más detalles." : "")
+                    message: res.message
                 });
                 if (res.details && res.details.length > 0) {
-                    console.table(res.details);
+                    setCleanupDetails(res.details);
                 }
             } else {
                 setResult({ success: false, message: res.error || "Error al realizar la limpieza." });
@@ -136,6 +138,52 @@ export function DatabaseMaintenance() {
                             <AlertCircle className="h-4 w-4" />
                         )}
                         {result.message}
+                    </div>
+                )}
+
+                {cleanupDetails.length > 0 && (
+                    <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-blue-50 px-4 py-2 border-b">
+                            <p className="text-sm font-medium text-blue-900">
+                                Detalles de consumos manuales duplicados ({cleanupDetails.length})
+                            </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Ticket</th>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">WP</th>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Mes</th>
+                                        <th className="px-4 py-2 text-right font-medium text-gray-700">Horas Manuales</th>
+                                        <th className="px-4 py-2 text-right font-medium text-gray-700">Horas Sincronizadas</th>
+                                        <th className="px-4 py-2 text-center font-medium text-gray-700">Coincidencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {cleanupDetails.map((detail, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-4 py-2 font-mono text-xs">{detail.ticketId}</td>
+                                            <td className="px-4 py-2 text-xs text-gray-600">{detail.wpId}</td>
+                                            <td className="px-4 py-2 text-xs">{detail.month}</td>
+                                            <td className="px-4 py-2 text-right font-medium">{detail.manualHours}h</td>
+                                            <td className="px-4 py-2 text-right font-medium">{detail.syncHours}h</td>
+                                            <td className="px-4 py-2 text-center">
+                                                {detail.exactMatch ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                        ✓ Exacta
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                        ≈ Aproximada
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </CardContent>
