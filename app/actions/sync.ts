@@ -717,12 +717,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         author: 'Sistema',
                         tipoImputacion: 'Consumo Manual'
                     });
-                } else if (reg.type === 'EXCESS' || reg.type === 'RETURN') {
+                } else if (reg.type === 'EXCESS' || reg.type === 'RETURN' || reg.type === 'SOBRANTE_ANTERIOR') {
                     // DON'T subtract from consumption - regularizations are separate!
                     // const currentHours = monthlyHours.get(key) || 0;
                     // monthlyHours.set(key, currentHours - reg.quantity);
 
-                    addLog(`[INFO] Regularization ${reg.type}: -${reg.quantity}h in ${key} (${reg.description || 'N/A'})`);
+                    addLog(`[INFO] Regularization ${reg.type}: ${reg.type === 'RETURN' ? '-' : '+'}${reg.quantity}h in ${key} (${reg.description || 'N/A'})`);
 
                     // DON'T add to worklog details - regularizations are calculated separately in dashboard
                 }

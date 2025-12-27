@@ -213,6 +213,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 const isStrictFuture = iterDate > now;
 
+                // Track accumulated balance from regularizations and consumption
+                // For Events, we usually don't accumulate but let's keep track of sobrantes
+                // if they are used to increase scope.
+
                 evolutionData.push({
                     month: label,
                     year: y,
@@ -227,10 +231,21 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 iterDate.setMonth(iterDate.getMonth() + 1);
             }
 
+            // Calculate initial accumulated balance from previous periods or gaps
+            const firstPeriodStartDate = new Date(selectedPeriod.startDate);
+            const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+                const regDate = new Date(reg.date);
+                if (reg.type !== 'SOBRANTE_ANTERIOR') return false;
+                if (regDate >= firstPeriodStartDate) return false;
+                return true;
+            }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+
             // Calculate KPIs for Events
-            const totalContracted = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
-            const totalRegularization = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
-            const totalScope = totalContracted + totalRegularization;
+            const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
+            const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
+
+            // For total scope, we add the historical carryover (sobrantes) to the current period's scope
+            const totalScope = totalContractedCurrent + totalRegularizationCurrent + sobrantesBeforeSelection;
             const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
             const remaining = totalScope - totalConsumed;
             const percentage = totalScope > 0 ? (totalConsumed / totalScope) * 100 : 0;
@@ -346,6 +361,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
         // Reset safety counter for current period iteration
         safety = 0;
+        const initialBalanceForPeriod = accumulatedBalance;
 
         while (iterDate <= endDate && safety < 1200) { // Max 100 years
             safety++;
@@ -418,16 +434,16 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
 
-        // Contratado = Σ columna "Contratado" + Σ columna "Regularización"
-        const totalContracted = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
-        const totalRegularization = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
-        const totalScope = totalContracted + totalRegularization;
+        // Contratado = Σ columna "Contratado" + Σ columna "Regularización" + Saldo arrastrado (initialBalanceForPeriod)
+        const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
+        const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
+
+        // Scope includes the carryover from past periods/sobrantes + current period scope
+        const totalScope = totalContractedCurrent + totalRegularizationCurrent + initialBalanceForPeriod;
 
         // Consumido = Σ columna "Consumido"
         const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
-
-        // Disponible = Contratado - Consumido + Sobrantes de periodos anteriores
-        const remaining = totalScope - totalConsumed + sobrantesBeforeSelection;
+        const remaining = totalScope - totalConsumed;
         const percentage = totalScope > 0 ? (totalConsumed / totalScope) * 100 : 0;
 
         // Calculate billed percentage (what has been invoiced up to current month)
