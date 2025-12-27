@@ -48,7 +48,7 @@ export function DatabaseMaintenance() {
             if (res.success) {
                 setResult({
                     success: true,
-                    message: res.message
+                    message: res.message || "Limpieza completada."
                 });
                 if (res.details && res.details.length > 0) {
                     setCleanupDetails(res.details);
