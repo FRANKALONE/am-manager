@@ -176,3 +176,49 @@ export async function repairRegularizationSequence() {
         return { success: false, error: `Error reparando secuencias: ${error.message}` };
     }
 }
+
+// Delete selected regularizations (for duplicate cleanup)
+export async function deleteSelectedRegularizations(ids: number[]) {
+    try {
+        const deleted = await prisma.regularization.deleteMany({
+            where: { id: { in: ids } }
+        });
+
+        revalidatePath('/dashboard');
+        revalidatePath('/admin/regularizations');
+
+        return {
+            success: true,
+            deletedCount: deleted.count
+        };
+    } catch (error: any) {
+        console.error("Error deleting regularizations:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Mark regularizations as reviewed (implicit approval)
+export async function markRegularizationsAsReviewed(ids: number[]) {
+    try {
+        const updated = await prisma.regularization.updateMany({
+            where: { id: { in: ids } },
+            data: { reviewedForDuplicates: true }
+        });
+
+        revalidatePath('/dashboard');
+
+        return {
+            success: true,
+            updatedCount: updated.count
+        };
+    } catch (error: any) {
+        console.error("Error marking regularizations as reviewed:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}

@@ -981,8 +981,65 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const { checkLowBalanceNotifications } = await import("./notifications");
         await checkLowBalanceNotifications(wp.id);
 
+        // 12. Detect duplicate manual consumptions (only for BOLSA and BD)
+        let duplicateConsumptions: any[] = [];
+
+        if (wp.contractType === 'BOLSA' || wp.contractType === 'BD') {
+            addLog(`[INFO] Checking for duplicate manual consumptions...`);
+
+            // Find manual consumptions that might be duplicates
+            // IMPORTANT: Exclude those already reviewed
+            const manualRegs = await prisma.regularization.findMany({
+                where: {
+                    workPackageId: wp.id,
+                    type: 'MANUAL_CONSUMPTION',
+                    ticketId: { not: null },
+                    // @ts-ignore - Field will exist after migration
+                    reviewedForDuplicates: false
+                }
+            });
+
+            for (const reg of manualRegs) {
+                const regDate = new Date(reg.date);
+                const year = regDate.getFullYear();
+                const month = regDate.getMonth() + 1;
+
+                // Check if there's a synced worklog for the same ticket and month
+                const syncWorklog = await prisma.worklogDetail.findFirst({
+                    where: {
+                        workPackageId: wp.id,
+                        issueKey: reg.ticketId,
+                        year,
+                        month
+                    }
+                });
+
+                if (syncWorklog) {
+                    const exactMatch = Math.abs(syncWorklog.timeSpentHours - reg.quantity) < 0.01;
+                    duplicateConsumptions.push({
+                        id: reg.id,
+                        ticketId: reg.ticketId,
+                        month: `${month}/${year}`,
+                        manualHours: reg.quantity,
+                        syncHours: syncWorklog.timeSpentHours,
+                        exactMatch
+                    });
+                }
+            }
+
+            if (duplicateConsumptions.length > 0) {
+                addLog(`[INFO] Found ${duplicateConsumptions.length} potential duplicate consumptions`);
+            }
+        }
+
         revalidatePath(`/dashboard`);
-        return { success: true, totalHours, processed: validCount, logs: debug ? debugLogs : undefined };
+        return {
+            success: true,
+            totalHours,
+            processed: validCount,
+            duplicateConsumptions,
+            logs: debug ? debugLogs : undefined
+        };
 
     } catch (error: any) {
         addLog(`[ERROR] ${error.message}\n${error.stack}`);

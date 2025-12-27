@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDashboardWPs, getDashboardMetrics, getTicketConsumptionReport } from "@/app/actions/dashboard";
 import { syncWorkPackage } from "@/app/actions/sync";
+import { deleteSelectedRegularizations, markRegularizationsAsReviewed } from "@/app/actions/regularizations";
+import { DuplicateConsumptionsModal } from "./duplicate-consumptions-modal";
 import { Activity, BarChart3, PieChart, Clock, AlertCircle, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpandableMonthlyRow } from "./expandable-monthly-row";
@@ -45,6 +47,8 @@ export function DashboardView({
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [duplicates, setDuplicates] = useState<any[]>([]);
+    const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
 
     // Review Request states
     const [selectedWorklogs, setSelectedWorklogs] = useState<any[]>([]);
@@ -146,6 +150,13 @@ export function DashboardView({
 
                 alert(`Sincronización completada.\nProcesados: ${processed} worklogs.\nTotal Horas: ${totalHours.toFixed(1)}h\n\nRevisa la consola del navegador (F12) para ver los logs detallados.`);
                 console.log(`Manual sync complete: ${totalHours}h`);
+
+                // Check for duplicate consumptions
+                if (syncResult?.duplicateConsumptions && syncResult.duplicateConsumptions.length > 0) {
+                    setDuplicates(syncResult.duplicateConsumptions);
+                    setShowDuplicatesModal(true);
+                }
+
                 // Reload metrics after sync
                 const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
                 setMetrics(data);
@@ -203,6 +214,27 @@ export function DashboardView({
     useEffect(() => {
         setTicketReport(null);
     }, [selectedWp, selectedPeriodId]);
+
+    // Handlers for duplicate consumptions modal
+    const handleDeleteDuplicates = async (ids: number[]) => {
+        const result = await deleteSelectedRegularizations(ids);
+        if (result.success) {
+            // Reload metrics
+            if (selectedWp) {
+                const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
+                setMetrics(data);
+            }
+        }
+    };
+
+    const handleKeepDuplicates = async (ids: number[]) => {
+        await markRegularizationsAsReviewed(ids);
+    };
+
+    const handleCloseDuplicatesModal = () => {
+        setShowDuplicatesModal(false);
+        setDuplicates([]);
+    };
 
     return (
         <div className="space-y-8">
@@ -583,6 +615,15 @@ export function DashboardView({
                     <p>Selecciona un Work Package para ver los indicadores.</p>
                 </div>
             )}
+
+            {/* Duplicate Consumptions Modal */}
+            <DuplicateConsumptionsModal
+                open={showDuplicatesModal}
+                duplicates={duplicates}
+                onDelete={handleDeleteDuplicates}
+                onKeep={handleKeepDuplicates}
+                onClose={handleCloseDuplicatesModal}
+            />
         </div>
     );
 }

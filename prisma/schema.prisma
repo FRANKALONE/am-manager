@@ -62,17 +62,18 @@ model WorkPackage {
 }
 
 model Regularization {
-  id            Int         @id @default(autoincrement())
-  workPackageId String
-  date          DateTime
-  type          String
-  quantity      Float
-  description   String?
-  ticketId      String?
-  note          String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  id                    Int         @id @default(autoincrement())
+  workPackageId         String
+  date                  DateTime
+  type                  String
+  quantity              Float
+  description           String?
+  ticketId              String?
+  note                  String?
+  reviewedForDuplicates Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
 model User {
