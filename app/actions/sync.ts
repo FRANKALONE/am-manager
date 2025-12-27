@@ -605,12 +605,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 continue;
             }
 
-            // Deduplication Check
-            if (processedWorklogIds.has(log.id)) {
-                addLog(`[DEDUPE] Already processed worklog ${log.id} for ${details.key}`);
+
+            // Deduplication Check - Use tempoWorklogId instead of id
+            const worklogId = log.tempoWorklogId || log.id;
+            if (processedWorklogIds.has(worklogId)) {
+                addLog(`[DEDUPE] Already processed worklog ${worklogId} for ${details.key}`);
                 continue;
             }
-            processedWorklogIds.add(log.id);
+            processedWorklogIds.add(worklogId);
 
             validCount++;
 

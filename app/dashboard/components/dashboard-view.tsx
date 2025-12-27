@@ -130,7 +130,7 @@ export function DashboardView({
         setSyncing(true);
         try {
             console.log(`Manual sync requested for WP: ${selectedWp}`);
-            const syncResult = await syncWorkPackage(selectedWp);
+            const syncResult = await syncWorkPackage(selectedWp, true); // Enable debug mode
 
             if (syncResult && syncResult.error) {
                 alert(`Error: ${syncResult.error}`);
@@ -138,7 +138,13 @@ export function DashboardView({
             } else {
                 const totalHours = syncResult?.totalHours || 0;
                 const processed = syncResult?.processed || 0;
-                alert(`Sincronización completada.\nProcesados: ${processed} worklogs.\nTotal Horas: ${totalHours.toFixed(1)}h`);
+                const logs = syncResult?.logs || [];
+
+                // Show detailed logs in console
+                console.log('=== SYNC LOGS ===');
+                logs.forEach(log => console.log(log));
+
+                alert(`Sincronización completada.\nProcesados: ${processed} worklogs.\nTotal Horas: ${totalHours.toFixed(1)}h\n\nRevisa la consola del navegador (F12) para ver los logs detallados.`);
                 console.log(`Manual sync complete: ${totalHours}h`);
                 // Reload metrics after sync
                 const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
