@@ -63,6 +63,33 @@ export function DatabaseMaintenance() {
         }
     };
 
+    const handleApplyMigration = async () => {
+        if (!confirm("Esto aplicará la migración para agregar el campo 'reviewedForDuplicates' a la base de datos. ¿Continuar?")) {
+            return;
+        }
+
+        setIsRepairing(true);
+        setResult(null);
+
+        try {
+            const res = await applyReviewedForDuplicatesMigration();
+            if (res.success) {
+                setResult({
+                    success: true,
+                    message: res.alreadyExists
+                        ? "El campo ya existe en la base de datos."
+                        : "Migración aplicada correctamente. Ahora puedes usar la función de limpieza de duplicados."
+                });
+            } else {
+                setResult({ success: false, message: res.error || "Error al aplicar la migración." });
+            }
+        } catch (error: any) {
+            setResult({ success: false, message: error.message });
+        } finally {
+            setIsRepairing(false);
+        }
+    };
+
     return (
         <Card className="border-orange-200 bg-orange-50/10">
             <CardHeader>
