@@ -453,7 +453,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             // Logic: Accumulated
             if (!isStrictFuture) {
-                accumulatedBalance += monthlyBalance;
+                accumulatedBalance += monthlyBalance + regularizationTotal;
             }
 
             evolutionData.push({
@@ -476,8 +476,11 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
 
-        // Contratado = Σ columna "Contratado"
+        // Contratado = Σ columna "Contratado" + Σ columna "Regularización"
         const totalContractedPeriod = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
+        const totalRegularizationPeriod = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
+
+        const totalScope = totalContractedPeriod + totalRegularizationPeriod;
 
         // Contratado Facturado = Contratado hasta mes actual + Regularizaciones EXCESS hasta mes actual
         const currentYearMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
@@ -487,8 +490,6 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 return (y * 100 + m) <= currentYearMonth;
             })
             .reduce((sum, row) => sum + row.contracted + row.regularization, 0);
-
-        const totalScope = totalContractedPeriod;
 
         // Consumido = Σ columna "Consumido"
         const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
@@ -542,10 +543,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             if (regType === 'MENSUAL') {
                 const today = new Date();
                 nextDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            } else if (regType === 'TRIMESTRAL') {
-                const mesesDesdeInicio = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
-                const proximoTrimestre = Math.ceil((mesesDesdeInicio + 1) / 3) * 3;
-                nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + proximoTrimestre, 0);
+            } else if (regType === 'TRIMESTRAL' || regType === 'FIN_Q_NATURAL') {
+                // Aligned with natural quarters
+                const q = Math.floor(now.getMonth() / 3);
+                nextDate = new Date(now.getFullYear(), (q + 1) * 3, 0);
             } else if (regType === 'SEMESTRAL') {
                 const mesesDesdeInicio = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
                 const proximoSemestre = Math.ceil((mesesDesdeInicio + 1) / 6) * 6;
