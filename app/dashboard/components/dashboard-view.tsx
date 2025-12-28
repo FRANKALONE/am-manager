@@ -217,13 +217,16 @@ export function DashboardView({
 
     // Handlers for duplicate consumptions modal
     const handleDeleteDuplicates = async (ids: number[]) => {
+        setLoading(true);
         const result = await deleteSelectedRegularizations(ids);
         if (result.success) {
-            // Trigger sync to refresh metrics and clear the internal WorklogDetail/MonthlyMetric cache
+            // Reload metrics locally (without full sync)
             if (selectedWp) {
-                await handleSync();
+                const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
+                setMetrics(data);
             }
         }
+        setLoading(false);
     };
 
     const handleKeepDuplicates = async (ids: number[]) => {

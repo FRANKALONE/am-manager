@@ -209,7 +209,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 const excessReg = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
 
                 const consumed = ticketsInMonth + manualConsumption - returnReg;
-                const monthlyDifference = monthlyContractedEvents - consumed + excessReg;
+                // Difference is strictly Contracted - Consumed
+                const monthlyDifference = monthlyContractedEvents - consumed;
 
                 const isStrictFuture = iterDate > now;
 
@@ -446,8 +447,9 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 monthlyContracted = standardMonthlyContracted;
             }
 
-            // Logic: Balance = Contratado - Consumido (ya ajustado con RETURN) + Regularización (solo EXCESS)
-            const monthlyBalance = monthlyContracted - consumed + regularizationTotal;
+            // Logic: Balance = Contratado - Consumido (ya ajustado con RETURN)
+            // EXCLUDE excess regularizations from the monthly difference
+            const monthlyBalance = monthlyContracted - consumed;
 
             // Logic: Accumulated
             if (!isStrictFuture) {
@@ -560,8 +562,20 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 const nextSemester = Math.ceil((monthsSinceStart + 1) / 6) * 6;
                 nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + nextSemester, 0);
             } else if (regType === 'ANUAL') {
-                // End of 12 months from period start
+                // End of 12 months from period start, or end of current year
                 nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + 12, 0);
+            } else if (regType === 'FIN_Q_NATURAL') {
+                // End of current natural quarter
+                const q = Math.floor(now.getMonth() / 3);
+                nextDate = new Date(now.getFullYear(), (q + 1) * 3, 0);
+            } else if (regType === 'FIN_AÑO_NATURAL') {
+                nextDate = new Date(now.getFullYear(), 12, 0);
+            } else if (regType === 'FIN_JUNIO_DICIEMBRE') {
+                if (now.getMonth() < 6) {
+                    nextDate = new Date(now.getFullYear(), 6, 0);
+                } else {
+                    nextDate = new Date(now.getFullYear(), 12, 0);
+                }
             }
 
             if (nextDate && nextDate > now) {
@@ -710,7 +724,8 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 hasOtherMonths: ticketsWithOtherMonths[log.issueKey] || false,
                 isClaimed: claimedWorklogIds.has(log.id),
                 isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false,
-                originWpId: log.originWpId
+                originWpId: log.originWpId,
+                isTM: log.tipoImputacion === null && type === 'Evolutivo' // Evolution without specific bolsa attribute is treated as T&M
             })),
             portalUrl: wp?.client?.portalUrl || null
         }));

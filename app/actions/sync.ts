@@ -1053,7 +1053,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                 const clientWpIds = clientWps.map(w => w.id);
 
-                const syncWorklog = await prisma.worklogDetail.findFirst({
+                const syncWorklogs = await prisma.worklogDetail.findMany({
                     where: {
                         workPackageId: { in: clientWpIds },
                         issueKey: reg.ticketId,
@@ -1065,7 +1065,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     }
                 });
 
-                if (syncWorklog) {
+                if (syncWorklogs.length > 0) {
+                    const totalSyncHours = syncWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+                    const syncWorklog = syncWorklogs[0]; // For attribution info
                     // IMPORTANT: Only mark as duplicate if it's an Evolutivo T&M
                     // Regular tickets (Incidencias, Consultas, etc.) should NOT be marked as duplicates
                     // because they are supposed to have manual consumptions
@@ -1075,15 +1077,15 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     const isEvolutivoBolsa = syncWorklog.tipoImputacion === 'Evolutivo Bolsa';
 
                     if (isEvolutivoTM || isEvolutivoBolsa) {
-                        const exactMatch = Math.abs(syncWorklog.timeSpentHours - reg.quantity) < 0.01;
+                        const exactMatch = Math.abs(totalSyncHours - reg.quantity) < 0.01;
                         duplicateConsumptions.push({
                             id: reg.id,
                             ticketId: reg.ticketId,
                             month: `${month}/${year}`,
                             manualHours: reg.quantity,
-                            syncHours: syncWorklog.timeSpentHours,
+                            syncHours: totalSyncHours,
                             exactMatch,
-                            wpId: syncWorklog.workPackageId // Include WP where the worklog was found
+                            wpId: syncWorklog.workPackageId // Include WP where the first worklog was found
                         });
                     }
                 }

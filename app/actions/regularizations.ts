@@ -180,6 +180,42 @@ export async function repairRegularizationSequence() {
 // Delete selected regularizations (for duplicate cleanup)
 export async function deleteSelectedRegularizations(ids: number[]) {
     try {
+        // Before deleting, get the data to update metrics
+        const regs = await prisma.regularization.findMany({
+            where: { id: { in: ids } }
+        });
+
+        for (const reg of regs) {
+            if (reg.type === 'MANUAL_CONSUMPTION') {
+                const date = new Date(reg.date);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+
+                // Update MonthlyMetric
+                await prisma.monthlyMetric.updateMany({
+                    where: {
+                        workPackageId: reg.workPackageId,
+                        year,
+                        month
+                    },
+                    data: {
+                        consumedHours: { decrement: reg.quantity }
+                    }
+                });
+
+                // Delete WorklogDetail (source for the monthly breakdown)
+                await prisma.worklogDetail.deleteMany({
+                    where: {
+                        workPackageId: reg.workPackageId,
+                        year,
+                        month,
+                        issueKey: reg.ticketId,
+                        tipoImputacion: 'Consumo Manual'
+                    }
+                });
+            }
+        }
+
         const deleted = await prisma.regularization.deleteMany({
             where: { id: { in: ids } }
         });
