@@ -585,6 +585,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const isIaasService = wp.hasIaasService && issueTypeLower === 'servicio iaas';
             const isValid = isValidType || isEvolutivoTM || isIaasService;
 
+            // Debug log for Evolutivos
+            if (issueType === 'Evolutivo') {
+                addLog(`[DEBUG] Evolutivo ${details.key}: billingMode="${details.billingMode}", isEvolutivoTM=${isEvolutivoTM}, isValid=${isValid}`);
+            }
+
             if (!isValid) {
                 const billingModeStr = typeof details.billingMode === 'object'
                     ? JSON.stringify(details.billingMode)
