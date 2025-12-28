@@ -413,23 +413,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
                     addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos with Bolsa de Horas or T&M contra bolsa`);
 
-                    // Ensure EVOLUTIVO WP exists for this client if we found any evolutivos
-                    const evoWpId = `EVO-${wp.clientId}`;
-                    const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: evoWpId } });
-                    if (!existingEvoWp) {
-                        addLog(`[INFO] Creating automatic EVOLUTIVO WP for client ${wp.clientName}`);
-                        await prisma.workPackage.create({
-                            data: {
-                                id: evoWpId,
-                                name: `Evolutivos - ${wp.clientName}`,
-                                clientId: wp.clientId,
-                                clientName: wp.clientName,
-                                contractType: 'EVOLUTIVO',
-                                billingType: 'T&M BOLSA',
-                                renewalType: 'AUTOMÁTICA', // Default
-                            }
-                        });
-                    }
+                    // First, collect T&M Evolutivos
+                    const tmEvolutivos: any[] = [];
 
                     evolutivosRes.issues.forEach((issue: any) => {
                         const billingModeRaw = issue.fields.customfield_10121;
@@ -437,6 +422,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                         if (billingMode === 'T&M contra bolsa') {
                             tmEvolutivoKeys.add(issue.key);
+                            tmEvolutivos.push(issue);
                         }
 
                         // Add to issueDetails map so worklogs can be processed correctly
@@ -468,6 +454,26 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             addLog(`[INFO] Evolutivo ${issue.key}: ${hours}h estimated (created ${year}-${String(month).padStart(2, '0')})`);
                         }
                     });
+
+                    // ONLY create EVOLUTIVO WP if we found T&M Evolutivos
+                    if (tmEvolutivos.length > 0) {
+                        const evoWpId = `EVO-${wp.clientId}`;
+                        const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: evoWpId } });
+                        if (!existingEvoWp) {
+                            addLog(`[INFO] Creating automatic EVOLUTIVO WP for client ${wp.clientName} (found ${tmEvolutivos.length} T&M Evolutivos)`);
+                            await prisma.workPackage.create({
+                                data: {
+                                    id: evoWpId,
+                                    name: `Evolutivos - ${wp.clientName}`,
+                                    clientId: wp.clientId,
+                                    clientName: wp.clientName,
+                                    contractType: 'EVOLUTIVO',
+                                    billingType: 'T&M BOLSA',
+                                    renewalType: 'AUTOMÁTICA', // Default
+                                }
+                            });
+                        }
+                    }
                 } else {
                     addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
                 }
