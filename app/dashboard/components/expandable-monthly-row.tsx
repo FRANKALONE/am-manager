@@ -283,7 +283,7 @@ export function ExpandableMonthlyRow({
                                                     <tr className="border-b border-blue-100">
                                                         <th className="p-3 text-left font-medium text-blue-900 w-24">Fecha</th>
                                                         <th className="p-3 text-left font-medium text-blue-900 w-40">Tipo</th>
-                                                        <th className="p-3 text-left font-medium text-blue-900">DescripciÃ³n</th>
+                                                        <th className="p-3 text-left font-medium text-blue-900">Descripción</th>
                                                         <th className="p-3 text-right font-medium text-blue-900 w-24">Cantidad</th>
                                                     </tr>
                                                 </thead>
@@ -296,8 +296,8 @@ export function ExpandableMonthlyRow({
                                                             <tr key={reg.id} className="border-b last:border-0 border-blue-100">
                                                                 <td className="p-3 whitespace-nowrap">{new Date(reg.date).toLocaleDateString('es-ES')}</td>
                                                                 <td className="p-3 font-medium text-xs uppercase tracking-wider text-blue-800">
-                                                                    {reg.type === 'RETURN' ? 'DEVOLUCIÃ“N' :
-                                                                        reg.type === 'EXCESS' ? 'REGULARIZACIÃ“N' :
+                                                                    {reg.type === 'RETURN' ? 'DEVOLUCIÓN' :
+                                                                        reg.type === 'EXCESS' ? 'REGULARIZACIÓN' :
                                                                             reg.type.replace(/_/g, ' ')}
                                                                 </td>
                                                                 <td className="p-3 text-muted-foreground">{reg.description}</td>
