@@ -639,9 +639,17 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 attr.key === '_TipoImputación_'
             )?.value || null;
 
+            // Determine which WP to save this worklog to
+            // T&M Evolutivos go to EVOLUTIVO WP, others go to current WP
+            let targetWpId = wp.id;
+            if (details.issueType === 'Evolutivo' && tmEvolutivoKeys.has(details.key)) {
+                // This is a T&M Evolutivo, save to EVOLUTIVO WP
+                targetWpId = `EVO-${wp.clientId}`;
+            }
+
             // Save worklog detail for monthly breakdown
             worklogDetailsToSave.push({
-                workPackageId: wp.id,
+                workPackageId: targetWpId,
                 year,
                 month,
                 issueKey: details.key,  // Use key from Jira details
