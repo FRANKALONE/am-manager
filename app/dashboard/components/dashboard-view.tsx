@@ -333,7 +333,7 @@ export function DashboardView({
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{metrics.totalConsumed.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span></div>
+                                <div className="text-2xl font-bold">{metrics.totalConsumed.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span></div>
                                 <p className="text-xs text-muted-foreground">
                                     {(Math.floor(metrics.percentage * 10) / 10).toFixed(1)}% del total
                                 </p>
@@ -347,7 +347,7 @@ export function DashboardView({
                                 </CardHeader>
                                 <CardContent>
                                     <div className={`text-2xl font-bold ${metrics.remaining < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                        {metrics.remaining.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                        {metrics.remaining.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
                                     </div>
                                 </CardContent>
                             </Card>
