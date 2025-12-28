@@ -366,99 +366,107 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             if (projectKeys.length > 0) {
                 addLog(`[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}`);
 
-                const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa") OR "Modo de Facturación" IS EMPTY)`;
-                const bodyData = JSON.stringify({
-                    jql,
-                    maxResults: 1000,
-                    fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121']
-                });
+                const includeEvoEstimates = wp.includeEvoEstimates ?? true;
+                const includeEvoTM = wp.includeEvoTM ?? true;
 
-                const jiraUrl = process.env.JIRA_URL?.trim();
-                const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
-                const jiraToken = process.env.JIRA_API_TOKEN?.trim();
-                const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+                addLog(`[INFO] Config: includeEvoEstimates=${includeEvoEstimates}, includeEvoTM=${includeEvoTM}`);
 
-                const evolutivosRes: any = await new Promise((resolve, reject) => {
-                    const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Basic ${auth}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }, (res: any) => {
-                        let data = '';
-                        res.on('data', (c: any) => data += c);
-                        res.on('end', () => {
-                            try {
-                                if (res.statusCode === 200) {
-                                    resolve(JSON.parse(data));
-                                } else {
-                                    addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
+                if (!includeEvoEstimates && !includeEvoTM) {
+                    addLog(`[INFO] Both Evolutivo types disabled for this WP. Skipping Jira search.`);
+                } else {
+                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa") OR "Modo de Facturación" IS EMPTY)`;
+                    const bodyData = JSON.stringify({
+                        jql,
+                        maxResults: 1000,
+                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121']
+                    });
+
+                    const jiraUrl = process.env.JIRA_URL?.trim();
+                    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+                    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+                    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+
+                    const evolutivosRes: any = await new Promise((resolve, reject) => {
+                        const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Basic ${auth}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }, (res: any) => {
+                            let data = '';
+                            res.on('data', (c: any) => data += c);
+                            res.on('end', () => {
+                                try {
+                                    if (res.statusCode === 200) {
+                                        resolve(JSON.parse(data));
+                                    } else {
+                                        addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
+                                        resolve({ issues: [] });
+                                    }
+                                } catch (e) {
+                                    addLog(`[ERROR] Failed to parse Evolutivos response`);
                                     resolve({ issues: [] });
                                 }
-                            } catch (e) {
-                                addLog(`[ERROR] Failed to parse Evolutivos response`);
-                                resolve({ issues: [] });
+                            });
+                        });
+                        req.on('error', (err: any) => {
+                            addLog(`[ERROR] Evolutivos request error: ${err.message}`);
+                            resolve({ issues: [] });
+                        });
+                        req.write(bodyData);
+                        req.end();
+                    });
+
+                    if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
+                        addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos matching criteria`);
+
+                        evolutivosRes.issues.forEach((issue: any) => {
+                            const billingModeRaw = issue.fields.customfield_10121;
+                            const billingMode = billingModeRaw?.value || billingModeRaw || 'Bolsa de Horas';
+
+                            const isTM = billingMode === 'T&M contra bolsa';
+                            const isBolsa = billingMode === 'Bolsa de Horas';
+
+                            // Check permissions
+                            if (isTM && !includeEvoTM) return;
+                            if (isBolsa && !includeEvoEstimates) return;
+
+                            if (isTM) {
+                                tmEvolutivoKeys.add(issue.key);
                             }
-                        });
-                    });
-                    req.on('error', (err: any) => {
-                        addLog(`[ERROR] Evolutivos request error: ${err.message}`);
-                        resolve({ issues: [] });
-                    });
-                    req.write(bodyData);
-                    req.end();
-                });
 
-                if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
-                    addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos with Bolsa de Horas or T&M contra bolsa`);
-
-                    // First, collect T&M Evolutivos
-                    const tmEvolutivos: any[] = [];
-
-                    evolutivosRes.issues.forEach((issue: any) => {
-                        const billingModeRaw = issue.fields.customfield_10121;
-                        const billingMode = billingModeRaw?.value || billingModeRaw || 'Bolsa de Horas'; // Default to Bolsa if empty
-
-                        if (billingMode === 'T&M contra bolsa') {
-                            tmEvolutivoKeys.add(issue.key);
-                            tmEvolutivos.push(issue);
-                        }
-
-                        // Add to issueDetails map so worklogs can be processed correctly
-                        issueDetails.set(issue.id, {
-                            id: issue.id,
-                            key: issue.key,
-                            summary: issue.fields.summary,
-                            issueType: 'Evolutivo',
-                            billingMode: billingMode,
-                            created: issue.fields.created,
-                            estimate: issue.fields.timeoriginalestimate
-                        });
-
-                        if (issue.fields.timeoriginalestimate) {
-                            const createdDate = new Date(issue.fields.created);
-                            const year = createdDate.getFullYear();
-                            const month = createdDate.getMonth() + 1;
-                            const hours = issue.fields.timeoriginalestimate / 3600;
-
-                            evolutivoEstimates.push({
-                                issueKey: issue.key,
-                                issueSummary: issue.fields.summary || '',
-                                estimatedHours: hours,
-                                createdDate,
-                                year,
-                                month
+                            issueDetails.set(issue.id, {
+                                id: issue.id,
+                                key: issue.key,
+                                summary: issue.fields.summary,
+                                issueType: 'Evolutivo',
+                                billingMode: billingMode,
+                                created: issue.fields.created,
+                                estimate: issue.fields.timeoriginalestimate
                             });
 
-                            addLog(`[INFO] Evolutivo ${issue.key}: ${hours}h estimated (created ${year}-${String(month).padStart(2, '0')})`);
-                        }
-                    });
+                            if (isBolsa && issue.fields.timeoriginalestimate) {
+                                const createdDate = new Date(issue.fields.created);
+                                const year = createdDate.getFullYear();
+                                const month = createdDate.getMonth() + 1;
+                                const hours = issue.fields.timeoriginalestimate / 3600;
 
-                    // T&M Evolutivos will charge against the main WP being synced
-                    // No need to create separate EVOLUTIVO WPs
-                } else {
-                    addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
+                                evolutivoEstimates.push({
+                                    issueKey: issue.key,
+                                    issueSummary: issue.fields.summary || '',
+                                    estimatedHours: hours,
+                                    createdDate,
+                                    year,
+                                    month
+                                });
+
+                                addLog(`[INFO] Evolutivo ${issue.key}: ${hours}h estimated (created ${year}-${String(month).padStart(2, '0')})`);
+                            }
+                        });
+                    } else {
+                        addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
+                    }
                 }
             }
         }
@@ -506,16 +514,22 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         }
 
-        // 8. Load valid ticket types from configuration
-        const validTicketParams = await prisma.parameter.findMany({
-            where: { category: 'VALID_TICKET_TYPE' }
-        });
-        const validTypes = validTicketParams.map(p => p.value);
-
-        addLog(`[INFO] Valid ticket types configured: ${validTypes.join(', ')}`);
+        // 8. Load valid ticket types from WP configuration
+        let validTypes: string[] = [];
+        if (wp.includedTicketTypes) {
+            validTypes = wp.includedTicketTypes.split(',').map(t => t.trim()).filter(Boolean);
+            addLog(`[INFO] Valid ticket types for this WP: ${validTypes.join(', ')}`);
+        } else {
+            addLog(`[WARN] No ticket types configured for this WP! Falling back to global parameters.`);
+            const validTicketParams = await prisma.parameter.findMany({
+                where: { category: 'VALID_TICKET_TYPE' }
+            });
+            validTypes = validTicketParams.map(p => p.value);
+            addLog(`[INFO] Fallback global ticket types: ${validTypes.join(', ')}`);
+        }
 
         if (validTypes.length === 0) {
-            addLog(`[WARN] No valid ticket types configured! No worklogs will be processed.`);
+            addLog(`[WARN] No valid ticket types found! No worklogs will be processed.`);
         }
 
         // 8.5. Find active correction model (before loop)
@@ -581,20 +595,27 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const issueType = details.issueType || 'Unknown';
             const issueTypeLower = issueType.toLowerCase().trim();
             const isValidType = validTypes.some(vt => vt.toLowerCase().trim() === issueTypeLower);
-            const isEvolutivoTM = issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa';
-            const isIaasService = wp.hasIaasService && issueTypeLower === 'servicio iaas';
-            const isValid = isValidType || isEvolutivoTM || isIaasService;
+
+            // Special rules for Evolutivos and IAAS are now largely covered by explicit config, 
+            // but we keep the logic for backward compatibility/extra safety
+            const isEvolutivoTM = (issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa' && (wp.includeEvoTM ?? true));
+            const isEvolutivoBolsa = (issueType === 'Evolutivo' && (details.billingMode === 'Bolsa de Horas' || !details.billingMode) && (wp.includeEvoEstimates ?? true));
+
+            // IAAS is now usually in the includedTicketTypes list, but we keep this as a secondary check
+            const isIaasService = wp.hasIaasService && (issueTypeLower === 'servicio iaas' || issueTypeLower === 'iaas');
+
+            const isValid = isValidType || isEvolutivoTM || isEvolutivoBolsa || isIaasService;
 
             // Debug log for Evolutivos
             if (issueType === 'Evolutivo') {
-                addLog(`[DEBUG] Evolutivo ${details.key}: billingMode="${details.billingMode}", isEvolutivoTM=${isEvolutivoTM}, isValid=${isValid}`);
+                addLog(`[DEBUG] Evolutivo ${details.key}: billingMode="${details.billingMode}", isEvoTM=${isEvolutivoTM}, isEvoBolsa=${isEvolutivoBolsa}, isValid=${isValid}`);
             }
 
             if (!isValid) {
                 const billingModeStr = typeof details.billingMode === 'object'
                     ? JSON.stringify(details.billingMode)
                     : (details.billingMode || 'N/A');
-                addLog(`[FILTER] Skipped ${details.key}: Type "${issueType}" is NOT in valid list. Billing: ${billingModeStr}`);
+                addLog(`[FILTER] Skipped ${details.key}: Type "${issueType}" is NOT in valid list for this WP. Billing: ${billingModeStr}`);
                 skippedCount++;
                 continue;
             }

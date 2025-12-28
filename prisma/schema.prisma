@@ -47,6 +47,9 @@ model WorkPackage {
   tempoAccountId       String?
   oldWpId              String?
   hasIaasService       Boolean          @default(false)
+  includedTicketTypes  String?
+  includeEvoEstimates  Boolean          @default(true)
+  includeEvoTM         Boolean          @default(true)
   lastSyncedAt         DateTime?
   customAttributes     String?
   createdAt            DateTime         @default(now())

@@ -138,6 +138,11 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const initialStartDateStr = formData.get("initialStartDate") as string;
     const initialEndDateStr = formData.get("initialEndDate") as string;
 
+    // Consumo configuration
+    const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
+    const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
+    const includeEvoTM = formData.get("includeEvoTM") === "on";
+
     // Custom Attributes
     const customAttributes: Record<string, any> = {};
     Array.from(formData.entries()).forEach(([key, value]) => {
@@ -183,7 +188,10 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
 
                 customAttributes: JSON.stringify(customAttributes),
                 jiraProjectKeys: jiraProjectKeys || null,
-                tempoAccountId, // Auto-fetched Account ID
+                tempoAccountId,
+                includedTicketTypes: includedTicketTypes || null,
+                includeEvoEstimates,
+                includeEvoTM,
 
                 validityPeriods: (initialStartDateStr && initialEndDateStr) ? {
                     create: {
@@ -222,6 +230,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
     const oldWpId = formData.get("oldWpId")?.toString();
     const hasIaasService = formData.get("hasIaasService") === "on";
+    const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
+    const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
+    const includeEvoTM = formData.get("includeEvoTM") === "on";
 
     // ValidityPeriod fields (economic and management)
     const totalQuantity = parseFloat(formData.get("totalQuantity") as string);
@@ -302,6 +313,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         if (jiraProjectKeys !== undefined) wpUpdateData.jiraProjectKeys = jiraProjectKeys || null;
         if (oldWpId !== undefined) wpUpdateData.oldWpId = oldWpId || null;
         if (formData.has("hasIaasService")) wpUpdateData.hasIaasService = hasIaasService;
+        if (includedTicketTypes !== undefined) wpUpdateData.includedTicketTypes = includedTicketTypes || null;
+        if (formData.has("includeEvoEstimates")) wpUpdateData.includeEvoEstimates = includeEvoEstimates;
+        if (formData.has("includeEvoTM")) wpUpdateData.includeEvoTM = includeEvoTM;
         if (accumulatedHoursStr) wpUpdateData.accumulatedHours = accumulatedHours;
         if (accumulatedHoursDateStr) wpUpdateData.accumulatedHoursDate = accumulatedHoursDate;
         if (tempoAccountId !== undefined) wpUpdateData.tempoAccountId = tempoAccountId;

@@ -157,18 +157,61 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             />
                         </div>
 
-                        {/* IAAS Service checkbox - available for all contract types */}
-                        <div className="flex items-center space-x-2 pt-2">
-                            <input
-                                type="checkbox"
-                                id="hasIaasService"
-                                name="hasIaasService"
-                                defaultChecked={wp.hasIaasService || false}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="hasIaasService" className="font-normal cursor-pointer">
-                                Servicio IAAS Incluido
-                            </Label>
+                        {/* IAAS Service and Evolutivos configuration - available for all contract types */}
+                        <div className="space-y-4 pt-2 border-t mt-4">
+                            <h3 className="text-sm font-medium">Configuración de Consumo</h3>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="includedTicketTypes">Tipos de Ticket Consumibles</Label>
+                                <Input
+                                    id="includedTicketTypes"
+                                    name="includedTicketTypes"
+                                    defaultValue={wp.includedTicketTypes || ""}
+                                    placeholder="Ej: Incidencia, Consulta, Soporte AM"
+                                />
+                                <p className="text-[10px] text-muted-foreground">Separar por comas. Si se deja vacío se usará la configuración global.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="hasIaasService"
+                                        name="hasIaasService"
+                                        defaultChecked={wp.hasIaasService || false}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="hasIaasService" className="font-normal cursor-pointer text-xs">
+                                        Incluir IAAS
+                                    </Label>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="includeEvoEstimates"
+                                        name="includeEvoEstimates"
+                                        defaultChecked={wp.includeEvoEstimates ?? true}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="includeEvoEstimates" className="font-normal cursor-pointer text-xs">
+                                        Evolutivos Bolsa (Estimados)
+                                    </Label>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="includeEvoTM"
+                                        name="includeEvoTM"
+                                        defaultChecked={wp.includeEvoTM ?? true}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="includeEvoTM" className="font-normal cursor-pointer text-xs">
+                                        Evolutivos T&M (Horas)
+                                    </Label>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex justify-end pt-4">
