@@ -3,6 +3,21 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+// Extended WorkPackage type with new fields to avoid lint errors
+interface ExtendedWorkPackage {
+    id: string;
+    clientId: string;
+    name: string;
+    contractType: string | null;
+    jiraProjectKeys: string | null;
+    hasIaasService: boolean;
+    includedTicketTypes: string | null;
+    includeEvoEstimates: boolean;
+    includeEvoTM: boolean;
+    regularizations?: any[];
+    validityPeriods?: any[];
+}
+
 // Helper function to apply correction model
 function applyCorrectionModel(hours: number, wpCorrection: any): number {
     if (!wpCorrection || !wpCorrection.correctionModel) return hours;
@@ -11,7 +26,7 @@ function applyCorrectionModel(hours: number, wpCorrection: any): number {
         const config = JSON.parse(wpCorrection.correctionModel.config);
 
         if (config.type === "TIERED") {
-            for (const tier of config.tiers) {
+            for (const tier of config.tiers as any[]) {
                 if (hours <= tier.max) {
                     if (tier.type === "PASSTHROUGH") {
                         return hours;
@@ -80,7 +95,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     orderBy: { date: 'asc' }
                 }
             }
-        });
+        }) as any;
 
         if (!wp) {
             addLog(`[ERROR] WP not found: ${wpId}`);
@@ -105,8 +120,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         }
 
         // Find earliest start date and latest end date across all periods
-        const allStartDates = wp.validityPeriods.map(p => new Date(p.startDate).getTime());
-        const allEndDates = wp.validityPeriods.map(p => new Date(p.endDate).getTime());
+        const allStartDates = (wp.validityPeriods as any[]).map((p: any) => new Date(p.startDate).getTime());
+        const allEndDates = (wp.validityPeriods as any[]).map((p: any) => new Date(p.endDate).getTime());
         const earliestStart = new Date(Math.min(...allStartDates));
         const latestEnd = new Date(Math.max(...allEndDates));
 
@@ -129,14 +144,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             addLog(`[INFO] Adding CSE variant as candidate: ${cseVariant}`);
         }
 
-        if (wp.tempoAccountId) {
-            accountIdsSet.add(wp.tempoAccountId);
-            addLog(`[INFO] Adding explicit Tempo Account ID: ${wp.tempoAccountId}`);
+        if ((wp as any).tempoAccountId) {
+            accountIdsSet.add((wp as any).tempoAccountId);
+            addLog(`[INFO] Adding explicit Tempo Account ID: ${(wp as any).tempoAccountId}`);
         }
 
-        if (wp.oldWpId) {
-            accountIdsSet.add(wp.oldWpId);
-            addLog(`[INFO] Adding old WP ID as candidate: ${wp.oldWpId}`);
+        if ((wp as any).oldWpId) {
+            accountIdsSet.add((wp as any).oldWpId);
+            addLog(`[INFO] Adding old WP ID as candidate: ${(wp as any).oldWpId}`);
         }
 
         const accountIds = Array.from(accountIdsSet);
@@ -359,15 +374,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         // 7.6. Fetch Evolutivos with "Bolsa de Horas" or "T&M contra bolsa" billing mode
         const evolutivoEstimates: any[] = [];
-        const tmEvolutivoKeys = new Set<string>(); // Keep track of T&M tickets to fetch worklogs later
+        const tmEvolutivoIds = new Set<string>(); // Keep track of T&M ticket IDs to fetch worklogs later
+        const ticketIdToKey = new Map<string, string>(); // Helper to resolve key from ID
 
         if (wp.jiraProjectKeys) {
-            const projectKeys = wp.jiraProjectKeys.split(',').map(k => k.trim()).filter(Boolean);
+            const projectKeys = (wp as any).jiraProjectKeys.split(',').map((k: any) => k.trim()).filter(Boolean);
             if (projectKeys.length > 0) {
                 addLog(`[INFO] Fetching Evolutivos with Bolsa de Horas or T&M contra bolsa for projects: ${projectKeys.join(', ')}`);
 
-                const includeEvoEstimates = wp.includeEvoEstimates ?? true;
-                const includeEvoTM = wp.includeEvoTM ?? true;
+                const includeEvoEstimates = (wp as any).includeEvoEstimates ?? true;
+                const includeEvoTM = (wp as any).includeEvoTM ?? true;
 
                 addLog(`[INFO] Config: includeEvoEstimates=${includeEvoEstimates}, includeEvoTM=${includeEvoTM}`);
 
@@ -378,7 +394,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     const bodyData = JSON.stringify({
                         jql,
                         maxResults: 1000,
-                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121']
+                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'status']
                     });
 
                     const jiraUrl = process.env.JIRA_URL?.trim();
@@ -433,7 +449,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             if (isBolsa && !includeEvoEstimates) return;
 
                             if (isTM) {
-                                tmEvolutivoKeys.add(issue.key);
+                                tmEvolutivoIds.add(issue.id);
+                                ticketIdToKey.set(issue.id, issue.key);
                             }
 
                             issueDetails.set(issue.id, {
@@ -443,7 +460,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 issueType: 'Evolutivo',
                                 billingMode: billingMode,
                                 created: issue.fields.created,
-                                estimate: issue.fields.timeoriginalestimate
+                                estimate: issue.fields.timeoriginalestimate,
+                                status: issue.fields.status?.name || 'Unknown'
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
@@ -471,13 +489,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         }
 
-        // 7.7. Fetch worklogs for T&M Evolutivos from Tempo (Universal fetch by issue key)
+        // 7.7. Fetch worklogs for T&M Evolutivos from Tempo (Universal fetch by issue ID)
         const tmWorklogs: any[] = [];
-        for (const ticketKey of Array.from(tmEvolutivoKeys)) {
-            addLog(`[INFO] Fetching universal worklogs for T&M ticket: ${ticketKey}`);
+        for (const ticketId of Array.from(tmEvolutivoIds)) {
+            const ticketKey = ticketIdToKey.get(ticketId) || ticketId;
+            addLog(`[INFO] Fetching universal worklogs for T&M ticket: ${ticketKey} (ID: ${ticketId})`);
 
             const tempoRes: any = await new Promise((resolve, reject) => {
-                const url = `https://api.tempo.io/4/worklogs/issue/${ticketKey}`;
+                const url = `https://api.tempo.io/4/worklogs/issue/${ticketId}`;
                 const req = https.request(url, {
                     method: 'GET',
                     headers: {
@@ -516,15 +535,15 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         // 8. Load valid ticket types from WP configuration
         let validTypes: string[] = [];
-        if (wp.includedTicketTypes) {
-            validTypes = wp.includedTicketTypes.split(',').map(t => t.trim()).filter(Boolean);
+        if ((wp as any).includedTicketTypes) {
+            validTypes = (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim()).filter(Boolean);
             addLog(`[INFO] Valid ticket types for this WP: ${validTypes.join(', ')}`);
         } else {
             addLog(`[WARN] No ticket types configured for this WP! Falling back to global parameters.`);
             const validTicketParams = await prisma.parameter.findMany({
                 where: { category: 'VALID_TICKET_TYPE' }
             });
-            validTypes = validTicketParams.map(p => p.value);
+            validTypes = validTicketParams.map((p: any) => p.value);
             addLog(`[INFO] Fallback global ticket types: ${validTypes.join(', ')}`);
         }
 
@@ -533,7 +552,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         }
 
         // 8.5. Find active correction model (before loop)
-        let activeCorrection = wp.wpCorrections.find(c => {
+        let activeCorrection = (wp as any).wpCorrections.find((c: any) => {
             const corrStart = new Date(c.startDate);
             const corrEnd = c.endDate ? new Date(c.endDate) : new Date('2099-12-31');
             return now >= corrStart && now <= corrEnd;
@@ -655,7 +674,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const accountKey = log.account?.key || log.account?.id;
 
             // Log if this is a T&M Evolutivo from a different account
-            if (details.issueType === 'Evolutivo' && tmEvolutivoKeys.has(details.key)) {
+            const isEvolutivoTMRecord = Array.from(tmEvolutivoIds).some(id => ticketIdToKey.get(id) === details.key);
+            if (details.issueType === 'Evolutivo' && isEvolutivoTMRecord) {
                 if (accountKey && accountKey !== wp.id) {
                     addLog(`[T&M-EVOLUTIVO] ${details.key}: ${correctedHours.toFixed(2)}h from account ${accountKey} → charging to main WP ${wp.id}`);
                 }
@@ -715,7 +735,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         if (wp.regularizations && wp.regularizations.length > 0) {
             addLog(`[INFO] Processing ${wp.regularizations.length} regularizations`);
 
-            wp.regularizations.forEach(reg => {
+            (wp as any).regularizations.forEach((reg: any) => {
                 const regDate = new Date(reg.date);
                 const year = regDate.getFullYear();
                 const month = regDate.getMonth() + 1;
@@ -767,7 +787,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             if (!jiraUrl || !jiraEmail || !jiraToken) {
                 addLog(`[ERROR] Missing JIRA credentials for Events sync`);
             } else {
-                const projectKeys = wp.jiraProjectKeys?.split(',').map(k => k.trim()).join(', ') || '';
+                const projectKeys = (wp as any).jiraProjectKeys?.split(',').map((k: any) => k.trim()).join(', ') || '';
                 if (projectKeys) {
                     console.log('[EVENTS DEBUG] Project keys:', projectKeys);
                     // Clear old tickets for this WP
@@ -1038,7 +1058,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         workPackageId: { in: clientWpIds },
                         issueKey: reg.ticketId,
                         year,
-                        month
+                        month,
+                        // IMPORTANT: MUST ignore manual consumptions when searching for duplicates
+                        // to avoid detecting itself (since this sync just saved the manual ones)
+                        tipoImputacion: { not: 'Consumo Manual' }
                     }
                 });
 
@@ -1047,10 +1070,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     // Regular tickets (Incidencias, Consultas, etc.) should NOT be marked as duplicates
                     // because they are supposed to have manual consumptions
 
-                    // Check if this ticket is an Evolutivo T&M
-                    const isEvolutivoTM = tmEvolutivoKeys.has(reg.ticketId || '');
+                    // Check if this ticket is an Evolutivo (T&M or Bolsa)
+                    const isEvolutivoTM = Array.from(tmEvolutivoIds).some(id => ticketIdToKey.get(id) === reg.ticketId);
+                    const isEvolutivoBolsa = syncWorklog.tipoImputacion === 'Evolutivo Bolsa';
 
-                    if (isEvolutivoTM) {
+                    if (isEvolutivoTM || isEvolutivoBolsa) {
                         const exactMatch = Math.abs(syncWorklog.timeSpentHours - reg.quantity) < 0.01;
                         duplicateConsumptions.push({
                             id: reg.id,

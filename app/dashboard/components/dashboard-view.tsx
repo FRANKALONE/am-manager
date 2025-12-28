@@ -219,10 +219,9 @@ export function DashboardView({
     const handleDeleteDuplicates = async (ids: number[]) => {
         const result = await deleteSelectedRegularizations(ids);
         if (result.success) {
-            // Reload metrics
+            // Trigger sync to refresh metrics and clear the internal WorklogDetail/MonthlyMetric cache
             if (selectedWp) {
-                const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
-                setMetrics(data);
+                await handleSync();
             }
         }
     };
