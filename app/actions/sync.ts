@@ -298,7 +298,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 jiraRes.issues.forEach((issue: any) => {
                     // Extract billing mode value from object if it's an object
                     const billingModeRaw = issue.fields.customfield_10121;
-                    const billingMode = billingModeRaw?.value || billingModeRaw || null;
+                    const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
 
                     issueDetails.set(issue.id, {
                         key: issue.key,
@@ -439,7 +439,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                         evolutivosRes.issues.forEach((issue: any) => {
                             const billingModeRaw = issue.fields.customfield_10121;
-                            const billingMode = billingModeRaw?.value || billingModeRaw || 'Bolsa de Horas';
+                            const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || 'Bolsa de Horas';
 
                             const isTM = billingMode === 'T&M contra bolsa';
                             const isBolsa = billingMode === 'Bolsa de Horas';
@@ -623,7 +623,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             // IAAS is now usually in the includedTicketTypes list, but we keep this as a secondary check
             const isIaasService = wp.hasIaasService && (issueTypeLower === 'servicio iaas' || issueTypeLower === 'iaas');
 
-            const isValid = isValidType || isEvolutivoTM || isEvolutivoBolsa || isIaasService;
+            const isValid = isValidType || isEvolutivoTM || isIaasService;
 
             // Debug log for Evolutivos
             if (issueType === 'Evolutivo') {
