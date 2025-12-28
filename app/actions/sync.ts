@@ -455,25 +455,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         }
                     });
 
-                    // ONLY create EVOLUTIVO WP if we found T&M Evolutivos
-                    if (tmEvolutivos.length > 0) {
-                        const evoWpId = `EVO-${wp.clientId}`;
-                        const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: evoWpId } });
-                        if (!existingEvoWp) {
-                            addLog(`[INFO] Creating automatic EVOLUTIVO WP for client ${wp.clientName} (found ${tmEvolutivos.length} T&M Evolutivos)`);
-                            await prisma.workPackage.create({
-                                data: {
-                                    id: evoWpId,
-                                    name: `Evolutivos - ${wp.clientName}`,
-                                    clientId: wp.clientId,
-                                    clientName: wp.clientName,
-                                    contractType: 'EVOLUTIVO',
-                                    billingType: 'T&M BOLSA',
-                                    renewalType: 'AUTOMÁTICA', // Default
-                                }
-                            });
-                        }
-                    }
+                    // T&M Evolutivos will charge against the main WP being synced
+                    // No need to create separate EVOLUTIVO WPs
                 } else {
                     addLog(`[INFO] No Evolutivos with Bolsa de Horas or T&M contra bolsa found`);
                 }
@@ -640,40 +623,15 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             )?.value || null;
 
             // Determine which WP to save this worklog to
-            // T&M Evolutivos go to their specific EVOLUTIVO WP based on account.key
-            let targetWpId = wp.id;
+            // ALL worklogs (including T&M Evolutivos) go to the main WP being synced
+            // T&M Evolutivos charge against the main WP's consumption
+            const targetWpId = wp.id;
             const accountKey = log.account?.key || log.account?.id;
 
+            // Log if this is a T&M Evolutivo from a different account
             if (details.issueType === 'Evolutivo' && tmEvolutivoKeys.has(details.key)) {
-                // This is a T&M Evolutivo
-
-                if (accountKey) {
-                    // Use the account key as the WP ID
-                    targetWpId = accountKey;
-
-                    // Ensure this EVOLUTIVO WP exists
-                    const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: targetWpId } });
-                    if (!existingEvoWp) {
-                        addLog(`[INFO] Creating EVOLUTIVO WP for account ${accountKey}`);
-                        await prisma.workPackage.create({
-                            data: {
-                                id: targetWpId,
-                                name: `Evolutivos T&M - ${wp.clientName} (${accountKey})`,
-                                clientId: wp.clientId,
-                                clientName: wp.clientName,
-                                contractType: 'EVOLUTIVO',
-                                billingType: 'T&M BOLSA',
-                                renewalType: 'AUTOMÁTICA',
-                            }
-                        });
-                    }
-
-                    if (accountKey !== wp.id) {
-                        addLog(`[EXT-IMPUTATION] T&M worklog for ${details.key} in WP: ${accountKey}`);
-                    }
-                } else {
-                    // No account info, use generic EVOLUTIVO WP
-                    targetWpId = `EVO-${wp.clientId}`;
+                if (accountKey && accountKey !== wp.id) {
+                    addLog(`[T&M-EVOLUTIVO] ${details.key}: ${correctedHours.toFixed(2)}h from account ${accountKey} → charging to main WP ${wp.id}`);
                 }
             }
 
@@ -685,7 +643,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 issueKey: details.key,  // Use key from Jira details
                 issueType: details.issueType,
                 issueSummary: details.summary || '',
-                issueCreatedDate: details.created ? new Date(details.created) : null, // Add creation date
+                issueCreatedDate: details.created ? new Date(details.created) : null,
                 timeSpentHours: correctedHours,
                 startDate: new Date(log.startDate),
                 author: authorNames.get(log.author?.accountId) || log.author?.accountId || 'Unknown',
