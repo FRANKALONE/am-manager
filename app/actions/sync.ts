@@ -1042,9 +1042,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const month = regDate.getMonth() + 1;
 
                 // Check if there's a synced worklog for the same ticket and month
+                // Search in ALL WPs of this client (including EVOLUTIVO WPs)
+                const clientWps = await prisma.workPackage.findMany({
+                    where: { clientId: wp.clientId }
+                });
+
+                const clientWpIds = clientWps.map(w => w.id);
+
                 const syncWorklog = await prisma.worklogDetail.findFirst({
                     where: {
-                        workPackageId: wp.id,
+                        workPackageId: { in: clientWpIds },
                         issueKey: reg.ticketId,
                         year,
                         month
@@ -1067,7 +1074,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             month: `${month}/${year}`,
                             manualHours: reg.quantity,
                             syncHours: syncWorklog.timeSpentHours,
-                            exactMatch
+                            exactMatch,
+                            wpId: syncWorklog.workPackageId // Include WP where the worklog was found
                         });
                     }
                 }
