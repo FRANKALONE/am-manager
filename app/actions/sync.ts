@@ -694,7 +694,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 startDate: new Date(log.startDate),
                 author: authorNames.get(log.author?.accountId) || log.author?.accountId || 'Unknown',
                 tipoImputacion,
-                originWpId: accountKey || null
+                originWpId: accountKey || null,
+                billingMode: details?.billingMode || null
             });
 
             if (rawHours !== correctedHours) {
@@ -721,7 +722,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 timeSpentHours: evo.estimatedHours,
                 startDate: evo.createdDate,
                 author: 'Estimación',
-                tipoImputacion: 'Evolutivo Bolsa'
+                tipoImputacion: 'Evolutivo Bolsa',
+                billingMode: 'Bolsa de Horas'
             });
         });
 
@@ -831,7 +833,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const searchUrl = new URL(`${jiraUrl}/rest/api/3/search/jql`);
                             searchUrl.searchParams.append('jql', jql);
                             searchUrl.searchParams.append('maxResults', maxResults.toString());
-                            searchUrl.searchParams.append('fields', 'key,summary,issuetype,created,status,reporter');
+                            searchUrl.searchParams.append('fields', 'key,summary,issuetype,created,status,reporter,customfield_10121');
                             if (nextPageToken) {
                                 searchUrl.searchParams.append('nextPageToken', nextPageToken);
                             }
@@ -893,7 +895,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                             month: month,
                                             status: issue.fields.status?.name || 'Unknown',
                                             reporter: issue.fields.reporter?.displayName || 'Unknown',
-                                            reporterEmail: issue.fields.reporter?.emailAddress || null
+                                            reporterEmail: issue.fields.reporter?.emailAddress || null,
+                                            billingMode: issue.fields.customfield_10121?.value || issue.fields.customfield_10121 || null
                                         }
                                     });
                                 }
@@ -959,7 +962,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         createdDate: wl.issueCreatedDate || new Date(),
                         year: wl.year,
                         month: wl.month,
-                        reporter: 'Unknown' // We don't have reporter info in worklog details
+                        reporter: 'Unknown', // We don't have reporter info in worklog details
+                        billingMode: details?.billingMode || wl.billingMode || null
                     });
                 }
             }
@@ -977,7 +981,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 update: {
                     issueSummary: ticketData.issueSummary,
                     issueType: ticketData.issueType,
-                    status: ticketData.status
+                    status: ticketData.status,
+                    billingMode: ticketData.billingMode
                 },
                 create: {
                     workPackageId: wp.id,
@@ -989,7 +994,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     month: ticketData.month,
                     status: ticketData.status,
                     reporter: ticketData.reporter,
-                    reporterEmail: null
+                    reporterEmail: null,
+                    billingMode: ticketData.billingMode
                 }
             });
         }

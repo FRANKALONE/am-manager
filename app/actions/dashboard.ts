@@ -476,35 +476,29 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
 
-        // Contratado = Σ columna "Contratado" + Σ columna "Regularización"
-        // Reverting per user request: "No quiero que el sobrante del año anterior se sume al contratado"
-        const totalContractedCurrent = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
-        const totalRegularizationCurrent = evolutionData.reduce((sum, row) => sum + row.regularization, 0);
+        // Contratado = Σ columna "Contratado"
+        const totalContractedPeriod = evolutionData.reduce((sum, row) => sum + row.contracted, 0);
 
-        const totalScope = totalContractedCurrent + totalRegularizationCurrent;
+        // Contratado Facturado = Contratado hasta mes actual + Regularizaciones EXCESS hasta mes actual
+        const currentYearMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+        const billedAmount = evolutionData
+            .filter(row => {
+                const [m, y] = row.month.split('/').map(Number);
+                return (y * 100 + m) <= currentYearMonth;
+            })
+            .reduce((sum, row) => sum + row.contracted + row.regularization, 0);
+
+        const totalScope = totalContractedPeriod;
 
         // Consumido = Σ columna "Consumido"
         const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
 
-        // Disponible = Scope + Carryover - Consumido
-        const remaining = totalScope + initialBalanceForPeriod - totalConsumed;
+        // Disponible = BilledAmount + initialBalance - Consumido
+        const remaining = billedAmount + initialBalanceForPeriod - totalConsumed;
+
         const percentage = (totalScope + initialBalanceForPeriod) > 0 ? (totalConsumed / (totalScope + initialBalanceForPeriod)) * 100 : 0;
 
-        // Calculate billed percentage (what has been invoiced up to current month)
-        // Facturado = Contratado hasta mes actual + Regularizaciones EXCESS hasta mes actual
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-
-        const billedContracted = evolutionData
-            .filter(row => {
-                const [month, year] = row.month.split('/').map(Number);
-                const rowYearMonth = year * 100 + month;
-                const currentYearMonth = currentYear * 100 + currentMonth;
-                return rowYearMonth <= currentYearMonth && !row.isFuture;
-            })
-            .reduce((sum, row) => sum + row.contracted + row.regularization, 0);
-
-        const billedPercentage = totalScope > 0 ? (billedContracted / totalScope) * 100 : 0;
+        const billedPercentage = totalScope > 0 ? (billedAmount / totalScope) * 100 : 0;
 
         // Format validity periods for frontend
         const validityPeriodsFormatted = wp.validityPeriods.map(p => ({
@@ -537,35 +531,28 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
 
         // Calculate next regularization
-        // Use 'remaining' instead of 'accumulatedBalance' to work correctly for all WP types including BD
+        // Only show if (Current Available + Future Contracted until Reg Date) < 0
         let nextRegularization = null;
-        if (selectedPeriod.regularizationType && selectedPeriod.regularizationRate && remaining < 0) {
-            const hoursToRegularize = Math.abs(remaining);
-            const amount = hoursToRegularize * selectedPeriod.regularizationRate;
+        if (selectedPeriod.regularizationType && selectedPeriod.regularizationRate) {
 
             // Calculate next regularization date based on type
-            let nextDate = null;
+            let nextDate: Date | null = null;
             const regType = selectedPeriod.regularizationType.toUpperCase();
 
             if (regType === 'MENSUAL') {
-                // End of current month
                 const today = new Date();
                 nextDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             } else if (regType === 'TRIMESTRAL') {
-                // Every 3 months from period start
-                const monthsSinceStart = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
-                const nextQuarter = Math.ceil((monthsSinceStart + 1) / 3) * 3;
-                nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + nextQuarter, 0);
+                const mesesDesdeInicio = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
+                const proximoTrimestre = Math.ceil((mesesDesdeInicio + 1) / 3) * 3;
+                nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + proximoTrimestre, 0);
             } else if (regType === 'SEMESTRAL') {
-                // Every 6 months from period start
-                const monthsSinceStart = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
-                const nextSemester = Math.ceil((monthsSinceStart + 1) / 6) * 6;
-                nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + nextSemester, 0);
+                const mesesDesdeInicio = (now.getFullYear() - periodStart.getFullYear()) * 12 + (now.getMonth() - periodStart.getMonth());
+                const proximoSemestre = Math.ceil((mesesDesdeInicio + 1) / 6) * 6;
+                nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + proximoSemestre, 0);
             } else if (regType === 'ANUAL') {
-                // End of 12 months from period start, or end of current year
                 nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + 12, 0);
             } else if (regType === 'FIN_Q_NATURAL') {
-                // End of current natural quarter
                 const q = Math.floor(now.getMonth() / 3);
                 nextDate = new Date(now.getFullYear(), (q + 1) * 3, 0);
             } else if (regType === 'FIN_AÑO_NATURAL') {
@@ -579,18 +566,38 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             }
 
             if (nextDate && nextDate > now) {
-                nextRegularization = {
-                    hours: hoursToRegularize,
-                    amount: amount,
-                    date: nextDate,
-                    type: selectedPeriod.regularizationType
-                };
+                // Calculate future contracted until nextDate
+                const futureTargetYM = nextDate.getFullYear() * 100 + (nextDate.getMonth() + 1);
+                const currentYM = now.getFullYear() * 100 + (now.getMonth() + 1);
+
+                const futureContracted = evolutionData
+                    .filter(row => {
+                        const [m, y] = row.month.split('/').map(Number);
+                        const rowYM = y * 100 + m;
+                        return rowYM > currentYM && rowYM <= futureTargetYM;
+                    })
+                    .reduce((sum, row) => sum + row.contracted, 0);
+
+                const projectedBalance = remaining + futureContracted;
+
+                if (projectedBalance < 0) {
+                    const hoursToRegularize = Math.abs(projectedBalance);
+                    const amount = hoursToRegularize * selectedPeriod.regularizationRate;
+
+                    nextRegularization = {
+                        hours: hoursToRegularize,
+                        amount: amount,
+                        date: nextDate,
+                        type: selectedPeriod.regularizationType
+                    };
+                }
             }
         }
 
         return {
             wpName: wp.name,
             totalScope,
+            billedAmount,
             totalConsumed,
             remaining,
             percentage,
@@ -725,7 +732,10 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 isClaimed: claimedWorklogIds.has(log.id),
                 isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false,
                 originWpId: log.originWpId,
-                isTM: type === 'Evolutivo' && log.tipoImputacion !== 'Evolutivo Bolsa' && log.tipoImputacion !== 'Consumo Manual'
+                isTM: log.billingMode === 'T&M contra bolsa',
+                isBolsa: log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas',
+                label: log.billingMode === 'T&M contra bolsa' ? 'Evolutivo T&M contra bolsa' :
+                    (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas' ? 'Evolutivo contra bolsa' : null)
             })),
             portalUrl: wp?.client?.portalUrl || null
         }));

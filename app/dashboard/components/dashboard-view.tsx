@@ -323,9 +323,11 @@ export function DashboardView({
                                 <PieChart className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{metrics.totalScope.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span></div>
+                                <div className="text-2xl font-bold">
+                                    {metrics.billedAmount?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {metrics.totalScope.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {metrics.billedPercentage.toFixed(1)}% facturado
+                                    {metrics.billedPercentage.toFixed(1)}% facturado de <span className="font-semibold">{metrics.totalScope.toLocaleString()} {metrics.scopeUnit}</span>
                                 </p>
                             </CardContent>
                         </Card>

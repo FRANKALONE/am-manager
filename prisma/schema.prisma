@@ -173,6 +173,7 @@ model WorklogDetail {
   tipoImputacion   String?
   originWpId       String?
   issueCreatedDate DateTime?
+  billingMode      String?
   workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@index([workPackageId, year, month])
@@ -190,6 +191,7 @@ model Ticket {
   status        String
   reporter      String
   reporterEmail String?
+  billingMode   String?
   workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])

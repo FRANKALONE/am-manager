@@ -180,9 +180,9 @@ export function ExpandableMonthlyRow({
                                                                                 ) : (
                                                                                     <span className="font-medium text-sm">{ticketKey}</span>
                                                                                 )}
-                                                                                {worklogs[0].isTM && (
+                                                                                {worklogs[0].label && (
                                                                                     <span className="text-[10px] bg-[#D8FDEC] text-[#008580] px-2 py-0.5 rounded-full font-bold border border-[#18D450]/30">
-                                                                                        T&M contra bolsa
+                                                                                        {worklogs[0].label}
                                                                                     </span>
                                                                                 )}
                                                                                 {hasOtherMonths && (
