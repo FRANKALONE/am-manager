@@ -640,11 +640,41 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             )?.value || null;
 
             // Determine which WP to save this worklog to
-            // T&M Evolutivos go to EVOLUTIVO WP, others go to current WP
+            // T&M Evolutivos go to their specific EVOLUTIVO WP based on account.key
             let targetWpId = wp.id;
+            const accountKey = log.account?.key || log.account?.id;
+
             if (details.issueType === 'Evolutivo' && tmEvolutivoKeys.has(details.key)) {
-                // This is a T&M Evolutivo, save to EVOLUTIVO WP
-                targetWpId = `EVO-${wp.clientId}`;
+                // This is a T&M Evolutivo
+
+                if (accountKey) {
+                    // Use the account key as the WP ID
+                    targetWpId = accountKey;
+
+                    // Ensure this EVOLUTIVO WP exists
+                    const existingEvoWp = await prisma.workPackage.findUnique({ where: { id: targetWpId } });
+                    if (!existingEvoWp) {
+                        addLog(`[INFO] Creating EVOLUTIVO WP for account ${accountKey}`);
+                        await prisma.workPackage.create({
+                            data: {
+                                id: targetWpId,
+                                name: `Evolutivos T&M - ${wp.clientName} (${accountKey})`,
+                                clientId: wp.clientId,
+                                clientName: wp.clientName,
+                                contractType: 'EVOLUTIVO',
+                                billingType: 'T&M BOLSA',
+                                renewalType: 'AUTOMÁTICA',
+                            }
+                        });
+                    }
+
+                    if (accountKey !== wp.id) {
+                        addLog(`[EXT-IMPUTATION] T&M worklog for ${details.key} in WP: ${accountKey}`);
+                    }
+                } else {
+                    // No account info, use generic EVOLUTIVO WP
+                    targetWpId = `EVO-${wp.clientId}`;
+                }
             }
 
             // Save worklog detail for monthly breakdown
@@ -660,15 +690,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 startDate: new Date(log.startDate),
                 author: authorNames.get(log.author?.accountId) || log.author?.accountId || 'Unknown',
                 tipoImputacion,
-                originWpId: log.issue?.key === details.key ? (log.account?.id || log.account?.key || null) : null // Basic heuristic or rely on account info
+                originWpId: accountKey || null
             });
-
-            // If it's a T&M Evolutivo from a different account, log it specifically
-            if (log.issue?.key && tmEvolutivoKeys.has(log.issue.key)) {
-                if (log.account?.key && log.account.key !== wp.id) {
-                    addLog(`[EXT-IMPUTATION] Found T&M worklog for ${log.issue.key} in external WP: ${log.account.key}`);
-                }
-            }
 
             if (rawHours !== correctedHours) {
                 addLog(`[CORRECTION] ${rawHours.toFixed(2)}h -> ${correctedHours.toFixed(2)}h`);
