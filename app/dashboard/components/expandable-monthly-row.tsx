@@ -181,7 +181,7 @@ export function ExpandableMonthlyRow({
                                                                                     <span className="font-medium text-sm">{ticketKey}</span>
                                                                                 )}
                                                                                 {worklogs[0].isTM && (
-                                                                                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold border border-purple-200">
+                                                                                    <span className="text-[10px] bg-[#D8FDEC] text-[#008580] px-2 py-0.5 rounded-full font-bold border border-[#18D450]/30">
                                                                                         T&M contra bolsa
                                                                                     </span>
                                                                                 )}

@@ -725,7 +725,7 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 isClaimed: claimedWorklogIds.has(log.id),
                 isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false,
                 originWpId: log.originWpId,
-                isTM: log.tipoImputacion === null && type === 'Evolutivo' // Evolution without specific bolsa attribute is treated as T&M
+                isTM: type === 'Evolutivo' && log.tipoImputacion !== 'Evolutivo Bolsa' && log.tipoImputacion !== 'Consumo Manual'
             })),
             portalUrl: wp?.client?.portalUrl || null
         }));
