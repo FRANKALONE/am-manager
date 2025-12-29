@@ -148,6 +148,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const earliestStart = new Date(Math.min(...allStartDates));
         const latestEnd = new Date(Math.max(...allEndDates));
 
+        let totalTicketsSynced = 0;
+        let validCount = 0;
+        let skippedCount = 0;
+        const processedWorklogIds = new Set<number>();
+
         addLog(`[INFO] Syncing ALL periods: ${earliestStart.toISOString().split('T')[0]} to ${latestEnd.toISOString().split('T')[0]}`);
         addLog(`[INFO] Total validity periods: ${wp.validityPeriods.length}`);
 
@@ -597,9 +602,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         const monthlyHours = new Map<string, number>();
         const worklogDetailsToSave: any[] = []; // Collect worklog details
-        const processedWorklogIds = new Set<number>(); // Deduplication Set
-        let validCount = 0;
-        let skippedCount = 0;
+        processedWorklogIds.clear(); // Re-use the set if needed or just clear it
+        validCount = 0;
+        skippedCount = 0;
 
         // Process combined worklogs (Account logs + T&M specific logs)
         const combinedWorklogs = [...allWorklogs, ...tmWorklogs];
@@ -903,6 +908,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                             if (jiraRes.issues && jiraRes.issues.length > 0) {
                                 totalFetched += jiraRes.issues.length;
+                                totalTicketsSynced += jiraRes.issues.length;
                                 console.log('[EVENTS DEBUG] Fetched', jiraRes.issues.length, 'tickets, total:', totalFetched);
                                 addLog(`[INFO] Fetched ${jiraRes.issues.length} tickets (total: ${totalFetched})`);
 
@@ -1050,7 +1056,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         });
 
-        addLog(`[SUCCESS] Sync complete: ${totalHours.toFixed(2)}h total`);
+        if (isEventos) {
+            addLog(`[SUCCESS] Sync complete: ${totalTicketsSynced} tickets found`);
+            if (totalHours > 0) {
+                addLog(`[INFO] Consumption from Evolutivos: ${totalHours.toFixed(2)}h`);
+            }
+        } else {
+            addLog(`[SUCCESS] Sync complete: ${totalHours.toFixed(2)}h total`);
+        }
         addLog(`===== SYNC FINISHED =====`);
 
         // Trigger notification check for low balance
