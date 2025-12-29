@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
     getReviewRequestDetail,
     approveReviewRequest,
-    rejectReviewRequest
+    rejectReviewRequest,
+    deleteReviewRequest
 } from "@/app/actions/review-requests";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,8 +65,8 @@ export function ReviewDetailModal({
         );
     };
 
-    const handleAction = async (action: 'APPROVE' | 'REJECT') => {
-        if (!notes) {
+    const handleAction = async (action: 'APPROVE' | 'REJECT' | 'DELETE') => {
+        if (action !== 'DELETE' && !notes) {
             toast.error("Por favor, introduce una nota explicativa (obligatoria)");
             return;
         }
@@ -77,12 +78,21 @@ export function ReviewDetailModal({
 
         setSubmitting(true);
         try {
-            const result = action === 'APPROVE'
-                ? await approveReviewRequest(requestId, adminId, notes, selectedWlogs)
-                : await rejectReviewRequest(requestId, adminId, notes);
+            let result;
+            if (action === 'APPROVE') {
+                result = await approveReviewRequest(requestId, adminId, notes, selectedWlogs);
+            } else if (action === 'REJECT') {
+                result = await rejectReviewRequest(requestId, adminId, notes);
+            } else {
+                result = await deleteReviewRequest(requestId);
+            }
 
             if (result.success) {
-                toast.success(action === 'APPROVE' ? "Reclamación aprobada" : "Reclamación rechazada");
+                toast.success(
+                    action === 'APPROVE' ? "Reclamación aprobada" :
+                        action === 'REJECT' ? "Reclamación rechazada" :
+                            "Reclamación eliminada"
+                );
                 onStatusUpdate();
                 onClose();
             } else {
@@ -273,6 +283,18 @@ export function ReviewDetailModal({
                                             className="bg-white text-red-700 hover:bg-red-50 border-red-200 font-semibold"
                                         >
                                             Rechazar
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                if (confirm("¿Estás seguro de que deseas eliminar permanentemente esta reclamación?")) {
+                                                    handleAction('DELETE');
+                                                }
+                                            }}
+                                            disabled={submitting}
+                                            className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            Eliminar
                                         </Button>
                                         <Button
                                             onClick={() => handleAction('APPROVE')}

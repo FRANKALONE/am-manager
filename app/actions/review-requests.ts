@@ -13,12 +13,19 @@ export async function createReviewRequest(
     try {
         console.log('[DEBUG] Creating review request with worklog IDs:', worklogIds);
 
-        // 1. Create the review request
+        // 1. Fetch the full worklog data before storing
+        const worklogs = await prisma.worklogDetail.findMany({
+            where: {
+                id: { in: worklogIds }
+            }
+        });
+
+        // 2. Create the review request storing the full snapshot
         const reviewRequest = await prisma.reviewRequest.create({
             data: {
                 workPackageId: wpId,
                 requestedBy,
-                worklogIds: JSON.stringify(worklogIds),
+                worklogIds: JSON.stringify(worklogs), // Store full objects!
                 reason,
                 status: "PENDING"
             }
@@ -139,17 +146,35 @@ export async function getReviewRequestDetail(id: string) {
 
         if (!request) return null;
 
-        // Parse worklog IDs and fetch detail
-        const worklogIds = JSON.parse(request.worklogIds) as number[];
-        console.log('[DEBUG] Fetching worklogs for review request:', id, 'IDs:', worklogIds);
+        // Parse worklog storage (could be IDs or full objects)
+        const storedData = JSON.parse(request.worklogIds);
+        let worklogs = [];
 
-        const worklogs = await prisma.worklogDetail.findMany({
-            where: {
-                id: { in: worklogIds }
+        if (Array.isArray(storedData) && storedData.length > 0) {
+            if (typeof storedData[0] === 'object') {
+                // If we have full objects, use them as the base
+                worklogs = storedData;
+
+                // Optional: try to refresh them from DB if they still exist (for latest metadata)
+                const currentIds = worklogs.map((w: any) => w.id).filter(Boolean);
+                if (currentIds.length > 0) {
+                    const dbWorklogs = await prisma.worklogDetail.findMany({
+                        where: { id: { in: currentIds } }
+                    });
+
+                    // Replace with DB data if found, but keep snapshot for missing ones
+                    const dbMap = new Map(dbWorklogs.map(w => [w.id, w]));
+                    worklogs = worklogs.map((w: any) => dbMap.get(w.id) || w);
+                }
+            } else {
+                // Legacy format: just IDs
+                worklogs = await prisma.worklogDetail.findMany({
+                    where: { id: { in: storedData as number[] } }
+                });
             }
-        });
+        }
 
-        console.log('[DEBUG] Found', worklogs.length, 'worklogs out of', worklogIds.length, 'requested');
+        console.log('[DEBUG] Displaying', worklogs.length, 'worklogs for request', id);
 
         return { ...request, worklogs };
     } catch (error) {
@@ -190,19 +215,28 @@ export async function approveReviewRequest(
 
         // 2. Create the RETURN regularization if there are approved worklogs
         if (approvedWorklogIds.length > 0) {
-            // Fetch the worklogs to calculate total hours and get the date
-            const worklogs = await prisma.worklogDetail.findMany({
-                where: {
-                    id: { in: approvedWorklogIds }
-                },
-                orderBy: { startDate: 'asc' }
-            });
+            // Parse the stored data (could be full objects or IDs)
+            let worklogs: any[] = [];
+            const storedData = JSON.parse(currentRequest.worklogIds);
+
+            if (Array.isArray(storedData) && storedData.length > 0 && typeof storedData[0] === 'object') {
+                // We have snapshots! Use them for the approved ones
+                const snapshotMap = new Map(storedData.map((w: any) => [w.id, w]));
+                worklogs = approvedWorklogIds.map(id => snapshotMap.get(id)).filter(Boolean);
+            } else {
+                // Legacy: fetch from DB
+                worklogs = await prisma.worklogDetail.findMany({
+                    where: {
+                        id: { in: approvedWorklogIds }
+                    },
+                    orderBy: { startDate: 'asc' }
+                });
+            }
 
             const totalHours = worklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
 
             if (totalHours > 0) {
                 // Use the date of the first worklog (earliest) for the regularization
-                // This ensures the return is recorded in the correct month
                 const regularizationDate = worklogs.length > 0
                     ? new Date(worklogs[0].startDate)
                     : new Date();
@@ -276,5 +310,19 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
             success: false,
             error: `Error al rechazar: ${error.message || "Error desconocido"}`
         };
+    }
+}
+
+export async function deleteReviewRequest(id: string) {
+    try {
+        await prisma.reviewRequest.delete({
+            where: { id }
+        });
+        revalidatePath("/admin/review-requests");
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting review request:", error);
+        return { success: false, error: "Error al eliminar la reclamación" };
     }
 }
