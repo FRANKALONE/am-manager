@@ -183,72 +183,71 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             accountIds.push(wp.id);
         }
 
-        // 5. Fetch worklogs from Tempo for all account IDs across ALL periods
-        const from = earliestStart.toISOString().split('T')[0];
-        const to = latestEnd.toISOString().split('T')[0];
-
-        addLog(`[INFO] Fetching worklogs from ${from} to ${to} for ${accountIds.length} account(s)`);
+        // 5. Fetch worklogs from all matching Tempo accounts (Skip if EVENTOS and no Evolutivos)
+        const isEventos = wp.contractType?.toUpperCase() === 'EVENTOS';
+        const includeEvoEstimates = (wp as any).includeEvoEstimates ?? true;
+        const includeEvoTM = (wp as any).includeEvoTM ?? true;
 
         let allWorklogs: any[] = [];
 
-        // Fetch worklogs for each account ID
-        for (const accountId of accountIds) {
-            addLog(`[INFO] Fetching worklogs for account: ${accountId}`);
+        if (isEventos && !includeEvoEstimates && !includeEvoTM) {
+            addLog(`[INFO] EVENTOS WP without Evolutivos. Skipping Tempo worklog fetching.`);
+        } else {
+            const from = earliestStart.toISOString().split('T')[0];
+            const to = latestEnd.toISOString().split('T')[0];
+            addLog(`[INFO] Fetching worklogs from ${from} to ${to} for ${accountIds.length} account(s)`);
 
-            let offset = 0;
-            const limit = 1000;
-            let hasMore = true;
+            for (const accountId of accountIds) {
+                addLog(`[INFO] Fetching worklogs for account: ${accountId}`);
+                let offset = 0;
+                const limit = 1000;
+                let hasMore = true;
 
-            while (hasMore) {
-                const tempoRes: any = await new Promise((resolve, reject) => {
-                    const url = `https://api.tempo.io/4/worklogs/account/${accountId}?from=${from}&to=${to}&limit=${limit}&offset=${offset}`;
-                    const req = https.request(url, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
-                            'Accept': 'application/json'
-                        }
-                    }, (res: any) => {
-                        let data = '';
-                        res.on('data', (c: any) => data += c);
-                        res.on('end', () => {
-                            try {
-                                if (data.length === 0) {
-                                    addLog(`[ERROR] Empty response from Tempo for ${accountId}`);
-                                    resolve({ results: [] });
-                                    return;
-                                }
-                                const parsed = JSON.parse(data);
-                                if (res.statusCode !== 200) {
-                                    addLog(`[ERROR] Tempo API Error (${res.statusCode}): ${data.substring(0, 200)}`);
-                                }
-                                resolve(parsed);
-                            } catch (e) {
-                                addLog(`[ERROR] Failed to parse Tempo response for ${accountId}`);
-                                addLog(`[ERROR] Data preview: ${data.substring(0, 200)}`);
-                                reject(e);
+                while (hasMore) {
+                    const tempoRes: any = await new Promise((resolve, reject) => {
+                        const url = `https://api.tempo.io/4/worklogs/account/${accountId}?from=${from}&to=${to}&limit=${limit}&offset=${offset}`;
+                        const req = https.request(url, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                'Accept': 'application/json'
                             }
+                        }, (res: any) => {
+                            let data = '';
+                            res.on('data', (c: any) => data += c);
+                            res.on('end', () => {
+                                try {
+                                    if (data.length === 0) {
+                                        addLog(`[ERROR] Empty response from Tempo for ${accountId}`);
+                                        resolve({ results: [] });
+                                        return;
+                                    }
+                                    const parsed = JSON.parse(data);
+                                    if (res.statusCode !== 200) {
+                                        addLog(`[ERROR] Tempo API Error (${res.statusCode}): ${data.substring(0, 200)}`);
+                                    }
+                                    resolve(parsed);
+                                } catch (e) {
+                                    addLog(`[ERROR] Failed to parse Tempo response for ${accountId}`);
+                                    resolve({ results: [] });
+                                }
+                            });
                         });
+                        req.on('error', (err: any) => {
+                            addLog(`[ERROR] Tempo request error: ${err.message}`);
+                            resolve({ results: [] });
+                        });
+                        req.end();
                     });
-                    req.on('error', (err: any) => {
-                        addLog(`[ERROR] Tempo request error: ${err.message}`);
-                        reject(err);
-                    });
-                    req.end();
-                });
 
-                if (tempoRes.results && tempoRes.results.length > 0) {
-                    allWorklogs.push(...tempoRes.results);
-                    addLog(`[INFO] Fetched ${tempoRes.results.length} worklogs for ${accountId} (offset ${offset})`);
-                    hasMore = tempoRes.results.length === limit;
-                    offset += limit;
-                } else {
-                    if (tempoRes.errors) {
-                        addLog(`[ERROR] Tempo returned errors for ${accountId}: ${JSON.stringify(tempoRes.errors)}`);
+                    if (tempoRes.results && tempoRes.results.length > 0) {
+                        allWorklogs.push(...tempoRes.results);
+                        addLog(`[INFO] Fetched ${tempoRes.results.length} worklogs for ${accountId} (offset ${offset})`);
+                        hasMore = tempoRes.results.length === limit;
+                        offset += limit;
                     } else {
-                        addLog(`[DEBUG] No more results from Tempo for ${accountId}`);
+                        hasMore = false;
                     }
-                    hasMore = false;
                 }
             }
         }
@@ -843,7 +842,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             addLog(`[INFO] IAAS Service enabled - including Servicio IAAS tickets`);
                         }
 
-                        const jql = `project in (${projectKeys}) AND created >= "${startDateStr}" AND created <= "${endDateStr}" AND issuetype in (${issueTypes.map(t => `"${t}"`).join(', ')})`;
+                        // Use includedTicketTypes if defined, otherwise fallback to default list
+                        let effectiveIssueTypes = issueTypes;
+                        if ((wp as any).includedTicketTypes) {
+                            effectiveIssueTypes = (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim()).filter(Boolean);
+                            addLog(`[INFO] Using restricted ticket types for Events: ${effectiveIssueTypes.join(', ')}`);
+                        }
+
+                        const jql = `project in (${projectKeys}) AND created >= "${startDateStr}" AND created <= "${endDateStr}" AND issuetype in (${effectiveIssueTypes.map(t => `"${t}"`).join(', ')})`;
 
                         addLog(`[INFO] Fetching tickets for period ${startDateStr} to ${endDateStr}...`);
 

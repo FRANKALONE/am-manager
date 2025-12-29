@@ -108,7 +108,18 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
     try {
         const wp = await prisma.workPackage.findUnique({
             where: { id: wpId },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                contractType: true,
+                billingType: true,
+                renewalType: true,
+                jiraProjectKeys: true,
+                hasIaasService: true,
+                includeEvoTM: true,
+                includeEvoEstimates: true,
+                includedTicketTypes: true,
+                lastSyncedAt: true,
                 monthlyMetrics: {
                     orderBy: [{ year: 'asc' }, { month: 'asc' }]
                 },
@@ -194,11 +205,14 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 // Count tickets created in this month from Ticket table
                 // This includes ALL tickets synced from JIRA (with or without worklogs)
+                const includedTypes = (wp as any).includedTicketTypes
+                    ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                    : [];
+
                 const ticketsInMonth = (wp.tickets || []).filter(t => {
                     if (t.year !== y || t.month !== m) return false;
 
                     // Filter out Evolutivos if specified in WP config
-                    // Evolutivos are usually identified by issueType or billingMode
                     const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
                     const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
                         t.billingMode === 'Bolsa de Horas' ||
@@ -206,6 +220,11 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                     if (!wp.includeEvoTM && isEvolutivoTM) return false;
                     if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                    // Filter by includedTicketTypes if defined
+                    if (includedTypes.length > 0) {
+                        if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
+                    }
 
                     return true;
                 }).length;
@@ -274,7 +293,27 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 while (pIter <= pEnd) {
                     const pm = pIter.getMonth() + 1;
                     const py = pIter.getFullYear();
-                    const ticketsInMonth = (wp.tickets || []).filter(t => t.year === py && t.month === pm).length;
+                    const includedTypes = (wp as any).includedTicketTypes
+                        ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                        : [];
+
+                    const ticketsInMonth = (wp.tickets || []).filter(t => {
+                        if (t.year !== py || t.month !== pm) return false;
+
+                        const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+                        const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
+                            t.billingMode === 'Bolsa de Horas' ||
+                            t.billingMode === 'Bolsa de horas';
+
+                        if (!wp.includeEvoTM && isEvolutivoTM) return false;
+                        if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                        if (includedTypes.length > 0) {
+                            if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
+                        }
+
+                        return true;
+                    }).length;
                     const pRegs = wp.regularizations?.filter(reg => {
                         const rd = new Date(reg.date);
                         return rd.getMonth() + 1 === pm && rd.getFullYear() === py;
@@ -798,7 +837,7 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
     try {
         const wp = await prisma.workPackage.findUnique({
             where: { id: wpId },
-            select: { includeEvoTM: true, includeEvoEstimates: true }
+            select: { includeEvoTM: true, includeEvoEstimates: true, includedTicketTypes: true }
         });
 
         if (!wp) {
@@ -817,6 +856,10 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             ]
         });
 
+        const includedTypes = (wp as any).includedTicketTypes
+            ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+            : [];
+
         // Filter tickets based on WP inclusion flags
         const filteredTickets = tickets.filter(t => {
             const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
@@ -826,6 +869,10 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
 
             if (!wp.includeEvoTM && isEvolutivoTM) return false;
             if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+            if (includedTypes.length > 0) {
+                if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
+            }
 
             return true;
         });
@@ -867,7 +914,12 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
     try {
         const wp = await prisma.workPackage.findUnique({
             where: { id: wpId },
-            include: {
+            select: {
+                id: true,
+                contractType: true,
+                includeEvoTM: true,
+                includeEvoEstimates: true,
+                includedTicketTypes: true,
                 validityPeriods: {
                     orderBy: { startDate: 'asc' }
                 },
@@ -937,8 +989,16 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
                 w.billingMode === 'Bolsa de Horas' ||
                 w.billingMode === 'Bolsa de horas';
 
+            const includedTypes = (wp as any).includedTicketTypes
+                ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                : [];
+
             if (!wp.includeEvoTM && isEvolutivoTM) return false;
             if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+            if (includedTypes.length > 0) {
+                if (w.issueType && !includedTypes.includes(w.issueType.toLowerCase())) return false;
+            }
 
             return true;
         });
