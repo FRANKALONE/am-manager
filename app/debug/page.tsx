@@ -7,17 +7,44 @@ export default function DebugPage() {
     const [data, setData] = useState<any>(null);
 
     const [fueData, setFueData] = useState<any>(null);
+    const [cleaning, setCleaning] = useState(false);
 
-    useEffect(() => {
+    const refreshData = () => {
         debugGetFai320Regs().then(setData);
         import("@/app/actions/debug-sync").then(m => m.debugInspectFue652().then(setFueData));
+    };
+
+    useEffect(() => {
+        refreshData();
     }, []);
+
+    const handleCleanup = async () => {
+        setCleaning(true);
+        const { cleanupFUE652 } = await import("@/app/actions/cleanup-fue652");
+        const res = await cleanupFUE652();
+        if (res.success) {
+            alert(`Limpieza completada: ${res.count} registros borrados.`);
+            refreshData();
+        } else {
+            alert(`Error: ${res.error}`);
+        }
+        setCleaning(false);
+    };
 
     if (!data) return <div>Cargando...</div>;
 
     return (
         <div className="p-10 space-y-10">
-            <h1 className="text-2xl font-bold bg-yellow-100 p-2">Auditoría FUE-652</h1>
+            <div className="flex items-center justify-between bg-yellow-100 p-2">
+                <h1 className="text-2xl font-bold">Auditoría FUE-652</h1>
+                <button
+                    onClick={handleCleanup}
+                    disabled={cleaning}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                    {cleaning ? 'Limpiando...' : '🔥 Limpiar residuos FUE-652'}
+                </button>
+            </div>
             {fueData && (
                 <>
                     <section>
