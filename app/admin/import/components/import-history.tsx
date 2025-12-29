@@ -90,7 +90,9 @@ export function ImportHistory() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="text-[10px] uppercase">
-                                                    {log.type === 'BULK_DATA' ? 'Bulk Data' : 'Regularizaciones'}
+                                                    {log.type === 'BULK_DATA' ? 'Bulk Data' :
+                                                        log.type === 'CRON_SYNC' ? 'Auto Sync' :
+                                                            'Regularizaciones'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -114,13 +116,67 @@ export function ImportHistory() {
                                         {expandedRow === log.id && log.errors && (
                                             <TableRow className="bg-slate-50/50">
                                                 <TableCell colSpan={6} className="p-4 border-t border-slate-100">
-                                                    <div className="space-y-2">
-                                                        <p className="text-xs font-semibold text-red-700">Errores registrados:</p>
-                                                        <ul className="list-disc pl-4 space-y-1 text-xs text-red-600 max-h-40 overflow-y-auto">
-                                                            {JSON.parse(log.errors).map((err: string, i: number) => (
-                                                                <li key={i}>{err}</li>
-                                                            ))}
-                                                        </ul>
+                                                    <div className="space-y-4">
+                                                        {log.type === 'CRON_SYNC' ? (
+                                                            <div className="text-xs space-y-3">
+                                                                <p className="font-semibold text-slate-700">Resumen de Sincronización Automática:</p>
+                                                                {(() => {
+                                                                    try {
+                                                                        const summary = JSON.parse(log.errors);
+                                                                        return (
+                                                                            <div className="space-y-3">
+                                                                                <div className="grid grid-cols-2 gap-4 bg-white p-3 rounded border shadow-sm max-w-md">
+                                                                                    <div><span className="text-muted-foreground">Procesados:</span> {summary.totalProcessed}</div>
+                                                                                    <div><span className="text-muted-foreground">Éxitos:</span> <span className="text-green-600 font-bold">{summary.success}</span></div>
+                                                                                    <div><span className="text-muted-foreground">Errores:</span> <span className="text-red-600 font-bold">{summary.errors}</span></div>
+                                                                                    <div><span className="text-muted-foreground">Tiempo:</span> {(summary.executionTime / 1000).toFixed(1)}s</div>
+                                                                                </div>
+
+                                                                                {summary.details && summary.details.some((d: any) => d.status !== 'SUCCESS') && (
+                                                                                    <div className="space-y-1">
+                                                                                        <p className="font-bold text-red-700">Fallas específicas:</p>
+                                                                                        <ul className="list-disc pl-4 text-red-600">
+                                                                                            {summary.details.filter((d: any) => d.status !== 'SUCCESS').map((d: any, i: number) => (
+                                                                                                <li key={i}><strong>{d.id} ({d.name}):</strong> {d.error}</li>
+                                                                                            ))}
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {summary.duplicates && summary.duplicates.length > 0 && (
+                                                                                    <div className="space-y-1">
+                                                                                        <p className="font-bold text-amber-700">Duplicados detectados:</p>
+                                                                                        <ul className="list-disc pl-4 text-amber-600 italic">
+                                                                                            {summary.duplicates.map((d: any, i: number) => (
+                                                                                                <li key={i}><strong>{d.wpName}:</strong> Se han detectado {d.duplicates.length} posibles duplicados.</li>
+                                                                                            ))}
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    } catch (e) {
+                                                                        return <p className="text-red-500">Error al parsear el resumen: {log.errors}</p>;
+                                                                    }
+                                                                })()}
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-xs font-semibold text-red-700">Errores registrados:</p>
+                                                                <ul className="list-disc pl-4 space-y-1 text-xs text-red-600 max-h-40 overflow-y-auto">
+                                                                    {(() => {
+                                                                        try {
+                                                                            const errs = JSON.parse(log.errors);
+                                                                            return Array.isArray(errs) ? errs.map((err: string, i: number) => (
+                                                                                <li key={i}>{err}</li>
+                                                                            )) : <li>{log.errors}</li>;
+                                                                        } catch (e) {
+                                                                            return <li>{log.errors}</li>;
+                                                                        }
+                                                                    })()}
+                                                                </ul>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
