@@ -144,13 +144,45 @@ export function ImportHistory() {
                                                                                 )}
 
                                                                                 {summary.duplicates && summary.duplicates.length > 0 && (
-                                                                                    <div className="space-y-1">
-                                                                                        <p className="font-bold text-amber-700">Duplicados detectados:</p>
-                                                                                        <ul className="list-disc pl-4 text-amber-600 italic">
+                                                                                    <div className="space-y-2">
+                                                                                        <p className="font-bold text-amber-700">Posibles Duplicados Detectados:</p>
+                                                                                        <div className="space-y-4">
                                                                                             {summary.duplicates.map((d: any, i: number) => (
-                                                                                                <li key={i}><strong>{d.wpName}:</strong> Se han detectado {d.duplicates.length} posibles duplicados.</li>
+                                                                                                <div key={i} className="bg-amber-50/50 border border-amber-100 rounded-md p-2">
+                                                                                                    <p className="text-[11px] font-bold text-amber-800 mb-1">{d.wpName}</p>
+                                                                                                    <div className="overflow-x-auto">
+                                                                                                        <table className="w-full text-[10px] text-left">
+                                                                                                            <thead>
+                                                                                                                <tr className="border-b border-amber-200">
+                                                                                                                    <th className="pb-1">Ticket</th>
+                                                                                                                    <th className="pb-1">Fecha</th>
+                                                                                                                    <th className="pb-1 text-right">Manual</th>
+                                                                                                                    <th className="pb-1 text-right">Sinc.</th>
+                                                                                                                    <th className="pb-1 text-center">Coincide</th>
+                                                                                                                </tr>
+                                                                                                            </thead>
+                                                                                                            <tbody>
+                                                                                                                {d.duplicates.map((dupe: any, j: number) => (
+                                                                                                                    <tr key={j} className="border-b border-amber-100 last:border-0">
+                                                                                                                        <td className="py-1 font-medium">{dupe.ticketId}</td>
+                                                                                                                        <td className="py-1">{new Date(dupe.date).toLocaleDateString()}</td>
+                                                                                                                        <td className="py-1 text-right">{dupe.manualHours}h</td>
+                                                                                                                        <td className="py-1 text-right">{dupe.syncedHours}h</td>
+                                                                                                                        <td className="py-1 text-center">
+                                                                                                                            {dupe.isExactMatch ? (
+                                                                                                                                <Badge className="bg-green-100 text-green-700 text-[8px] px-1 h-3">SÍ</Badge>
+                                                                                                                            ) : (
+                                                                                                                                <Badge variant="outline" className="text-amber-600 text-[8px] px-1 h-3 border-amber-200">PARCIAL</Badge>
+                                                                                                                            )}
+                                                                                                                        </td>
+                                                                                                                    </tr>
+                                                                                                                ))}
+                                                                                                            </tbody>
+                                                                                                        </table>
+                                                                                                    </div>
+                                                                                                </div>
                                                                                             ))}
-                                                                                        </ul>
+                                                                                        </div>
                                                                                     </div>
                                                                                 )}
                                                                             </div>

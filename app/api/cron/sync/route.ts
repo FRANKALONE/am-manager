@@ -9,15 +9,13 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    // Temporarily disabled for live performance testing
-    /*
+    // 1. Verify Authorization
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
         return new NextResponse(
             JSON.stringify({ error: 'Unauthorized' }),
             { status: 401, headers: { 'Content-Type': 'application/json' } }
         );
     }
-    */
 
     try {
         console.log("[CRON API] Starting automated sync...");
