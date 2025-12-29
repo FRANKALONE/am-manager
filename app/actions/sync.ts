@@ -617,11 +617,18 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
             // Special rules for Evolutivos and IAAS are now largely covered by explicit config, 
             // but we keep the logic for backward compatibility/extra safety
-            const isEvolutivoTM = (issueType === 'Evolutivo' && details.billingMode === 'T&M contra bolsa' && (wp.includeEvoTM ?? true));
-            const isEvolutivoBolsa = (issueType === 'Evolutivo' && (details.billingMode === 'Bolsa de Horas' || !details.billingMode) && (wp.includeEvoEstimates ?? true));
+            const billingModeLower = details.billingMode ? details.billingMode.toLowerCase() : '';
+            const isEvolutivoTM = (issueType === 'Evolutivo' && billingModeLower === 't&m contra bolsa' && (wp.includeEvoTM ?? true));
+            const isEvolutivoBolsa = (issueType === 'Evolutivo' && (billingModeLower === 'bolsa de horas' || !details.billingMode) && (wp.includeEvoEstimates ?? true));
 
             // IAAS is now usually in the includedTicketTypes list, but we keep this as a secondary check
             const isIaasService = wp.hasIaasService && (issueTypeLower === 'servicio iaas' || issueTypeLower === 'iaas');
+
+            if (isEvolutivoBolsa) {
+                addLog(`[FILTER] Skipped worklog for ${details.key}: Evolutivo Bolsa always uses estimate.`);
+                skippedCount++;
+                continue;
+            }
 
             const isValid = isValidType || isEvolutivoTM || isIaasService;
 

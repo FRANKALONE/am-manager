@@ -209,7 +209,7 @@ export async function deleteSelectedRegularizations(ids: number[]) {
                         workPackageId: reg.workPackageId,
                         year,
                         month,
-                        issueKey: reg.ticketId,
+                        issueKey: reg.ticketId || `MANUAL-${reg.id}`,
                         tipoImputacion: 'Consumo Manual'
                     }
                 });
