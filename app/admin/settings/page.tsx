@@ -61,28 +61,6 @@ export default async function SettingsPage() {
                     data={await getParametersByCategory("MANAGER")}
                 />
 
-                {/* Sync Configuration Section */}
-                <div className="col-span-full pt-8 border-t">
-                    <h2 className="text-2xl font-bold mb-4">Configuración de Sincronización con Tempo</h2>
-                    <p className="text-muted-foreground mb-6">Define qué tipos de tickets de Jira se deben considerar al sincronizar con Tempo.</p>
-                    <div className="grid gap-8 md:grid-cols-2">
-                        <ParameterManager
-                            title="Tipos de Tickets Válidos"
-                            category="VALID_TICKET_TYPE"
-                            data={await getParametersByCategory("VALID_TICKET_TYPE")}
-                        />
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Información</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-sm text-muted-foreground space-y-2">
-                                <p>Los tipos de tickets configurados aquí se usarán para filtrar los worklogs de Tempo.</p>
-                                <p className="font-medium text-foreground">Nota especial sobre "Evolutivo":</p>
-                                <p>Los tickets de tipo "Evolutivo" solo se sincronizarán si su Modo de Facturación es "T&M contra bolsa". No es necesario añadirlo a esta lista.</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
 
                 {/* Custom Fields Definitions */}
                 <div className="col-span-full pt-8 border-t">
