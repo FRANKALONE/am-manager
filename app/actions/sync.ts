@@ -539,12 +539,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             validTypes = (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim()).filter(Boolean);
             addLog(`[INFO] Valid ticket types for this WP: ${validTypes.join(', ')}`);
         } else {
-            addLog(`[WARN] No ticket types configured for this WP! Falling back to global parameters.`);
-            const validTicketParams = await prisma.parameter.findMany({
-                where: { category: 'VALID_TICKET_TYPE' }
-            });
-            validTypes = validTicketParams.map((p: any) => p.value);
-            addLog(`[INFO] Fallback global ticket types: ${validTypes.join(', ')}`);
+            addLog(`[WARN] No ticket types configured for this Work Package specifically.`);
         }
 
         if (validTypes.length === 0) {
