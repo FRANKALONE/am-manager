@@ -95,19 +95,23 @@ export function ExpandableMonthlyRow({
                         {month.month}
                     </div>
                 </td>
-                <td className="p-3 px-4 text-right text-muted-foreground">{month.contracted.toFixed(1)}</td>
-                <td className="p-3 px-4 text-right font-bold">{month.consumed > 0 ? month.consumed.toFixed(2) : '-'}</td>
+                <td className="p-3 px-4 text-right text-muted-foreground">
+                    {month.contracted.toFixed(scopeUnit === 'TICKETS' ? 0 : 1)}
+                </td>
+                <td className="p-3 px-4 text-right font-bold">
+                    {month.consumed > 0 ? month.consumed.toFixed(scopeUnit === 'TICKETS' ? 0 : 2) : '-'}
+                </td>
                 <td className={`p-3 px-4 text-right ${isExceeded ? 'text-red-600 font-medium' : 'text-green-600'}`}>
-                    {month.monthlyBalance.toFixed(1)}
+                    {month.monthlyBalance.toFixed(scopeUnit === 'TICKETS' ? 0 : 1)}
                 </td>
                 {permissions.view_costs && (
                     <td className="p-3 px-4 text-right text-blue-600 font-medium">
-                        {month.regularization ? month.regularization.toFixed(2) : '-'}
+                        {month.regularization ? month.regularization.toFixed(scopeUnit === 'TICKETS' ? 0 : 2) : '-'}
                     </td>
                 )}
                 {!isEventos && (
                     <td className={`p-3 px-4 text-right border-l ${isAccumExceeded ? 'text-red-700 bg-red-50/50 font-bold' : 'text-green-700 font-bold'}`}>
-                        {!month.isFuture ? month.accumulated.toFixed(1) : '-'}
+                        {!month.isFuture ? month.accumulated.toFixed(scopeUnit === 'TICKETS' ? 0 : 1) : '-'}
                     </td>
                 )}
             </tr>

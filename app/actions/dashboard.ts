@@ -194,9 +194,21 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 // Count tickets created in this month from Ticket table
                 // This includes ALL tickets synced from JIRA (with or without worklogs)
-                const ticketsInMonth = (wp.tickets || []).filter(t =>
-                    t.year === y && t.month === m
-                ).length;
+                const ticketsInMonth = (wp.tickets || []).filter(t => {
+                    if (t.year !== y || t.month !== m) return false;
+
+                    // Filter out Evolutivos if specified in WP config
+                    // Evolutivos are usually identified by issueType or billingMode
+                    const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+                    const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
+                        t.billingMode === 'Bolsa de Horas' ||
+                        t.billingMode === 'Bolsa de horas';
+
+                    if (!wp.includeEvoTM && isEvolutivoTM) return false;
+                    if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                    return true;
+                }).length;
 
                 // Apply regularizations
                 const regs = wp.regularizations?.filter(reg => {
@@ -286,8 +298,17 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             const totalConsumed = evolutionData.reduce((sum, row) => sum + row.consumed, 0);
 
             // Remaining includes carryover from before this selection
-            const remaining = totalScope - totalConsumed + eventInitialBalance;
+            const currentYearMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+            const billedAmount = evolutionData
+                .filter(row => {
+                    const [m, y] = row.month.split('/').map(Number);
+                    return (y * 100 + m) <= currentYearMonth;
+                })
+                .reduce((sum, row) => sum + row.contracted + row.regularization, 0);
+
+            const remaining = billedAmount + eventInitialBalance - totalConsumed;
             const percentage = (totalScope + eventInitialBalance) > 0 ? (totalConsumed / (totalScope + eventInitialBalance)) * 100 : 0;
+            const billedPercentage = totalScope > 0 ? (billedAmount / totalScope) * 100 : 0;
 
             const validityPeriodsFormatted = wp.validityPeriods.map(p => ({
                 id: p.id,
@@ -299,12 +320,12 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             return {
                 wpName: wp.name,
-                totalScope,
                 totalConsumed,
                 remaining,
                 percentage,
                 scopeUnit: selectedPeriod.scopeUnit,
-                billedPercentage: 0, // Not applicable for events
+                billedAmount,
+                billedPercentage,
                 nextRegularization: null, // Not shown for events
                 monthlyEvolution: evolutionData,
                 validityPeriods: validityPeriodsFormatted,
@@ -773,6 +794,15 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
  */
 export async function getMonthlyTicketDetails(wpId: string, year: number, month: number) {
     try {
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            select: { includeEvoTM: true, includeEvoEstimates: true }
+        });
+
+        if (!wp) {
+            return { totalTickets: 0, byType: {}, tickets: [] };
+        }
+
         const tickets = await prisma.ticket.findMany({
             where: {
                 workPackageId: wpId,
@@ -785,16 +815,29 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             ]
         });
 
+        // Filter tickets based on WP inclusion flags
+        const filteredTickets = tickets.filter(t => {
+            const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+            const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
+                t.billingMode === 'Bolsa de Horas' ||
+                t.billingMode === 'Bolsa de horas';
+
+            if (!wp.includeEvoTM && isEvolutivoTM) return false;
+            if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+            return true;
+        });
+
         // Group by type for summary
         const byType: Record<string, number> = {};
-        tickets.forEach(t => {
+        filteredTickets.forEach(t => {
             byType[t.issueType] = (byType[t.issueType] || 0) + 1;
         });
 
         return {
-            totalTickets: tickets.length,
+            totalTickets: filteredTickets.length,
             byType,
-            tickets: tickets.map(t => ({
+            tickets: filteredTickets.map(t => ({
                 issueKey: t.issueKey,
                 issueSummary: t.issueSummary,
                 issueType: t.issueType,
@@ -881,10 +924,21 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             ]
         });
 
-        // Filter worklogs to only include those within the period
+        // Filter worklogs to only include those within the period and matching inclusion flags
         const filteredWorklogs = worklogs.filter(w => {
             const worklogDate = new Date(w.year, w.month - 1, 1);
-            return worklogDate >= startDate && worklogDate <= endDate;
+            if (worklogDate < startDate || worklogDate > endDate) return false;
+
+            // Filter out Evolutivos if specified in WP config
+            const isEvolutivoTM = w.billingMode === 'T&M contra bolsa';
+            const isEvolutivoEstimate = w.issueType === 'Evolutivo' ||
+                w.billingMode === 'Bolsa de Horas' ||
+                w.billingMode === 'Bolsa de horas';
+
+            if (!wp.includeEvoTM && isEvolutivoTM) return false;
+            if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+            return true;
         });
 
         // Get ticket statuses from Ticket model

@@ -324,10 +324,16 @@ export function DashboardView({
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {metrics.billedAmount?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {metrics.totalScope.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {metrics.billedAmount?.toLocaleString('es-ES', {
+                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
+                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
+                                    })} / {metrics.totalScope.toLocaleString('es-ES', {
+                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
+                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
+                                    })}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {metrics.billedPercentage.toFixed(1)}% facturado de <span className="font-semibold">{metrics.totalScope.toLocaleString()} {metrics.scopeUnit}</span>
+                                    {metrics.billedPercentage.toFixed(1)}% facturado de <span className="font-semibold">{metrics.totalScope.toLocaleString('es-ES', { maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2 })} {metrics.scopeUnit}</span>
                                 </p>
                             </CardContent>
                         </Card>
@@ -337,25 +343,31 @@ export function DashboardView({
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{metrics.totalConsumed.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span></div>
+                                <div className="text-2xl font-bold">
+                                    {metrics.totalConsumed.toLocaleString('es-ES', {
+                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
+                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
+                                    })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                     {(Math.floor(metrics.percentage * 10) / 10).toFixed(1)}% del total
                                 </p>
                             </CardContent>
                         </Card>
-                        {!metrics.isEventos && (
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Disponible</CardTitle>
-                                    <Activity className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className={`text-2xl font-bold ${metrics.remaining < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                        {metrics.remaining.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Disponible</CardTitle>
+                                <Activity className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-2xl font-bold ${metrics.remaining < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {metrics.remaining.toLocaleString('es-ES', {
+                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
+                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
+                                    })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
                         {!metrics.isEventos && metrics.nextRegularization && (
                             <Card className="border-orange-200 bg-orange-50/50">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
