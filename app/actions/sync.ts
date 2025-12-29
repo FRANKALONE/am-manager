@@ -2,6 +2,23 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { limitConcurrency } from "@/lib/utils-sync";
+
+async function isKillSwitchActive() {
+    try {
+        const killSwitch = await prisma.parameter.findFirst({
+            where: {
+                category: 'SYSTEM',
+                label: 'SYNC_KILL_SWITCH',
+                value: 'true',
+                isActive: true
+            }
+        });
+        return !!killSwitch;
+    } catch (e) {
+        return false;
+    }
+}
 
 // Extended WorkPackage type with new fields to avoid lint errors
 interface ExtendedWorkPackage {
@@ -77,6 +94,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
     try {
         addLog(`===== SYNC STARTED: ${wpId} (Debug: ${debug}) =====`);
+
+        // 0. Check Kill Switch
+        if (await isKillSwitchActive()) {
+            addLog(`[CRITICAL] Sync aborted by Kill Switch`);
+            return { error: "Sincronización abortada por parada de emergencia", logs: debug ? debugLogs : undefined };
+        }
 
         // 1. Get Work Package with validity periods
         const wp = await prisma.workPackage.findUnique({
@@ -243,93 +266,91 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const uniqueAuthorIds = Array.from(new Set(allWorklogs.map((log: any) => log.author?.accountId).filter(Boolean)));
         addLog(`[INFO] Fetching details for ${uniqueIssueIds.length} unique issues`);
 
-        // 7. Fetch issue details from Jira
+        // 7. Fetch issue details from Jira (Parallel Batches of 50)
         const issueDetails = new Map<string, any>();
-        const BATCH_SIZE = 100;
+        const batchSize = 50;
+        const batches = [];
+        for (let i = 0; i < uniqueIssueIds.length; i += batchSize) {
+            batches.push(uniqueIssueIds.slice(i, i + batchSize));
+        }
 
-        for (let i = 0; i < uniqueIssueIds.length; i += BATCH_SIZE) {
-            const batch = uniqueIssueIds.slice(i, i + BATCH_SIZE);
-            const jql = `id IN (${batch.join(',')})`;
+        if (batches.length > 0) {
+            addLog(`[INFO] Fetching details for ${uniqueIssueIds.length} issues in ${batches.length} parallel batches`);
 
             const jiraUrl = process.env.JIRA_URL?.trim();
             const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
             const jiraToken = process.env.JIRA_API_TOKEN?.trim();
             const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
 
-            const bodyData = JSON.stringify({
-                jql,
-                maxResults: BATCH_SIZE,
-                fields: ['key', 'summary', 'issuetype', 'status', 'created', 'customfield_10121']
-            });
+            const batchTasks = batches.map(batch => async () => {
+                const jql = `id IN (${batch.join(',')})`;
+                const bodyData = JSON.stringify({
+                    jql,
+                    maxResults: 100,
+                    fields: ['key', 'summary', 'issuetype', 'status', 'customfield_10121', 'created']
+                });
 
-            const jiraRes: any = await new Promise((resolve, reject) => {
-                const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/json'
-                    }
-                }, (res: any) => {
-                    let data = '';
-                    addLog(`[DEBUG] Jira response status: ${res.statusCode}`);
-                    res.on('data', (c: any) => data += c);
-                    res.on('end', () => {
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (res.statusCode !== 200) {
-                                addLog(`[ERROR] Jira API error: ${JSON.stringify(parsed)}`);
+                try {
+                    const jiraRes: any = await new Promise((resolve, reject) => {
+                        const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Basic ${auth}`,
+                                'Content-Type': 'application/json'
                             }
-                            resolve(parsed);
-                        } catch (e) {
-                            addLog(`[ERROR] Failed to parse Jira response: ${data.substring(0, 200)}`);
-                            resolve({ issues: [] });
-                        }
+                        }, (res: any) => {
+                            let data = '';
+                            res.on('data', (c: any) => data += c);
+                            res.on('end', () => {
+                                try {
+                                    if (res.statusCode === 200) {
+                                        resolve(JSON.parse(data));
+                                    } else {
+                                        resolve({ issues: [] });
+                                    }
+                                } catch (e) {
+                                    resolve({ issues: [] });
+                                }
+                            });
+                        });
+                        req.on('error', (err: any) => resolve({ issues: [] }));
+                        req.write(bodyData);
+                        req.end();
                     });
-                });
-                req.on('error', (err: any) => {
-                    addLog(`[ERROR] Jira request error: ${err.message}`);
-                    reject(err);
-                });
-                req.write(bodyData);
-                req.end();
+
+                    if (jiraRes.issues) {
+                        jiraRes.issues.forEach((issue: any) => {
+                            const billingModeRaw = issue.fields.customfield_10121;
+                            const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
+
+                            issueDetails.set(issue.id, {
+                                key: issue.key,
+                                summary: issue.fields.summary || '',
+                                issueType: issue.fields.issuetype?.name,
+                                status: issue.fields.status?.name || 'Unknown',
+                                billingMode: billingMode,
+                                created: issue.fields.created
+                            });
+                        });
+                    }
+                } catch (e) { }
             });
 
-            if (jiraRes.issues) {
-                jiraRes.issues.forEach((issue: any) => {
-                    // Extract billing mode value from object if it's an object
-                    const billingModeRaw = issue.fields.customfield_10121;
-                    const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
-
-                    issueDetails.set(issue.id, {
-                        key: issue.key,
-                        summary: issue.fields.summary || '',
-                        issueType: issue.fields.issuetype?.name,
-                        status: issue.fields.status?.name || 'Unknown',
-                        billingMode: billingMode,
-                        created: issue.fields.created // Add creation date
-                    });
-                });
-                addLog(`[INFO] Batch process: Fetched ${jiraRes.issues.length} of ${uniqueIssueIds.length} issues`);
-            } else if (jiraRes.errorMessages || jiraRes.errors) {
-                addLog(`[ERROR] Jira returned errors: ${JSON.stringify(jiraRes)}`);
-            } else {
-                addLog(`[WARN] Jira returned no issues for batch. JQL: ${jql}`);
-            }
+            await limitConcurrency(batchTasks, 3);
         }
 
         addLog(`[INFO] Fetched details for ${issueDetails.size} issues`);
 
-        // 7.5. Fetch user details from Jira for author names
         const authorNames = new Map<string, string>();
-        addLog(`[INFO] Fetching user details for ${uniqueAuthorIds.length} authors`);
+        addLog(`[INFO] Fetching user details for ${uniqueAuthorIds.length} authors (Parallel)`);
 
-        for (const accountId of uniqueAuthorIds) {
+        const jiraUrl = process.env.JIRA_URL?.trim();
+        const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+        const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+        const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+
+        const userTasks = uniqueAuthorIds.map(accountId => async () => {
             try {
-                const jiraUrl = process.env.JIRA_URL?.trim();
-                const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
-                const jiraToken = process.env.JIRA_API_TOKEN?.trim();
-                const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-
                 const userRes: any = await new Promise((resolve, reject) => {
                     const req = https.request(`${jiraUrl}/rest/api/3/user?accountId=${accountId}`, {
                         method: 'GET',
@@ -345,30 +366,26 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 if (res.statusCode === 200) {
                                     resolve(JSON.parse(data));
                                 } else {
-                                    addLog(`[WARN] Failed to fetch user ${accountId}: ${res.statusCode}`);
                                     resolve(null);
                                 }
                             } catch (e) {
-                                addLog(`[ERROR] Failed to parse user response for ${accountId}`);
                                 resolve(null);
                             }
                         });
                     });
-                    req.on('error', (err: any) => {
-                        addLog(`[ERROR] User request error for ${accountId}: ${err.message}`);
-                        resolve(null);
-                    });
+                    req.on('error', (err: any) => resolve(null));
                     req.end();
                 });
 
                 if (userRes && userRes.displayName) {
                     authorNames.set(accountId, userRes.displayName);
-                    addLog(`[INFO] User ${accountId}: ${userRes.displayName}`);
                 }
             } catch (error: any) {
-                addLog(`[ERROR] Exception fetching user ${accountId}: ${error.message}`);
+                // Ignore individual user fetch errors
             }
-        }
+        });
+
+        await limitConcurrency(userTasks, 5);
 
         addLog(`[INFO] Fetched ${authorNames.size} author names`);
 
@@ -489,48 +506,52 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         }
 
-        // 7.7. Fetch worklogs for T&M Evolutivos from Tempo (Universal fetch by issue ID)
+        // 7.7. Fetch worklogs for T&M Evolutivos from Tempo (Parallelized)
         const tmWorklogs: any[] = [];
-        for (const ticketId of Array.from(tmEvolutivoIds)) {
-            const ticketKey = ticketIdToKey.get(ticketId) || ticketId;
-            addLog(`[INFO] Fetching universal worklogs for T&M ticket: ${ticketKey} (ID: ${ticketId})`);
+        const tmTicketIds = Array.from(tmEvolutivoIds);
 
-            const tempoRes: any = await new Promise((resolve, reject) => {
-                const url = `https://api.tempo.io/4/worklogs/issue/${ticketId}`;
-                const req = https.request(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
-                        'Accept': 'application/json'
-                    }
-                }, (res: any) => {
-                    let data = '';
-                    res.on('data', (c: any) => data += c);
-                    res.on('end', () => {
-                        try {
-                            if (res.statusCode === 200) {
-                                resolve(JSON.parse(data));
-                            } else {
-                                addLog(`[WARN] Tempo API error for ticket ${ticketKey}: ${res.statusCode}`);
-                                resolve({ results: [] });
+        if (tmTicketIds.length > 0) {
+            addLog(`[INFO] Fetching universal worklogs for ${tmTicketIds.length} T&M tickets (Parallel)`);
+
+            const tempoTasks = tmTicketIds.map(ticketId => async () => {
+                const ticketKey = ticketIdToKey.get(ticketId) || ticketId;
+                try {
+                    const tempoRes: any = await new Promise((resolve, reject) => {
+                        const url = `https://api.tempo.io/4/worklogs/issue/${ticketId}`;
+                        const req = https.request(url, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                'Accept': 'application/json'
                             }
-                        } catch (e) {
-                            addLog(`[ERROR] Failed to parse Tempo response for ticket ${ticketKey}`);
-                            resolve({ results: [] });
-                        }
+                        }, (res: any) => {
+                            let data = '';
+                            res.on('data', (c: any) => data += c);
+                            res.on('end', () => {
+                                try {
+                                    if (res.statusCode === 200) {
+                                        resolve(JSON.parse(data));
+                                    } else {
+                                        resolve({ results: [] });
+                                    }
+                                } catch (e) {
+                                    resolve({ results: [] });
+                                }
+                            });
+                        });
+                        req.on('error', (err: any) => resolve({ results: [] }));
+                        req.end();
                     });
-                });
-                req.on('error', (err: any) => {
-                    addLog(`[ERROR] Tempo request error for ${ticketKey}: ${err.message}`);
-                    resolve({ results: [] });
-                });
-                req.end();
+
+                    if (tempoRes.results) {
+                        tmWorklogs.push(...tempoRes.results);
+                    }
+                } catch (error) {
+                    // Ignore individual fetch errors
+                }
             });
 
-            if (tempoRes.results) {
-                tmWorklogs.push(...tempoRes.results);
-                addLog(`[INFO] Found ${tempoRes.results.length} worklogs for ${ticketKey}`);
-            }
+            await limitConcurrency(tempoTasks, 5);
         }
 
         // 8. Load valid ticket types from WP configuration

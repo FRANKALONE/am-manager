@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { revalidatePath } from "next/cache";
 import { CorrectionModelsManager } from "./components/models-manager";
 import { DatabaseMaintenance } from "./components/database-maintenance";
+import { SyncKillSwitch } from "./components/sync-kill-switch";
+import { getKillSwitchStatus } from "@/app/actions/parameters";
 
 export default async function SettingsPage() {
 
@@ -26,6 +28,10 @@ export default async function SettingsPage() {
             </div>
 
             <div className="grid gap-8 md:grid-cols-2">
+                {/* Kill Switch - Priority Access */}
+                <div className="col-span-full">
+                    <SyncKillSwitch initialStatus={await getKillSwitchStatus()} />
+                </div>
 
                 {/* Managing Models - Full Width */}
                 <CorrectionModelsManager models={correctionModels} />

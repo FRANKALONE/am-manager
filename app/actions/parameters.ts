@@ -103,3 +103,42 @@ export async function deleteParameter(id: number) {
         return { success: false, error: "Error al eliminar parámetro" };
     }
 }
+
+export async function toggleKillSwitch(active: boolean) {
+    try {
+        await prisma.parameter.upsert({
+            where: {
+                // Since Parameter doesn't have a unique constraint on category+label, 
+                // we'll find it first or use a convention.
+                // For simplicity, let's just find the first one or create it.
+                id: (await prisma.parameter.findFirst({
+                    where: { category: 'SYSTEM', label: 'SYNC_KILL_SWITCH' }
+                }))?.id || -1
+            },
+            update: { value: active ? 'true' : 'false', isActive: true },
+            create: {
+                category: 'SYSTEM',
+                label: 'SYNC_KILL_SWITCH',
+                value: active ? 'true' : 'false',
+                isActive: true,
+                order: 0
+            }
+        });
+        revalidatePath("/admin/settings");
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling kill switch:", error);
+        return { success: false, error: "Error al cambiar el estado del interruptor" };
+    }
+}
+
+export async function getKillSwitchStatus() {
+    try {
+        const param = await prisma.parameter.findFirst({
+            where: { category: 'SYSTEM', label: 'SYNC_KILL_SWITCH' }
+        });
+        return param?.value === 'true';
+    } catch (error) {
+        return false;
+    }
+}

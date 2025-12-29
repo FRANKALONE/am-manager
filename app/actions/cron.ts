@@ -2,6 +2,23 @@
 
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "./sync";
+import { limitConcurrency } from "@/lib/utils-sync";
+
+async function isKillSwitchActive() {
+    try {
+        const killSwitch = await prisma.parameter.findFirst({
+            where: {
+                category: 'SYSTEM',
+                label: 'SYNC_KILL_SWITCH',
+                value: 'true',
+                isActive: true
+            }
+        });
+        return !!killSwitch;
+    } catch (e) {
+        return false;
+    }
+}
 
 export async function syncAllWorkPackages() {
     const startTime = new Date();
@@ -21,8 +38,20 @@ export async function syncAllWorkPackages() {
 
         console.log(`[CRON] Found ${wps.length} work packages to sync.`);
 
-        // 2. Process each WP
-        for (const wp of wps) {
+        // 2. Process WPs with controlled concurrency (Parallel)
+        const wpTasks = wps.map(wp => async () => {
+            // Check Kill Switch before starting each WP
+            if (await isKillSwitchActive()) {
+                console.log(`[CRON] Kill Switch active. Aborting sync for ${wp.id}`);
+                results.push({
+                    id: wp.id,
+                    name: wp.name,
+                    status: "ABORTED",
+                    error: "Parada de emergencia activada"
+                });
+                return;
+            }
+
             console.log(`[CRON] Syncing WP: ${wp.id} (${wp.name})...`);
             try {
                 const res = await syncWorkPackage(wp.id, false);
@@ -63,7 +92,10 @@ export async function syncAllWorkPackages() {
                     error: err.message || "Error desconocido"
                 });
             }
-        }
+        });
+
+        // Run up to 3 WPs in parallel
+        await limitConcurrency(wpTasks, 3);
 
         // 3. Create a summary for the log
         const successCount = results.filter(r => r.status === "SUCCESS").length;
