@@ -320,6 +320,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             return {
                 wpName: wp.name,
+                totalScope,
                 totalConsumed,
                 remaining,
                 percentage,
@@ -330,6 +331,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 monthlyEvolution: evolutionData,
                 validityPeriods: validityPeriodsFormatted,
                 selectedPeriodId: selectedPeriod.id,
+                lastSyncedAt: wp.lastSyncedAt,
                 isEventos: true,
                 contractType: wp.contractType
             };
