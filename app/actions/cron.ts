@@ -20,6 +20,23 @@ async function isKillSwitchActive() {
     }
 }
 
+export async function getEligibleWorkPackagesForSync() {
+    try {
+        const wps = await prisma.workPackage.findMany({
+            where: {
+                contractType: {
+                    in: ['BOLSA', 'BD', 'EVENTOS', 'bolsa', 'bd', 'eventos']
+                }
+            },
+            select: { id: true, name: true }
+        });
+        return wps;
+    } catch (error) {
+        console.error("Error fetching eligible WPs:", error);
+        return [];
+    }
+}
+
 export async function syncAllWorkPackages() {
     const startTime = new Date();
     const results: any[] = [];

@@ -1,6 +1,7 @@
 import { getKillSwitchStatus } from "@/app/actions/parameters";
 import { ImportHistory } from "./components/import-history";
 import { ImportManager } from "./components/import-manager";
+import { BulkSyncManager } from "./components/bulk-sync-manager";
 import { SyncKillSwitch } from "../settings/components/sync-kill-switch";
 
 export default async function ImportPage() {
@@ -19,6 +20,8 @@ export default async function ImportPage() {
                     <SyncKillSwitch initialStatus={killSwitchStatus} />
                 </div>
             </div>
+
+            <BulkSyncManager />
 
             <ImportManager />
 
