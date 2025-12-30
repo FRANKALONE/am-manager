@@ -520,35 +520,45 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const tempoTasks = tmTicketIds.map(ticketId => async () => {
                 const ticketKey = ticketIdToKey.get(ticketId) || ticketId;
                 try {
-                    const tempoRes: any = await new Promise((resolve, reject) => {
-                        const url = `https://api.tempo.io/4/worklogs/issue/${ticketId}`;
-                        const req = https.request(url, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
-                                'Accept': 'application/json'
-                            }
-                        }, (res: any) => {
-                            let data = '';
-                            res.on('data', (c: any) => data += c);
-                            res.on('end', () => {
-                                try {
-                                    if (res.statusCode === 200) {
-                                        resolve(JSON.parse(data));
-                                    } else {
+                    let offset = 0;
+                    const limit = 500;
+                    let hasMore = true;
+
+                    while (hasMore) {
+                        const tempoRes: any = await new Promise((resolve, reject) => {
+                            const url = `https://api.tempo.io/4/worklogs/issue/${ticketId}?limit=${limit}&offset=${offset}`;
+                            const req = https.request(url, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${process.env.TEMPO_API_TOKEN}`,
+                                    'Accept': 'application/json'
+                                }
+                            }, (res: any) => {
+                                let data = '';
+                                res.on('data', (c: any) => data += c);
+                                res.on('end', () => {
+                                    try {
+                                        if (res.statusCode === 200) {
+                                            resolve(JSON.parse(data));
+                                        } else {
+                                            resolve({ results: [] });
+                                        }
+                                    } catch (e) {
                                         resolve({ results: [] });
                                     }
-                                } catch (e) {
-                                    resolve({ results: [] });
-                                }
+                                });
                             });
+                            req.on('error', (err: any) => resolve({ results: [] }));
+                            req.end();
                         });
-                        req.on('error', (err: any) => resolve({ results: [] }));
-                        req.end();
-                    });
 
-                    if (tempoRes.results) {
-                        tmWorklogs.push(...tempoRes.results);
+                        if (tempoRes.results && tempoRes.results.length > 0) {
+                            tmWorklogs.push(...tempoRes.results);
+                            hasMore = tempoRes.results.length === limit;
+                            offset += limit;
+                        } else {
+                            hasMore = false;
+                        }
                     }
                 } catch (error) {
                     // Ignore individual fetch errors
