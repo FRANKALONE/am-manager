@@ -35,8 +35,7 @@ export function ReviewRequestModal({
 
         setSubmitting(true);
         try {
-            const worklogIds = selectedWorklogs.map(w => w.id);
-            const result = await createReviewRequest(wpId, userId, worklogIds, reason);
+            const result = await createReviewRequest(wpId, userId, selectedWorklogs, reason);
 
             if (result.success) {
                 toast.success("Reclamación enviada correctamente");

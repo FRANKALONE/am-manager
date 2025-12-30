@@ -7,36 +7,29 @@ import { createNotification } from "./notifications";
 export async function createReviewRequest(
     wpId: string,
     requestedBy: string,
-    worklogIds: number[],
+    worklogs: any[],
     reason: string
 ) {
     try {
-        console.log('[DEBUG] Creating review request with worklog IDs:', worklogIds);
+        console.log('[DEBUG] Creating review request with worklog snapshots:', worklogs.length);
 
-        // 1. Fetch the full worklog data before storing
-        const worklogs = await prisma.worklogDetail.findMany({
-            where: {
-                id: { in: worklogIds }
-            }
-        });
-
-        // 2. Create the review request storing the full snapshot
+        // Create the review request storing the full snapshot
         const reviewRequest = await prisma.reviewRequest.create({
             data: {
                 workPackageId: wpId,
                 requestedBy,
-                worklogIds: JSON.stringify(worklogs), // Store full objects!
+                worklogIds: JSON.stringify(worklogs),
                 reason,
                 status: "PENDING"
             }
         });
 
-        console.log('[DEBUG] Review request created:', reviewRequest.id, 'with IDs:', reviewRequest.worklogIds);
+        console.log('[DEBUG] Review request created:', reviewRequest.id);
 
-        // 2. Notify administrators
+        // Notify administrators
         const admins = await prisma.user.findMany({
             where: {
-                role: "ADMIN" // Or we could check for manage_reviews permission if we had a more complex role check here
+                role: "ADMIN"
             }
         });
 
@@ -50,7 +43,7 @@ export async function createReviewRequest(
                 admin.id,
                 "REVIEW_REQUEST_CREATED",
                 "Nueva reclamación de horas",
-                `El usuario ha solicitado revisar ${worklogIds.length} imputaciones en el WP ${wp?.name || wpId}.`,
+                `El usuario ha solicitado revisar ${worklogs.length} imputaciones en el WP ${wp?.name || wpId}.`,
                 reviewRequest.id
             );
         }

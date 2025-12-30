@@ -733,8 +733,13 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
         const claimedWorklogIds = new Set<number>();
         pendingReviewRequests.forEach(req => {
             try {
-                const ids = JSON.parse(req.worklogIds) as number[];
-                ids.forEach(id => claimedWorklogIds.add(id));
+                const stored = JSON.parse(req.worklogIds);
+                if (Array.isArray(stored)) {
+                    stored.forEach((item: any) => {
+                        const id = typeof item === 'object' ? item.id : item;
+                        if (id) claimedWorklogIds.add(id);
+                    });
+                }
             } catch (e) {
                 console.error('Error parsing worklog IDs from review request:', e);
             }
