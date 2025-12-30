@@ -596,7 +596,9 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         // Calculate next regularization
         // Only show if (Current Available + Future Contracted until Reg Date) < 0
         let nextRegularization = null;
-        if (selectedPeriod.regularizationType && selectedPeriod.regularizationRate) {
+        const effectiveRegRate = selectedPeriod.regularizationRate || selectedPeriod.rate;
+
+        if (selectedPeriod.regularizationType && effectiveRegRate) {
 
             // Calculate next regularization date based on type
             let nextDate: Date | null = null;
@@ -645,7 +647,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 if (projectedBalance < 0) {
                     const hoursToRegularize = Math.abs(projectedBalance);
-                    const amount = hoursToRegularize * selectedPeriod.regularizationRate;
+                    const amount = hoursToRegularize * effectiveRegRate;
 
                     nextRegularization = {
                         hours: hoursToRegularize,
