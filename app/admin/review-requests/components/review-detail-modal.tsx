@@ -171,7 +171,7 @@ export function ReviewDetailModal({
                                             </span>
                                         )}
                                     </h4>
-                                    <div className="border rounded-md overflow-hidden bg-white shadow-sm font-anek">
+                                    <div className="border rounded-md overflow-y-auto max-h-[350px] bg-white shadow-sm font-anek">
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-50 border-b">
                                                 <tr className="text-slate-500 font-semibold italic">
