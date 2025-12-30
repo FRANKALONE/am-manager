@@ -721,44 +721,41 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             orderBy: { date: 'asc' }
         });
 
-        // Get pending review requests for this WP to mark claimed worklogs
-        const pendingReviewRequests = await prisma.reviewRequest.findMany({
+        // Get pending and approved review requests for this WP to mark worklogs
+        const allReviewRequests = await prisma.reviewRequest.findMany({
             where: {
                 workPackageId: wpId,
-                status: 'PENDING'
+                status: { in: ['PENDING', 'APPROVED'] }
             }
         });
 
-        // Build a set of worklog IDs that are in pending review requests
-        const claimedWorklogIds = new Set<number>();
-        pendingReviewRequests.forEach(req => {
+        // Build fingerprint sets for matching
+        const claimedFingerprints = new Set<string>();
+        const refundedFingerprints = new Set<string>();
+
+        const getFingerprint = (w: any) =>
+            `${w.issueKey}|${new Date(w.startDate).toISOString()}|${w.timeSpentHours.toFixed(3)}|${w.author}|${w.tipoImputacion || ''}`;
+
+        allReviewRequests.forEach(req => {
             try {
-                const stored = JSON.parse(req.worklogIds);
-                if (Array.isArray(stored)) {
-                    stored.forEach((item: any) => {
-                        const id = typeof item === 'object' ? item.id : item;
-                        if (id) claimedWorklogIds.add(id);
-                    });
+                const snapshots = JSON.parse(req.worklogIds) as any[];
+                if (!Array.isArray(snapshots)) return;
+
+                if (req.status === 'PENDING') {
+                    snapshots.forEach(s => claimedFingerprints.add(getFingerprint(s)));
+                } else if (req.status === 'APPROVED' && req.approvedIds) {
+                    const approvedIds = JSON.parse(req.approvedIds) as number[];
+                    snapshots
+                        .filter(s => approvedIds.includes(s.id))
+                        .forEach(s => refundedFingerprints.add(getFingerprint(s)));
                 }
             } catch (e) {
-                console.error('Error parsing worklog IDs from review request:', e);
+                console.error('Error parsing worklog IDs/snapshots from review request:', e);
             }
         });
 
         // Get all unique ticket keys from this month (filter out nulls)
         const ticketKeys = Array.from(new Set(worklogs.map(w => w.issueKey).filter((key): key is string => key !== null)));
-
-        // NEW: Identify ticket IDs from RETURN regularizations to highlight refunded worklogs
-        const refundedTicketKeys = new Set<string>();
-        regularizations
-            .filter(reg => reg.type === 'RETURN')
-            .forEach(reg => {
-                const desc = reg.description || "";
-                const matches = desc.match(/[A-Z]+-[0-9]+/g);
-                if (matches) {
-                    matches.forEach(key => refundedTicketKeys.add(key));
-                }
-            });
 
         // Check which tickets have consumption in other months
         const ticketsWithOtherMonths: Record<string, boolean> = {};
@@ -791,22 +788,25 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             byType[targetType].push(w);
         });
 
-        // Calculate totals per type and add multi-month info + claimed status
+        // Calculate totals per type and add multi-month info + claimed/refunded status
         const result = Object.entries(byType).map(([type, logs]) => ({
             type,
             totalHours: logs.reduce((sum, l) => sum + l.timeSpentHours, 0),
             ticketCount: new Set(logs.map(l => l.issueKey)).size,
-            worklogs: logs.map(log => ({
-                ...log,
-                hasOtherMonths: ticketsWithOtherMonths[log.issueKey] || false,
-                isClaimed: claimedWorklogIds.has(log.id),
-                isRefunded: log.issueKey ? refundedTicketKeys.has(log.issueKey) : false,
-                originWpId: log.originWpId,
-                isTM: log.billingMode === 'T&M contra bolsa',
-                isBolsa: log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas',
-                label: log.billingMode === 'T&M contra bolsa' ? 'Evolutivo T&M contra bolsa' :
-                    (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas' ? 'Evolutivo contra bolsa' : null)
-            })),
+            worklogs: logs.map(log => {
+                const fingerprint = getFingerprint(log);
+                return {
+                    ...log,
+                    hasOtherMonths: ticketsWithOtherMonths[log.issueKey] || false,
+                    isClaimed: claimedFingerprints.has(fingerprint),
+                    isRefunded: refundedFingerprints.has(fingerprint),
+                    originWpId: log.originWpId,
+                    isTM: log.billingMode === 'T&M contra bolsa',
+                    isBolsa: log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas',
+                    label: log.billingMode === 'T&M contra bolsa' ? 'Evolutivo T&M contra bolsa' :
+                        (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas' ? 'Evolutivo contra bolsa' : null)
+                };
+            }),
             portalUrl: wp?.client?.portalUrl || null
         }));
 
