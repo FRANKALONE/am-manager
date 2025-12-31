@@ -196,11 +196,10 @@ export async function getPendingCierres(month: number, year: number) {
                         return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
                     }) || [];
 
-                    const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
-                    const pManualCons = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                    const pReturnTotal = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pRegTotal = pRegs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
-                    pConsumed = pConsumed - pReturnTotal + pManualCons;
+                    pConsumed = pConsumed - pReturnTotal;
 
                     let pMonthlyContractedAmount = 0;
                     if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {
@@ -269,11 +268,10 @@ export async function getPendingCierres(month: number, year: number) {
                     return regDate.getMonth() + 1 === m && regDate.getFullYear() === y;
                 }) || [];
 
-                const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
-                const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
-                consumed = consumed - returnTotal + manualCons;
+                consumed = consumed - returnTotal;
 
                 let monthlyContracted = 0;
                 if (isBolsaPuntual && m === (currentStart.getMonth() + 1) && y === currentStart.getFullYear()) {
@@ -321,9 +319,8 @@ export async function getPendingCierres(month: number, year: number) {
                     return rd.getMonth() + 1 === month && rd.getFullYear() === year;
                 }) || [];
 
-                const monthlyReturn = monthlyRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const monthlyManual = monthlyRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
-                const effectiveMonthlyConsumed = monthlyConsumed - monthlyReturn + monthlyManual;
+                const monthlyReturn = monthlyRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const effectiveMonthlyConsumed = monthlyConsumed - monthlyReturn;
 
                 let monthlyContracted = 0;
                 if (isBolsaPuntual && month === (currentStart.getMonth() + 1) && year === currentStart.getFullYear()) {
@@ -478,16 +475,15 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 const metric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
                 let consumed = metric ? metric.consumedHours : 0;
 
-                const regs = wp.regularizations?.filter(reg => {
+                const regs = wp.regularizations?.filter((reg: any) => {
                     const regDate = new Date(reg.date);
                     return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
                 }) || [];
 
-                const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
-                const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
-                consumed = consumed - returnTotal + manualCons;
+                consumed = consumed - returnTotal;
 
                 // Track first month with consumption
                 if (consumed > 0 && firstMonthWithConsumption === null) {
@@ -564,11 +560,10 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                         return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
                     }) || [];
 
-                    const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
-                    const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                    const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
-                    consumed = consumed - returnTotal + manualCons;
+                    consumed = consumed - returnTotal;
 
                     let monthlyContracted = 0;
                     if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {

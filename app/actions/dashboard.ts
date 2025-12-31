@@ -322,9 +322,9 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                         return rd.getMonth() + 1 === pm && rd.getFullYear() === py;
                     }) || [];
 
-                    const pManual = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
-                    const pReturn = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const pExcess = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                    const pManual = pRegs.filter((r: any) => r.type === 'MANUAL_CONSUMPTION').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pReturn = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pExcess = pRegs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     eventInitialBalance += (pMonthlyContracted - (ticketsInMonth + pManual - pReturn) + pExcess);
                     pIter.setMonth(pIter.getMonth() + 1);
@@ -450,8 +450,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 }) || [];
 
                 const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const pManualCons = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
-                pConsumed = pConsumed - pReturnTotal + pManualCons;
+                pConsumed = pConsumed - pReturnTotal;
 
                 const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
 
@@ -496,11 +495,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 .filter(r => r.type === 'RETURN')
                 .reduce((sum, r) => sum + r.quantity, 0);
 
-            const manualConsTotal = regularizationsThisMonth
-                .filter(r => r.type === 'MANUAL_CONSUMPTION')
-                .reduce((sum, r) => sum + r.quantity, 0);
-
-            consumed = consumed - returnTotal + manualConsTotal; // Adjust consumed with returns and manual cons
+            consumed = consumed - returnTotal; // Adjust consumed with returns
 
             // Only EXCESS and SOBRANTE_ANTERIOR regularizations appear in regularization column
             const regularizationTotal = regularizationsThisMonth
