@@ -1041,11 +1041,39 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             ticketStatusMap[t.issueKey] = t.status;
         });
 
+        // Get approved fingerprints for this WP
+        const approvedRequests = await prisma.reviewRequest.findMany({
+            where: {
+                workPackageId: wpId,
+                status: 'APPROVED'
+            }
+        });
+
+        const refundedFingerprints = new Set<string>();
+        const getFingerprint = (w: any) =>
+            `${w.issueKey}|${new Date(w.startDate).toISOString()}|${w.timeSpentHours.toFixed(3)}|${w.author}|${w.tipoImputacion || ''}`;
+
+        approvedRequests.forEach(req => {
+            try {
+                const snapshots = JSON.parse(req.worklogIds) as any[];
+                if (!Array.isArray(snapshots)) return;
+                const approvedIds = JSON.parse(req.approvedIds || '[]') as number[];
+                snapshots
+                    .filter(s => approvedIds.includes(s.id))
+                    .forEach(s => refundedFingerprints.add(getFingerprint(s)));
+            } catch (e) {
+                console.error('Error parsing snapshots in report:', e);
+            }
+        });
+
         // Group by ticket
         const ticketMap: Record<string, any> = {};
 
         filteredWorklogs.forEach(w => {
             if (!w.issueKey) return;
+
+            // Skip if this specific worklog was refunded
+            if (refundedFingerprints.has(getFingerprint(w))) return;
 
             if (!ticketMap[w.issueKey]) {
                 ticketMap[w.issueKey] = {
