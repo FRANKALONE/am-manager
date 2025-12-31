@@ -83,7 +83,7 @@ export function HelpView({ permissions, userName }: HelpViewProps) {
             </div>
 
             <footer className="mt-12 text-center text-sm text-muted-foreground print:hidden">
-                <p>© {new Date().getFullYear()} - AM Manager v2512.001</p>
+                <p>© {new Date().getFullYear()} - AM Manager v2512.2</p>
                 <p>Si necesita ayuda adicional, contacte con soporte técnico.</p>
             </footer>
 

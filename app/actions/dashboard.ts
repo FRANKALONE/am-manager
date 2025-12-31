@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "@/app/actions/sync";
 import https from 'https';
+import { getNowSpain, getStartOfTodaySpain } from "@/lib/utils";
 
 // Helper function to count tickets created in a specific month from JIRA
 async function getTicketCountFromJira(projectKeys: string, month: number, year: number): Promise<number> {
@@ -142,7 +143,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
         // --- Determine which validity period to use ---
         let selectedPeriod = null;
-        const now = new Date();
+        const now = getNowSpain();
+        const startOfToday = getStartOfTodaySpain();
 
         if (validityPeriodId) {
             // Use specified period
@@ -150,10 +152,11 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         }
 
         if (!selectedPeriod) {
-            // Find current period (default)
+            // Find current period (default - inclusive of the whole end date)
             selectedPeriod = wp.validityPeriods.find(p => {
                 const start = new Date(p.startDate);
                 const end = new Date(p.endDate);
+                end.setHours(23, 59, 59, 999);
                 return now >= start && now <= end;
             });
         }
@@ -349,13 +352,18 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             const percentage = (totalScope + eventInitialBalance) > 0 ? (totalConsumed / (totalScope + eventInitialBalance)) * 100 : 0;
             const billedPercentage = totalScope > 0 ? (billedAmount / totalScope) * 100 : 0;
 
-            const validityPeriodsFormatted = wp.validityPeriods.map(p => ({
-                id: p.id,
-                label: `${new Date(p.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${new Date(p.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
-                startDate: p.startDate,
-                endDate: p.endDate,
-                isCurrent: now >= new Date(p.startDate) && now <= new Date(p.endDate)
-            }));
+            const validityPeriodsFormatted = wp.validityPeriods.map(p => {
+                const pStart = new Date(p.startDate);
+                const pEnd = new Date(p.endDate);
+                pEnd.setHours(23, 59, 59, 999);
+                return {
+                    id: p.id,
+                    label: `${pStart.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${pEnd.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                    startDate: p.startDate,
+                    endDate: p.endDate,
+                    isCurrent: now >= pStart && now <= pEnd
+                };
+            });
 
             return {
                 wpName: wp.name,
@@ -564,13 +572,18 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const billedPercentage = totalScope > 0 ? (billedAmount / totalScope) * 100 : 0;
 
         // Format validity periods for frontend
-        const validityPeriodsFormatted = wp.validityPeriods.map(p => ({
-            id: p.id,
-            label: `${new Date(p.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${new Date(p.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
-            startDate: p.startDate,
-            endDate: p.endDate,
-            isCurrent: now >= new Date(p.startDate) && now <= new Date(p.endDate)
-        }));
+        const validityPeriodsFormatted = wp.validityPeriods.map(p => {
+            const pStart = new Date(p.startDate);
+            const pEnd = new Date(p.endDate);
+            pEnd.setHours(23, 59, 59, 999);
+            return {
+                id: p.id,
+                label: `${pStart.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${pEnd.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                startDate: p.startDate,
+                endDate: p.endDate,
+                isCurrent: now >= pStart && now <= pEnd
+            };
+        });
 
         // Calculate regularizations for the selected period
         const periodRegularizations = wp.regularizations?.filter(reg => {

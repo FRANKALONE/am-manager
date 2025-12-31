@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { limitConcurrency } from "@/lib/utils-sync";
+import { getNowSpain } from "@/lib/utils";
 
 async function isKillSwitchActive() {
     try {
@@ -157,7 +158,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         addLog(`[INFO] Total validity periods: ${wp.validityPeriods.length}`);
 
         // Keep 'now' for correction model logic later
-        const now = new Date();
+        const now = getNowSpain();
 
         // 4. Collect Tempo Account IDs (current, old, and mappings)
         const accountIdsSet = new Set<string>();
@@ -584,7 +585,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         // 8.5. Find active correction model (before loop)
         let activeCorrection = (wp as any).wpCorrections.find((c: any) => {
             const corrStart = new Date(c.startDate);
+            // End date is inclusive of the entire day
             const corrEnd = c.endDate ? new Date(c.endDate) : new Date('2099-12-31');
+            corrEnd.setHours(23, 59, 59, 999);
             return now >= corrStart && now <= corrEnd;
         });
 

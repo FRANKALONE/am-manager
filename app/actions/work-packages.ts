@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchTempoAccountId } from "@/lib/tempo-helper";
+import { getNowSpain, getStartOfTodaySpain } from "@/lib/utils";
 // import { syncWorkPackage } from "./sync";
 
 export type WorkPackageFilters = {
@@ -36,19 +37,21 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
         const status = filters?.status || "active";
 
         if (status === "active") {
-            const now = new Date();
+            const now = getNowSpain();
+            const startOfToday = getStartOfTodaySpain();
             where.validityPeriods = {
                 some: {
                     startDate: { lte: now },
-                    endDate: { gte: now }
+                    endDate: { gte: startOfToday }
                 }
             };
         } else if (status === "inactive") {
-            const now = new Date();
+            const now = getNowSpain();
+            const startOfToday = getStartOfTodaySpain();
             where.validityPeriods = {
                 none: {
                     startDate: { lte: now },
-                    endDate: { gte: now }
+                    endDate: { gte: startOfToday }
                 }
             };
         }
