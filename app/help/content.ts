@@ -18,7 +18,18 @@ export const MANUAL_CONTENT: HelpSection[] = [
         icon: "Info",
         content: [
             {
-                text: "Bienvenido al portal AM Manager. Este sistema le permite monitorizar los consumos de sus servicios de Application Management de forma transparente y en tiempo real."
+                text: "Bienvenido al portal AM Manager v2512.3. Este sistema le permite monitorizar los consumos de sus servicios de Application Management de forma transparente y en tiempo real."
+            }
+        ]
+    },
+    {
+        id: "auth",
+        title: "Acceso y Seguridad",
+        icon: "Lock",
+        content: [
+            {
+                subtitle: "Recuperación de Contraseña",
+                text: "Si ha olvidado su contraseña, puede utilizar la opción '¿Olvidaste tu contraseña?' en la pantalla de inicio de sesión para recibir un enlace de restablecimiento en su correo electrónico corporativo."
             }
         ]
     },
@@ -38,8 +49,8 @@ export const MANUAL_CONTENT: HelpSection[] = [
                 ]
             },
             {
-                subtitle: "Detalle Mensual",
-                text: "Al expandir una fila mensual, verá el listado completo de imputaciones y tickets asociados a ese mes."
+                subtitle: "Detalle Mensual y Reclamaciones",
+                text: "Al expandir una fila mensual, verá el desglose de tickets. Si un ticket muestra el distintivo 'DEVUELTO' en rojo, significa que ha sido reconocido como una devolución tras una reclamación."
             }
         ]
     },
@@ -58,7 +69,7 @@ export const MANUAL_CONTENT: HelpSection[] = [
                     "Pulse el botón 'Solicitar Revisión' que aparecerá al final de la tabla.",
                     "Escriba el motivo de su reclamación."
                 ],
-                note: "Una vez enviada, un administrador revisará su solicitud y recibirá una notificación con la decisión."
+                note: "Una vez aprobada, el sistema marcará los tickets como 'DEVUELTO' y ajustará el balance automáticamente."
             }
         ]
     },
@@ -69,30 +80,12 @@ export const MANUAL_CONTENT: HelpSection[] = [
         icon: "Briefcase",
         content: [
             {
-                subtitle: "Configuración de Contratos",
-                text: "Los administradores pueden configurar los parámetros económicos de cada Work Package:",
+                subtitle: "Configuración y Sincronización",
+                text: "Los administradores pueden gestionar el ciclo de vida de los WPs:",
                 items: [
-                    "Tarifas y alcances por periodo.",
-                    "Sincronización con JIRA/Tempo.",
-                    "Gestión de regularizaciones manuales (excesos o devoluciones)."
-                ]
-            }
-        ]
-    },
-    {
-        id: "admin_reviews",
-        title: "Gestión de Reclamaciones (Admin)",
-        permission: "manage_reviews",
-        icon: "CheckSquare",
-        content: [
-            {
-                subtitle: "Aprobación y Rechazo",
-                text: "Al recibir una reclamación, puede:",
-                items: [
-                    "Ver el detalle y motivo del cliente.",
-                    "Seleccionar qué horas reconoce para devolución.",
-                    "Aprobar: El sistema generará automáticamente una regularización tipo RETURN.",
-                    "Rechazar: Deberá indicar el motivo para notificar al cliente."
+                    "Ajuste de periodos de vigencia (fechas inclusivas).",
+                    "Sincronización automática con JIRA y Tempo Author identification.",
+                    "Control de duplicados en consumos manuales."
                 ]
             }
         ]

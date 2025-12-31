@@ -26,11 +26,11 @@ El sistema de roles de AM Manager permite configurar diferentes niveles de acces
 **Descripción**: Permite acceder a la sección de gestión de cierres mensuales.
 
 **Acceso a**:
-- Vista de cierres mensuales
-- Histórico de cierres
-- Detalles de facturación mensual
+- Vista de cierres mensuales con visualización de candidatos y procesados
+- **Filtros avanzados**: Búsqueda por cliente/WP, frecuencia de facturación, estado de vencimiento y tipo de saldo (en deuda o a favor)
+- Histórico de cierres y detalles de facturación mensual
 
-**Recomendado para**: Roles de gestión y administración que necesiten revisar cierres contables.
+**Recomendado para**: Roles de gestión y administración que necesiten revisar cierres contables y de facturación.
 
 ---
 
@@ -56,6 +56,7 @@ El sistema de roles de AM Manager permite configurar diferentes niveles de acces
 - Listado de usuarios
 - Crear nuevos usuarios
 - Editar información de usuarios existentes
+- Ver fecha de **Última conexión** para control de accesos
 - Asignar roles a usuarios
 - Activar/desactivar usuarios
 - Eliminar usuarios
@@ -104,6 +105,18 @@ El sistema de roles de AM Manager permite configurar diferentes niveles de acces
 - Activar/desactivar roles
 
 **Recomendado para**: Solo administradores del sistema.
+
+---
+
+#### `manage_maintenance` - Mantenimiento del Sistema
+**Descripción**: Permite acceder a herramientas técnicas de mantenimiento y diagnóstico.
+
+**Acceso a**:
+- Monitor de salud de la base de datos (Prisma)
+- Panel de control de Sincronización (Sync Kill Switch)
+- Visualización de logs técnicos
+
+**Recomendado para**: Solo administradores técnicos.
 
 ---
 
@@ -208,6 +221,7 @@ El sistema de roles de AM Manager permite configurar diferentes niveles de acces
 | edit_billing | ❌ | ❌ | ❌ | ✅ | ✅ |
 | request_review | ✅ | ✅ | ✅ | ✅ | ✅ |
 | manage_reviews | ❌ | ❌ | ❌ | ✅ | ✅ |
+| manage_maintenance | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -247,6 +261,6 @@ No, cada usuario tiene asignado un único rol. Si necesitas diferentes combinaci
 ---
 
 ## Versión del Documento
-- **Versión**: 1.0
-- **Fecha**: Diciembre 2024
-- **Sistema**: AM Manager v2512.003
+- **Versión**: 1.3
+- **Fecha**: Diciembre 2025
+- **Sistema**: AM Manager v2512.3
