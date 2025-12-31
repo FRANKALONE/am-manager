@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, CheckCircle2, RefreshCcw, DollarSign, Calendar, Clock, TrendingUp, Info, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle2, RefreshCcw, DollarSign, Calendar, Clock, TrendingUp, Info, FileText, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getPendingCierres, processCierre, processBatchCierres, getClosureReportData, type CierreCandidate, type EventosStatus } from "@/app/actions/cierres";
@@ -31,6 +32,12 @@ export function CierresView() {
     const [processingWp, setProcessingWp] = useState<string | null>(null);
     const [batchProcessing, setBatchProcessing] = useState(false);
     const [downloadingReport, setDownloadingReport] = useState<string | null>(null);
+
+    // Filtros de UI
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterFrequency, setFilterFrequency] = useState("all");
+    const [filterDueOnly, setFilterDueOnly] = useState(false);
+    const [filterBalance, setFilterBalance] = useState<"all" | "positive" | "negative">("negative");
 
     const loadData = async () => {
         console.log(`[CIERRES] Refreshing data for ${month}/${year}...`);
@@ -239,11 +246,11 @@ export function CierresView() {
         }
     };
 
-    const toggleSelectAll = () => {
-        if (selectedIds.length === candidates.length) {
+    const toggleSelectAll = (filteredCandidates: CierreCandidate[]) => {
+        if (selectedIds.length === filteredCandidates.length && filteredCandidates.length > 0) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(candidates.map(c => c.wpId));
+            setSelectedIds(filteredCandidates.map(c => c.wpId));
         }
     };
 
@@ -253,6 +260,29 @@ export function CierresView() {
         );
     };
 
+    // --- Lógica de Filtrado en Frontend ---
+    const filteredCandidates = candidates.filter(c => {
+        // 1. Cliente o WP
+        if (searchTerm) {
+            const search = searchTerm.toLowerCase();
+            if (!c.clientName.toLowerCase().includes(search) && !c.wpName.toLowerCase().includes(search)) return false;
+        }
+
+        // 2. Frecuencia
+        if (filterFrequency !== "all") {
+            if (c.regularizationType?.toUpperCase() !== filterFrequency.toUpperCase()) return false;
+        }
+
+        // 3. Facturar este mes
+        if (filterDueOnly && !c.isDueThisMonth) return false;
+
+        // 4. Balance Acumulado
+        if (filterBalance === "negative" && c.accumulatedBalance >= -0.01) return false;
+        if (filterBalance === "positive" && c.accumulatedBalance < 0.01) return false;
+
+        return true;
+    });
+
 
 
     const currentYear = new Date().getFullYear();
@@ -260,55 +290,112 @@ export function CierresView() {
 
     return (
         <div className="space-y-6">
-            {/* Filter Bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-6 rounded-xl border shadow-sm">
-                <div className="space-y-2 w-full md:w-32">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</label>
-                    <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
-                        <SelectTrigger className="border-slate-200 font-medium">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {MONTHS_LABELS.map((m, i) => (
-                                <SelectItem key={i + 1} value={(i + 1).toString()}>{m}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2 w-full md:w-32">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Año</label>
-                    <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-                        <SelectTrigger className="border-slate-200 font-medium">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => (
-                                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-grow" />
-                <div className="flex gap-2">
-                    {selectedIds.length > 0 && (
+            {/* Filter Bar & Search */}
+            <div className="bg-white rounded-xl border shadow-sm p-6 space-y-4">
+                <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="space-y-2 w-full md:w-32">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</label>
+                        <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
+                            <SelectTrigger className="border-slate-200 font-medium">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {MONTHS_LABELS.map((m, i) => (
+                                    <SelectItem key={i + 1} value={(i + 1).toString()}>{m}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2 w-full md:w-32">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Año</label>
+                        <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
+                            <SelectTrigger className="border-slate-200 font-medium">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => (
+                                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex-grow" />
+                    <div className="flex gap-2">
+                        {selectedIds.length > 0 && (
+                            <Button
+                                onClick={handleBatchProcess}
+                                disabled={batchProcessing}
+                                className="bg-dark-green hover:bg-black text-white font-bold gap-2 animate-in fade-in slide-in-from-right-2"
+                            >
+                                <DollarSign className="w-4 h-4" />
+                                {batchProcessing ? 'Facturando lote...' : `Facturar Seleccionados (${selectedIds.length})`}
+                            </Button>
+                        )}
                         <Button
-                            onClick={handleBatchProcess}
-                            disabled={batchProcessing}
-                            className="bg-dark-green hover:bg-black text-white font-bold gap-2 animate-in fade-in slide-in-from-right-2"
+                            variant="outline"
+                            onClick={loadData}
+                            disabled={loading}
+                            className="border-slate-200 text-slate-600 font-semibold"
                         >
-                            <DollarSign className="w-4 h-4" />
-                            {batchProcessing ? 'Facturando lote...' : `Facturar Seleccionados (${selectedIds.length})`}
+                            <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Actualizar
                         </Button>
-                    )}
-                    <Button
-                        variant="outline"
-                        onClick={loadData}
-                        disabled={loading}
-                        className="border-slate-200 text-slate-600 font-semibold"
-                    >
-                        <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        Actualizar
-                    </Button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-4 items-center pt-4 border-t border-slate-50">
+                    {/* Buscador */}
+                    <div className="relative w-full md:max-w-xs">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                            placeholder="Buscar cliente o WP..."
+                            className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Frecuencia */}
+                    <div className="w-full md:w-36">
+                        <Select value={filterFrequency} onValueChange={setFilterFrequency}>
+                            <SelectTrigger className="bg-slate-50 border-slate-200 h-9 text-xs font-semibold">
+                                <SelectValue placeholder="Frecuencia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las Frec.</SelectItem>
+                                <SelectItem value="MENSUAL">Mensual</SelectItem>
+                                <SelectItem value="TRIMESTRAL">Trimestral</SelectItem>
+                                <SelectItem value="SEMESTRAL">Semestral</SelectItem>
+                                <SelectItem value="ANUAL">Anual</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Balance */}
+                    <div className="w-full md:w-40">
+                        <Select value={filterBalance} onValueChange={(v: any) => setFilterBalance(v)}>
+                            <SelectTrigger className="bg-slate-50 border-slate-200 h-9 text-xs font-semibold">
+                                <SelectValue placeholder="Balance" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="negative">Balance Negativo</SelectItem>
+                                <SelectItem value="positive">Balance Positivo</SelectItem>
+                                <SelectItem value="all">Todos los balances</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Facturables ahora */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 h-9">
+                        <Checkbox
+                            id="filterDueOnly"
+                            checked={filterDueOnly}
+                            onCheckedChange={(checked) => setFilterDueOnly(checked as boolean)}
+                        />
+                        <label htmlFor="filterDueOnly" className="text-xs font-bold text-slate-600 cursor-pointer select-none">
+                            Facturar este mes
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -319,8 +406,15 @@ export function CierresView() {
                         <Calendar className="w-5 h-5 text-malachite" />
                         Candidatos a Regularización
                     </CardTitle>
-                    <div className="text-xs text-slate-400 font-medium">
-                        {candidates.length} candidatos cargados
+                    <div className="flex items-center gap-2">
+                        {filteredCandidates.length < candidates.length && (
+                            <Badge variant="outline" className="text-[10px] font-bold text-slate-400">
+                                {filteredCandidates.length} de {candidates.length} mostrados
+                            </Badge>
+                        )}
+                        <div className="text-xs text-slate-400 font-medium">
+                            {filteredCandidates.length} candidatos cargados
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -330,8 +424,8 @@ export function CierresView() {
                                 <tr>
                                     <th className="px-6 py-4 w-10">
                                         <Checkbox
-                                            checked={selectedIds.length === candidates.length && candidates.length > 0}
-                                            onCheckedChange={toggleSelectAll}
+                                            checked={selectedIds.length === filteredCandidates.length && filteredCandidates.length > 0}
+                                            onCheckedChange={() => toggleSelectAll(filteredCandidates)}
                                         />
                                     </th>
                                     <th className="px-6 py-4">Cliente / WP</th>
@@ -342,7 +436,7 @@ export function CierresView() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
-                                {loading && candidates.length === 0 ? (
+                                {loading && filteredCandidates.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-20 text-center text-slate-400">
                                             <div className="flex flex-col items-center gap-2">
@@ -351,17 +445,17 @@ export function CierresView() {
                                             </div>
                                         </td>
                                     </tr>
-                                ) : candidates.length === 0 ? (
+                                ) : filteredCandidates.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-20 text-center text-slate-400">
                                             <div className="flex flex-col items-center gap-2">
                                                 <CheckCircle2 className="w-10 h-10 opacity-20" />
-                                                <p className="font-medium">No hay regularizaciones de bolsa pendientes en este periodo</p>
+                                                <p className="font-medium">No hay regularizaciones que coincidan con los filtros</p>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : (
-                                    candidates.map((c) => (
+                                    filteredCandidates.map((c) => (
                                         <tr key={c.wpId} className={`hover:bg-slate-50 transition-colors ${selectedIds.includes(c.wpId) ? 'bg-malachite/5' : ''}`}>
                                             <td className="px-6 py-4">
                                                 <Checkbox
