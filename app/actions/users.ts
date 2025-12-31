@@ -199,6 +199,12 @@ export async function authenticate(prevState: any, formData: FormData) {
             path: "/",
         });
 
+        // Update last login
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() }
+        });
+
         // Determine redirect target
         if (user.role === "ADMIN") {
             return { redirect: "/admin-home" };

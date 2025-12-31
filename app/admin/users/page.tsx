@@ -36,6 +36,7 @@ export default async function UsersPage() {
                             <TableHead>Email</TableHead>
                             <TableHead>Rol</TableHead>
                             <TableHead>Cliente Asociado</TableHead>
+                            <TableHead>Última Conexión</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -53,6 +54,15 @@ export default async function UsersPage() {
                                 </TableCell>
                                 <TableCell>
                                     {user.client?.name || "-"}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('es-ES', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : "Nunca"}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">

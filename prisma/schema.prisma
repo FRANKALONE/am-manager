@@ -91,6 +91,8 @@ model User {
   updatedAt        DateTime        @updatedAt
   workPackageIds   String?
   lastLoginAt      DateTime?
+  resetToken       String?         @unique
+  resetTokenExpiry DateTime?
   notifications    Notification[]
   reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
   requestedReviews ReviewRequest[] @relation("RequestedReviews")

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Image from "next/image";
+import Link from "next/link";
 import { authenticate } from "@/app/actions/users";
 
 const initialState = {
@@ -65,7 +66,15 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Contraseña</Label>
+                                <Link
+                                    href="/login/forgot-password"
+                                    className="text-xs text-primary hover:underline font-medium"
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </Link>
+                            </div>
                             <Input
                                 id="password"
                                 name="password"
