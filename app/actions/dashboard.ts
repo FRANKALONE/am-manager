@@ -450,7 +450,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 }) || [];
 
                 const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                pConsumed = pConsumed - pReturnTotal;
+                const pManualCons = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                pConsumed = pConsumed - pReturnTotal + pManualCons;
 
                 const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
 
@@ -495,7 +496,11 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 .filter(r => r.type === 'RETURN')
                 .reduce((sum, r) => sum + r.quantity, 0);
 
-            consumed = consumed - returnTotal; // Adjust consumed with returns
+            const manualConsTotal = regularizationsThisMonth
+                .filter(r => r.type === 'MANUAL_CONSUMPTION')
+                .reduce((sum, r) => sum + r.quantity, 0);
+
+            consumed = consumed - returnTotal + manualConsTotal; // Adjust consumed with returns and manual cons
 
             // Only EXCESS and SOBRANTE_ANTERIOR regularizations appear in regularization column
             const regularizationTotal = regularizationsThisMonth

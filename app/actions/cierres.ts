@@ -44,16 +44,24 @@ export interface EventosStatus {
 function checkIsDueThisMonth(startDate: Date, regType: string | null, targetMonth: number, targetYear: number): boolean {
     if (!regType) return false;
     const type = regType.toUpperCase();
+
+    // Monthly is always due
     if (type === 'MENSUAL') return true;
 
-    const start = new Date(startDate);
-    const monthsDiff = (targetYear - start.getFullYear()) * 12 + (targetMonth - (start.getMonth() + 1));
+    // Quarterly (March, June, September, December)
+    if (type === 'TRIMESTRAL') {
+        return [3, 6, 9, 12].includes(targetMonth);
+    }
 
-    if (monthsDiff < 0) return false;
+    // Semi-annually (June, December)
+    if (type === 'SEMESTRAL') {
+        return [6, 12].includes(targetMonth);
+    }
 
-    if (type === 'TRIMESTRAL') return monthsDiff % 3 === 0;
-    if (type === 'SEMESTRAL') return monthsDiff % 6 === 0;
-    if (type === 'ANUAL') return monthsDiff % 12 === 0;
+    // Annually (December)
+    if (type === 'ANUAL') {
+        return targetMonth === 12;
+    }
 
     return false;
 }
@@ -189,9 +197,10 @@ export async function getPendingCierres(month: number, year: number) {
                     }) || [];
 
                     const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const pRegTotal = pRegs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                    const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                    const pManualCons = pRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
 
-                    pConsumed = pConsumed - pReturnTotal;
+                    pConsumed = pConsumed - pReturnTotal + pManualCons;
 
                     let pMonthlyContractedAmount = 0;
                     if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {
@@ -204,6 +213,21 @@ export async function getPendingCierres(month: number, year: number) {
                     pIterDate.setMonth(pIterDate.getMonth() + 1);
                 }
             }
+
+            // 1.5 Add initial gaps/sobrantes before selection (mirroring dashboard.ts)
+            const firstPeriodStart = new Date(wp.validityPeriods[0].startDate);
+            const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+                const regDate = new Date(reg.date);
+                if (regDate >= firstPeriodStart) return false;
+                const isInPreviousPeriod = wp.validityPeriods.some(p => {
+                    const pStart = new Date(p.startDate);
+                    const pEnd = new Date(p.endDate);
+                    return pEnd < firstPeriodStart && regDate >= pStart && regDate <= pEnd;
+                });
+                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+            }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+
+            accumulatedBalance += sobrantesBeforeSelection;
 
             // 2. Current period up to target month
             const currentStart = new Date(period.startDate);
@@ -246,9 +270,10 @@ export async function getPendingCierres(month: number, year: number) {
                 }) || [];
 
                 const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const regTotal = regs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
 
-                consumed = consumed - returnTotal;
+                consumed = consumed - returnTotal + manualCons;
 
                 let monthlyContracted = 0;
                 if (isBolsaPuntual && m === (currentStart.getMonth() + 1) && y === currentStart.getFullYear()) {
@@ -288,8 +313,30 @@ export async function getPendingCierres(month: number, year: number) {
                     suggestedAmount: alreadyInvoicedAmount,
                     suggestedCashAmount: alreadyInvoicedAmount * regRate
                 });
-            } else if (balance < -0.01 || isDue) {
-                candidates.push(candidateData);
+            } else {
+                const monthlyMetric = wp.monthlyMetrics.find(met => met.month === month && met.year === year);
+                const monthlyConsumed = monthlyMetric ? monthlyMetric.consumedHours : 0;
+                const monthlyRegs = wp.regularizations?.filter(r => {
+                    const rd = new Date(r.date);
+                    return rd.getMonth() + 1 === month && rd.getFullYear() === year;
+                }) || [];
+
+                const monthlyReturn = monthlyRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
+                const monthlyManual = monthlyRegs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
+                const effectiveMonthlyConsumed = monthlyConsumed - monthlyReturn + monthlyManual;
+
+                let monthlyContracted = 0;
+                if (isBolsaPuntual && month === (currentStart.getMonth() + 1) && year === currentStart.getFullYear()) {
+                    monthlyContracted = period.totalQuantity || 0;
+                } else if (!isBolsaPuntual) {
+                    monthlyContracted = standardMonthlyContracted;
+                }
+
+                const monthlyBalance = monthlyContracted - effectiveMonthlyConsumed;
+
+                if (balance < -0.01 || monthlyBalance < -0.01 || isDue) {
+                    candidates.push(candidateData);
+                }
             }
         }
 
@@ -437,9 +484,10 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 }) || [];
 
                 const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const regTotal = regs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
 
-                consumed = consumed - returnTotal;
+                consumed = consumed - returnTotal + manualCons;
 
                 // Track first month with consumption
                 if (consumed > 0 && firstMonthWithConsumption === null) {
@@ -517,9 +565,10 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                     }) || [];
 
                     const returnTotal = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const regTotal = regs.filter(r => r.type === 'EXCESS').reduce((sum, r) => sum + r.quantity, 0);
+                    const regTotal = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                    const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
 
-                    consumed = consumed - returnTotal;
+                    consumed = consumed - returnTotal + manualCons;
 
                     let monthlyContracted = 0;
                     if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {
