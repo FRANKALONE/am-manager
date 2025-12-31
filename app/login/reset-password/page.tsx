@@ -10,13 +10,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import { Suspense } from "react";
+
+// Mantenemos initialState fuera
 const initialState = {
     error: "",
     success: false,
     message: ""
 };
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
     const [state, formAction] = useFormState(resetPassword as any, initialState);
@@ -103,3 +106,20 @@ export default function ResetPasswordPage() {
         </div>
     );
 }
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+                <Card className="w-full max-w-md">
+                    <CardContent className="pt-6">
+                        <div className="text-center">Cargando...</div>
+                    </CardContent>
+                </Card>
+            </div>
+        }>
+            <ResetPasswordForm />
+        </Suspense>
+    );
+}
+
