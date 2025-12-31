@@ -74,23 +74,26 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         // Module not available in this environment (e.g. Edge)
     }
 
+    console.log(`[SYNC SERVER] Starting sync for WP: ${wpId} (debug: ${debug})`);
     const https = require('https');
 
     const debugLogs: string[] = [];
     const addLog = (msg: string) => {
-        const timestamped = `[${new Date().toISOString()}] ${msg}`;
-        if (debug) debugLogs.push(timestamped);
+        const logMsg = `[${new Date().toISOString()}] ${msg}`;
+        debugLogs.push(logMsg);
+        if (debug) console.log(logMsg);
 
         // Only write to file if fs is available and NOT in Vercel production
         if (fs && path && process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
             try {
                 const logPath = path.join(process.cwd(), 'sync-debug.log');
-                fs.appendFileSync(logPath, timestamped + '\n');
+                fs.appendFileSync(logPath, logMsg + '\n');
             } catch (e) {
                 // Silently ignore
             }
         }
-        console.log(timestamped);
+        // Also log to regular console for server logging review
+        console.log(logMsg);
     };
 
     try {
