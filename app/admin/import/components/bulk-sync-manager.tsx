@@ -27,9 +27,7 @@ export function BulkSyncManager() {
     };
 
     const runBulkSync = async () => {
-        console.log("[DEBUG] runBulkSync initiated");
         if (!confirm("¿Deseas iniciar la sincronización de todos los Work Packages? Este proceso puede tardar varios minutos.")) {
-            console.log("[DEBUG] runBulkSync cancelled by user");
             return;
         }
 
@@ -41,12 +39,9 @@ export function BulkSyncManager() {
         setStartTime(start);
 
         try {
-            console.log("[DEBUG] Fetching eligible Work Packages...");
             const wps = await getEligibleWorkPackagesForSync();
-            console.log(`[DEBUG] Found ${wps?.length || 0} Work Packages:`, wps);
 
             if (!wps || !Array.isArray(wps)) {
-                console.error("[DEBUG] Invalid WPs data structure received:", wps);
                 toast.error("Error al obtener la lista de Work Packages");
                 setIsSyncing(false);
                 return;
@@ -55,7 +50,6 @@ export function BulkSyncManager() {
             setTotalWps(wps.length);
 
             if (wps.length === 0) {
-                console.log("[DEBUG] No WPs to sync");
                 toast.info("No hay Work Packages elegibles para sincronizar.");
                 setIsSyncing(false);
                 return;
@@ -63,7 +57,6 @@ export function BulkSyncManager() {
 
             for (let i = 0; i < wps.length; i++) {
                 const wp = wps[i];
-                console.log(`[DEBUG] (${i + 1}/${wps.length}) Starting sync for WP: ${wp.id} - ${wp.name}`);
                 setCurrentIdx(i + 1);
                 setCurrentWpName(wp.name);
 
@@ -76,35 +69,24 @@ export function BulkSyncManager() {
                 }
 
                 try {
-                    console.log(`[DEBUG] Calling syncWorkPackage server action for ${wp.id}`);
                     const res = await syncWorkPackage(wp.id);
-                    console.log(`[DEBUG] Sync result for ${wp.id}:`, JSON.stringify(res).substring(0, 500));
 
                     if (res?.error) {
-                        console.error(`[DEBUG] WP Sync Error (${wp.id}):`, res.error);
                         setResults(prev => ({ ...prev, errors: prev.errors + 1 }));
                     } else {
-                        console.log(`[DEBUG] WP Sync Success (${wp.id})`);
                         setResults(prev => ({ ...prev, success: prev.success + 1 }));
                     }
                 } catch (err: any) {
-                    console.error(`[DEBUG] CRITICAL Exception syncing WP ${wp.id}:`, err);
                     setResults(prev => ({ ...prev, errors: prev.errors + 1 }));
                     toast.error(`Error crítico en sync de ${wp.name}`);
                 }
 
                 const newProgress = ((i + 1) / wps.length) * 100;
-                console.log(`[DEBUG] Progress update: ${newProgress.toFixed(2)}%`);
                 setProgress(newProgress);
             }
 
-            console.log("[DEBUG] Bulk sync completed normally");
             toast.success("Sincronización masiva finalizada");
-        } catch (error: any) {
-            console.error("[DEBUG] FATAL Error during bulk sync process:", error);
-            toast.error("Error durante la sincronización masiva");
         } finally {
-            console.log("[DEBUG] runBulkSync finalization");
             setIsSyncing(false);
             setEta(null);
         }
@@ -115,7 +97,7 @@ export function BulkSyncManager() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <RefreshCw className={`h-5 w-5 text-blue-500 ${isSyncing ? 'animate-spin' : ''}`} />
-                    Sincronización Manual Masiva [DEBUG MODE]
+                    Sincronización Manual Masiva
                 </CardTitle>
                 <CardDescription>
                     Actualiza todos los Work Packages (Bolsa, BD y Eventos) con los últimos datos de JIRA y Tempo.
