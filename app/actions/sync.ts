@@ -445,11 +445,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 if (!includeEvoEstimates && !includeEvoTM) {
                     addLog(`[INFO] Both Evolutivo types disabled for this WP. Skipping Jira search.`);
                 } else {
-                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa") OR "Modo de Facturación" IS EMPTY)`;
+                    const jql = `project IN (${projectKeys.join(',')}) AND (issuetype = Evolutivo OR issuetype = "Hitos Evolutivos") AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
                     const bodyData = JSON.stringify({
                         jql,
                         maxResults: 1000,
-                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'status']
+                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'status', 'issuetype', 'assignee', 'duedate', 'parent']
                     });
 
                     const jiraUrl = process.env.JIRA_URL?.trim();
@@ -512,11 +512,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 id: issue.id,
                                 key: issue.key,
                                 summary: issue.fields.summary,
-                                issueType: 'Evolutivo',
+                                issueType: issue.fields.issuetype?.name || 'Evolutivo',
                                 billingMode: billingMode,
                                 created: issue.fields.created,
                                 estimate: issue.fields.timeoriginalestimate,
-                                status: issue.fields.status?.name || 'Unknown'
+                                status: issue.fields.status?.name || 'Unknown',
+                                assignee: issue.fields.assignee?.displayName || null,
+                                dueDate: issue.fields.duedate || null,
+                                parentKey: issue.fields.parent?.key || null
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
@@ -1049,9 +1052,38 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         year: wl.year,
                         month: wl.month,
                         reporter: 'Unknown', // We don't have reporter info in worklog details
-                        billingMode: details?.billingMode || wl.billingMode || null
+                        billingMode: details?.billingMode || wl.billingMode || null,
+                        assignee: details?.assignee || null,
+                        dueDate: details?.dueDate ? new Date(details.dueDate) : null,
+                        parentKey: details?.parentKey || null
                     });
                 }
+            }
+        }
+
+        // Also add Evolutivos and Hitos that might not have worklogs in this period
+        for (const [id, details] of Array.from(issueDetails.entries())) {
+            const isEvoOrHito = details.issueType === 'Evolutivo' || details.issueType === 'Hitos Evolutivos';
+            if (isEvoOrHito && !uniqueTickets.has(details.key)) {
+                uniqueTickets.set(details.key, {
+                    issueKey: details.key,
+                    issueSummary: details.summary,
+                    issueType: details.issueType,
+                    status: details.status || 'Unknown',
+                    priority: details.priority || 'Media',
+                    slaResponse: details.slaResponse,
+                    slaResponseTime: details.slaResponseTime,
+                    slaResolution: details.slaResolution,
+                    slaResolutionTime: details.slaResolutionTime,
+                    createdDate: details.created ? new Date(details.created) : new Date(),
+                    year: details.created ? new Date(details.created).getFullYear() : new Date().getFullYear(),
+                    month: details.created ? new Date(details.created).getMonth() + 1 : new Date().getMonth() + 1,
+                    reporter: 'Unknown',
+                    billingMode: details.billingMode || null,
+                    assignee: details.assignee || null,
+                    dueDate: details.dueDate ? new Date(details.dueDate) : null,
+                    parentKey: details.parentKey || null
+                });
             }
         }
 
@@ -1073,7 +1105,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     slaResponseTime: ticketData.slaResponseTime,
                     slaResolution: ticketData.slaResolution,
                     slaResolutionTime: ticketData.slaResolutionTime,
-                    billingMode: ticketData.billingMode
+                    billingMode: ticketData.billingMode,
+                    assignee: ticketData.assignee,
+                    dueDate: ticketData.dueDate,
+                    parentKey: ticketData.parentKey
                 },
                 create: {
                     workPackageId: wp.id,
@@ -1091,7 +1126,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     slaResolutionTime: ticketData.slaResolutionTime,
                     reporter: ticketData.reporter,
                     reporterEmail: null,
-                    billingMode: ticketData.billingMode
+                    billingMode: ticketData.billingMode,
+                    assignee: ticketData.assignee,
+                    dueDate: ticketData.dueDate,
+                    parentKey: ticketData.parentKey
                 }
             });
         }

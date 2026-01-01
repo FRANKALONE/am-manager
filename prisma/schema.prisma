@@ -29,6 +29,7 @@ model Client {
   portalUrl        String?
   clientLogo       String?
   clientPortalUrl  String?
+  jiraProjectKey   String?
   users            User[]
   workPackages     WorkPackage[]
 }
@@ -199,6 +200,10 @@ model Ticket {
   slaResolution     String?
   slaResponseTime   String?
   slaResolutionTime String?
+  assignee          String?
+  dueDate           DateTime?
+  parentKey         String?
+  originalEstimate  Float?
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])

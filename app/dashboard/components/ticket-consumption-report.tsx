@@ -10,9 +10,10 @@ interface TicketConsumptionReportProps {
     validityPeriods?: any[];
     selectedPeriodId?: number;
     onPeriodChange?: (periodId: number) => void;
+    isAdmin: boolean;
 }
 
-export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodId, onPeriodChange }: TicketConsumptionReportProps) {
+export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodId, onPeriodChange, isAdmin }: TicketConsumptionReportProps) {
     const [expandedTickets, setExpandedTickets] = useState<Set<string>>(new Set());
     const [filterTicketId, setFilterTicketId] = useState("");
     const [filterType, setFilterType] = useState("all");
@@ -186,19 +187,28 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                                     <ChevronDown className="h-4 w-4" /> :
                                                     <ChevronRight className="h-4 w-4" />
                                                 }
-                                                {data.portalUrl ? (
-                                                    <a
-                                                        href={`${data.portalUrl}/browse/${ticket.issueKey}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="font-medium text-primary hover:underline"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {ticket.issueKey}
-                                                    </a>
-                                                ) : (
-                                                    <span className="font-medium">{ticket.issueKey}</span>
-                                                )}
+                                                {(() => {
+                                                    const url = isAdmin
+                                                        ? `https://altim.atlassian.net/browse/${ticket.issueKey}`
+                                                        : data.portalUrl
+                                                            ? `${data.portalUrl}/browse/${ticket.issueKey}`
+                                                            : null;
+
+                                                    if (url) {
+                                                        return (
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="font-medium text-primary hover:underline"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {ticket.issueKey}
+                                                            </a>
+                                                        );
+                                                    }
+                                                    return <span className="font-medium">{ticket.issueKey}</span>;
+                                                })()}
                                             </div>
                                         </td>
                                         <td className="p-3 px-4 text-muted-foreground max-w-md truncate">

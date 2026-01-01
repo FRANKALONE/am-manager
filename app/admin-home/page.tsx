@@ -1,7 +1,7 @@
 import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, FileCheck, Settings } from "lucide-react";
+import { BarChart3, FileCheck, Settings, Calendar } from "lucide-react";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
 
@@ -25,6 +25,14 @@ export default async function AdminHomePage() {
             href: "/cierres",
             color: "from-green-500 to-green-600",
             visible: perms.view_cierres
+        },
+        {
+            title: "Gestión de Evolutivos",
+            description: "Seguimiento de hitos, responsables y planificación",
+            icon: Calendar,
+            href: "/dashboard/evolutivos",
+            color: "from-orange-500 to-orange-600",
+            visible: perms.view_dashboard
         },
         {
             title: "Panel de Administración",

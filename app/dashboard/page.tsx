@@ -28,7 +28,7 @@ export default async function DashboardPage() {
                 </Link>
             </div>
 
-            <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} />
+            <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} isAdmin={user?.role === 'ADMIN'} />
         </div>
     );
 }

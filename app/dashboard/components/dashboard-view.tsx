@@ -31,14 +31,16 @@ export function DashboardView({
     userId,
     initialClientId = "",
     initialWpId = "",
-    readOnly = false
+    readOnly = false,
+    isAdmin = false
 }: {
     clients: { id: string, name: string }[],
     permissions: Record<string, boolean>,
     userId: string,
     initialClientId?: string,
     initialWpId?: string,
-    readOnly?: boolean
+    readOnly?: boolean,
+    isAdmin?: boolean
 }) {
     const [selectedClient, setSelectedClient] = useState<string>(initialClientId);
     const [wps, setWps] = useState<any[]>([]);
@@ -618,6 +620,7 @@ export function DashboardView({
                                     validityPeriods={metrics?.validityPeriods}
                                     selectedPeriodId={selectedPeriodId}
                                     onPeriodChange={handlePeriodChange}
+                                    isAdmin={isAdmin}
                                 />
                             )}
                         </div>
