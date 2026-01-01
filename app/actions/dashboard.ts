@@ -1032,13 +1032,25 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             },
             select: {
                 issueKey: true,
-                status: true
+                status: true,
+                priority: true,
+                slaResponse: true,
+                slaResponseTime: true,
+                slaResolution: true,
+                slaResolutionTime: true
             }
         });
 
-        const ticketStatusMap: Record<string, string> = {};
+        const ticketDataMap: Record<string, any> = {};
         ticketStatuses.forEach(t => {
-            ticketStatusMap[t.issueKey] = t.status;
+            ticketDataMap[t.issueKey] = {
+                status: t.status,
+                priority: t.priority,
+                slaResponse: t.slaResponse,
+                slaResponseTime: t.slaResponseTime,
+                slaResolution: t.slaResolution,
+                slaResolutionTime: t.slaResolutionTime
+            };
         });
 
         // Get approved fingerprints for this WP
@@ -1080,7 +1092,12 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
                     issueKey: w.issueKey,
                     issueSummary: w.issueSummary,
                     issueType: w.issueType,
-                    issueStatus: ticketStatusMap[w.issueKey] || 'N/A',
+                    issueStatus: ticketDataMap[w.issueKey]?.status || 'N/A',
+                    priority: ticketDataMap[w.issueKey]?.priority || 'Media',
+                    slaResponse: ticketDataMap[w.issueKey]?.slaResponse,
+                    slaResponseTime: ticketDataMap[w.issueKey]?.slaResponseTime,
+                    slaResolution: ticketDataMap[w.issueKey]?.slaResolution,
+                    slaResolutionTime: ticketDataMap[w.issueKey]?.slaResolutionTime,
                     totalHours: 0,
                     monthlyBreakdown: []
                 };

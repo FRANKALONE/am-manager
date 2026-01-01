@@ -295,7 +295,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'customfield_10121', 'created']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
                 });
 
                 try {
@@ -331,13 +331,43 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const billingModeRaw = issue.fields.customfield_10121;
                             const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
 
+                            const getSlaInfo = (field: any) => {
+                                if (!field) return { status: null, time: null };
+
+                                let status = null;
+                                let elapsed = null;
+
+                                if (field.ongoingCycle) {
+                                    elapsed = field.ongoingCycle.elapsedTime?.friendly || null;
+                                    if (field.ongoingCycle.breached) {
+                                        status = "Incumplido";
+                                    } else {
+                                        status = field.ongoingCycle.remainingTime?.friendly || "En plazo";
+                                    }
+                                } else if (field.completedCycles && field.completedCycles.length > 0) {
+                                    const last = field.completedCycles[field.completedCycles.length - 1];
+                                    elapsed = last.elapsedTime?.friendly || null;
+                                    status = last.breached ? "Incumplido" : "Cumplido";
+                                }
+
+                                return { status, time: elapsed };
+                            };
+
+                            const resSla = getSlaInfo(issue.fields.customfield_10065);
+                            const resolSla = getSlaInfo(issue.fields.customfield_10064);
+
                             issueDetails.set(issue.id, {
                                 key: issue.key,
                                 summary: issue.fields.summary || '',
                                 issueType: issue.fields.issuetype?.name,
                                 status: issue.fields.status?.name || 'Unknown',
+                                priority: issue.fields.priority?.name || 'Media',
                                 billingMode: billingMode,
-                                created: issue.fields.created
+                                created: issue.fields.created,
+                                slaResponse: resSla.status,
+                                slaResponseTime: resSla.time,
+                                slaResolution: resolSla.status,
+                                slaResolutionTime: resolSla.time
                             });
                         });
                     }
@@ -1010,6 +1040,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         issueSummary: details.summary || wl.issueSummary,
                         issueType: details.issueType || wl.issueType,
                         status: details.status || 'Unknown',
+                        priority: details.priority || 'Media',
+                        slaResponse: details.slaResponse,
+                        slaResponseTime: details.slaResponseTime,
+                        slaResolution: details.slaResolution,
+                        slaResolutionTime: details.slaResolutionTime,
                         createdDate: wl.issueCreatedDate || new Date(),
                         year: wl.year,
                         month: wl.month,
@@ -1033,6 +1068,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     issueSummary: ticketData.issueSummary,
                     issueType: ticketData.issueType,
                     status: ticketData.status,
+                    priority: ticketData.priority,
+                    slaResponse: ticketData.slaResponse,
+                    slaResponseTime: ticketData.slaResponseTime,
+                    slaResolution: ticketData.slaResolution,
+                    slaResolutionTime: ticketData.slaResolutionTime,
                     billingMode: ticketData.billingMode
                 },
                 create: {
@@ -1044,6 +1084,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     year: ticketData.year,
                     month: ticketData.month,
                     status: ticketData.status,
+                    priority: ticketData.priority,
+                    slaResponse: ticketData.slaResponse,
+                    slaResponseTime: ticketData.slaResponseTime,
+                    slaResolution: ticketData.slaResolution,
+                    slaResolutionTime: ticketData.slaResolutionTime,
                     reporter: ticketData.reporter,
                     reporterEmail: null,
                     billingMode: ticketData.billingMode

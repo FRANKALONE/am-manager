@@ -194,7 +194,12 @@ model Ticket {
   reporter      String
   reporterEmail String?
   billingMode   String?
-  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  priority      String?
+  slaResponse       String?
+  slaResolution     String?
+  slaResponseTime   String?
+  slaResolutionTime String?
+  workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])
   @@index([workPackageId, year, month])

@@ -45,6 +45,36 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
         setExpandedTickets(newExpanded);
     };
 
+    const renderSlaBadge = (ticket: any, slaValue: string | null, slaTime: string | null) => {
+        if (!slaValue) return null;
+
+        const slaTicketTypes = ["Incidencia de correctivo", "Consulta", "Solicitud de servicio", "Soporte AM"].map(t => t.toLowerCase().trim());
+        const slaPriorities = ["Muy Alta", "Alta", "Media", "Baja"].map(p => p.toLowerCase().trim());
+
+        const issueType = (ticket.issueType || "").toLowerCase().trim();
+        const priority = (ticket.priority || "Media").toLowerCase().trim();
+
+        const appliesSLA = slaTicketTypes.includes(issueType) && slaPriorities.includes(priority);
+
+        if (!appliesSLA) return null;
+
+        const isIncumplido = slaValue.includes("Incumplido");
+        const isCumplido = slaValue.includes("Cumplido");
+
+        const tooltip = slaTime ? `Tiempo consumido: ${slaTime}` : "No hay detalle de tiempo";
+
+        return (
+            <span
+                title={tooltip}
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border inline-block whitespace-nowrap cursor-help ${isIncumplido ? 'bg-red-50 text-red-700 border-red-200' :
+                    isCumplido ? 'bg-green-50 text-green-700 border-green-200' :
+                        'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                {slaValue}
+            </span>
+        );
+    };
+
     if (!data || !data.tickets || data.tickets.length === 0) {
         return (
             <Card>
@@ -130,6 +160,9 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                 <th className="h-10 px-4 text-left font-medium">Tipo</th>
                                 <th className="h-10 px-4 text-left font-medium">ID Ticket</th>
                                 <th className="h-10 px-4 text-left font-medium">Descripción</th>
+                                <th className="h-10 px-4 text-left font-medium">Prioridad</th>
+                                <th className="h-10 px-4 text-left font-medium">SLA Resp.</th>
+                                <th className="h-10 px-4 text-left font-medium">SLA Resol.</th>
                                 <th className="h-10 px-4 text-left font-medium">Estado</th>
                                 <th className="h-10 px-4 text-right font-medium">Total Horas</th>
                             </tr>
@@ -172,6 +205,21 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                             {ticket.issueSummary}
                                         </td>
                                         <td className="p-3 px-4">
+                                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${ticket.priority === 'Muy Alta' ? 'bg-red-100 text-red-700' :
+                                                ticket.priority === 'Alta' ? 'bg-orange-100 text-orange-700' :
+                                                    ticket.priority === 'Baja' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                {ticket.priority || 'Media'}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 px-4">
+                                            {renderSlaBadge(ticket, ticket.slaResponse, ticket.slaResponseTime)}
+                                        </td>
+                                        <td className="p-3 px-4">
+                                            {renderSlaBadge(ticket, ticket.slaResolution, ticket.slaResolutionTime)}
+                                        </td>
+                                        <td className="p-3 px-4">
                                             <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
                                                 {ticket.issueStatus}
                                             </span>
@@ -182,7 +230,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                     </tr>
                                     {expandedTickets.has(ticket.issueKey) && (
                                         <tr>
-                                            <td colSpan={5} className="p-0 bg-muted/20">
+                                            <td colSpan={8} className="p-0 bg-muted/20">
                                                 <div className="p-4">
                                                     <h5 className="text-xs font-semibold mb-2 text-muted-foreground">
                                                         Desglose Mensual:
