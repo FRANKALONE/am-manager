@@ -430,6 +430,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         // 7.6. Fetch Evolutivos with "Bolsa de Horas" or "T&M contra bolsa" billing mode
         const evolutivoEstimates: any[] = [];
         const tmEvolutivoIds = new Set<string>(); // Keep track of T&M ticket IDs to fetch worklogs later
+        const tmBolsaEvolutivoIds = new Set<string>(); // Specifically those that consume Bolsa
         const ticketIdToKey = new Map<string, string>(); // Helper to resolve key from ID
 
         if (wp.jiraProjectKeys) {
@@ -513,6 +514,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                             if (isTM || isTMFacturable) {
                                 tmEvolutivoIds.add(issue.id);
+                                if (isTM) tmBolsaEvolutivoIds.add(issue.id);
                                 ticketIdToKey.set(issue.id, issue.key);
                                 addLog(`[INFO] Identified T&M Evolutivo for worklog sync: ${issue.key} (ID: ${issue.id}, Mode: ${billingMode})`);
                             }
@@ -1236,7 +1238,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     // because they are supposed to have manual consumptions
 
                     // Check if this ticket is an Evolutivo (T&M or Bolsa)
-                    const isEvolutivoTM = Array.from(tmEvolutivoIds).some(id => ticketIdToKey.get(id) === reg.ticketId);
+                    // Check if this ticket is an Evolutivo (T&M contra bolsa or Bolsa de Horas/Estimates)
+                    // IMPORTANT: We EXCLUDE Facturable/T&M Facturable here because they don't consume Bolsa
+                    const isEvolutivoTM = Array.from(tmBolsaEvolutivoIds).some(id => ticketIdToKey.get(id) === reg.ticketId);
                     const isEvolutivoBolsa = syncWorklog.tipoImputacion === 'Evolutivo Bolsa';
 
                     if (isEvolutivoTM || isEvolutivoBolsa) {
