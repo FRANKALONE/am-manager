@@ -17,10 +17,5 @@ export default function EvolutivosLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return (
-        <>
-            <SharedHeader title="Gestión de Evolutivos" />
-            {children}
-        </>
-    );
+    return <>{children}</>;
 }
