@@ -16,7 +16,7 @@ export async function getEvolutivosForBilling(clientId: string | undefined | 'al
     try {
         const whereClause: any = {
             issueType: 'Evolutivo',
-            billingMode: { in: ['T&M facturable', 'T&M Facturable'] }
+            billingMode: { in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable'] }
         };
 
         if (clientId && clientId !== 'all') {

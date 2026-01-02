@@ -449,7 +449,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     // We stick to the "Evolutivo" type and relevant billing modes.
                     // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId, but we now "obviar el WP" (ignore account) 
                     // to ensure all relevant hours are captured project-wide.
-                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
+                    // Standardize JQL using field IDs for robustness
+                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = "Evolutivo" AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
 
                     const bodyData = JSON.stringify({
                         jql,
@@ -501,16 +502,19 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const billingModeRaw = issue.fields.customfield_10121;
                             const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || 'Bolsa de Horas';
 
-                            const isTM = billingMode === 'T&M contra bolsa';
+                            const billingModeLower = billingMode.toLowerCase();
+                            const isTM = billingModeLower === 't&m contra bolsa';
+                            const isTMFacturable = billingModeLower === 't&m facturable' || billingModeLower === 'facturable';
                             const isBolsa = billingMode === 'Bolsa de Horas';
 
                             // Check permissions
-                            if (isTM && !includeEvoTM) return;
+                            if ((isTM || isTMFacturable) && !includeEvoTM) return;
                             if (isBolsa && !includeEvoEstimates) return;
 
-                            if (isTM) {
+                            if (isTM || isTMFacturable) {
                                 tmEvolutivoIds.add(issue.id);
                                 ticketIdToKey.set(issue.id, issue.key);
+                                addLog(`[INFO] Identified T&M Evolutivo for worklog sync: ${issue.key} (ID: ${issue.id}, Mode: ${billingMode})`);
                             }
 
                             issueDetails.set(issue.id, {
@@ -692,7 +696,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             // Special rules for Evolutivos and IAAS are now largely covered by explicit config, 
             // but we keep the logic for backward compatibility/extra safety
             const billingModeLower = details.billingMode ? details.billingMode.toLowerCase() : '';
-            const isEvolutivoTM = (issueType === 'Evolutivo' && billingModeLower === 't&m contra bolsa' && (wp.includeEvoTM ?? true));
+            const isEvolutivoTM = (issueType === 'Evolutivo' && (billingModeLower === 't&m contra bolsa' || billingModeLower === 'bolsa de horas') && (wp.includeEvoTM ?? true));
+            const isEvolutivoTMFacturable = (issueType === 'Evolutivo' && (billingModeLower === 't&m facturable' || billingModeLower === 'facturable') && (wp.includeEvoTM ?? true));
             const isEvolutivoBolsa = (issueType === 'Evolutivo' && (billingModeLower === 'bolsa de horas' || !details.billingMode) && (wp.includeEvoEstimates ?? true));
 
             // IAAS is now usually in the includedTicketTypes list, but we keep this as a secondary check
@@ -704,11 +709,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 continue;
             }
 
-            const isValid = isValidType || isEvolutivoTM || isIaasService;
+            const isValid = isValidType || isEvolutivoTM || isEvolutivoTMFacturable || isIaasService;
 
             // Debug log for Evolutivos
             if (issueType === 'Evolutivo') {
-                addLog(`[DEBUG] Evolutivo ${details.key}: billingMode="${details.billingMode}", isEvoTM=${isEvolutivoTM}, isEvoBolsa=${isEvolutivoBolsa}, isValid=${isValid}`);
+                addLog(`[DEBUG] Processing Evolutivo ${details.key}: billingMode="${details.billingMode}", isTM=${isEvolutivoTM}, isTMFact=${isEvolutivoTMFacturable}, isValid=${isValid}`);
             }
 
             if (!isValid) {
@@ -741,7 +746,13 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             const correctedHours = applyCorrectionModel(rawHours, activeCorrection);
 
             const key = `${year}-${String(month).padStart(2, '0')}`;
-            monthlyHours.set(key, (monthlyHours.get(key) || 0) + correctedHours);
+
+            // POINT 3: Only add to monthlyHours (Bolsa consumption) if NOT a separate T&M Facturable ticket
+            if (!isEvolutivoTMFacturable) {
+                monthlyHours.set(key, (monthlyHours.get(key) || 0) + correctedHours);
+            } else {
+                addLog(`[INFO] Evolutivo T&M Facturable: ${correctedHours.toFixed(2)}h in ${key} (${details.key}) - EXCLUDED from Bolsa consumption`);
+            }
 
             // Extract Tipo Imputación from Tempo work attributes
             const tipoImputacion = log.attributes?.values?.find((attr: any) =>
