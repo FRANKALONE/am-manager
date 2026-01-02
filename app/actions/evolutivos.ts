@@ -19,15 +19,12 @@ export async function getEvolutivosByClient(clientId: string) {
 
         const wpIds = workPackages.map(wp => wp.id);
 
-        // Find all Evolutivos that are not closed
+        // Find all Evolutivos (no status filter - show all)
         const evolutivos = await (prisma.ticket as any).findMany({
             where: {
                 workPackageId: { in: wpIds },
                 issueType: 'Evolutivo',
-                billingMode: { in: EVOLUTIVO_BILLING_MODES },
-                NOT: {
-                    status: { in: ['Cerrado', 'Entregado en PRD', 'Done', 'Closed'] }
-                }
+                billingMode: { in: EVOLUTIVO_BILLING_MODES }
             },
             orderBy: { createdDate: 'desc' }
         });
