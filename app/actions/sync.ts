@@ -445,7 +445,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 if (!includeEvoEstimates && !includeEvoTM) {
                     addLog(`[INFO] Both Evolutivo types disabled for this WP. Skipping Jira search.`);
                 } else {
-                    const jql = `project IN (${projectKeys.join(',')}) AND (issuetype = Evolutivo OR issuetype = "Hitos Evolutivos") AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
+                    // Filter by project AND by the candidate Account IDs to avoid cross-WP leaks
+                    // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId
+                    const jql = `project IN (${projectKeys.join(',')}) AND account IN (${accountIds.map(id => `"${id}"`).join(',')}) AND (issuetype = Evolutivo OR issuetype = "Hitos Evolutivos") AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
                     const bodyData = JSON.stringify({
                         jql,
                         maxResults: 1000,
@@ -492,6 +494,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
                         addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos matching criteria`);
 
+                        // First pass to identify parents to avoid double counting estimates
+                        const issueIdsWithChildren = new Set<string>();
+                        evolutivosRes.issues.forEach((issue: any) => {
+                            if (issue.fields.parent?.id) {
+                                issueIdsWithChildren.add(issue.fields.parent.id);
+                            }
+                        });
+
                         evolutivosRes.issues.forEach((issue: any) => {
                             const billingModeRaw = issue.fields.customfield_10121;
                             const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || 'Bolsa de Horas';
@@ -523,6 +533,19 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
+                                // AVOID DOUBLE COUNTING:
+                                // If this issue HAS a parent that is also in our list, we assume the parent captures the total
+                                // OR if this issue IS a parent, we assume children capture the detail?
+                                // In Altim: usually "Hitos" are children and they carry the billable estimate.
+                                // If "Evolutivo" (Parent) has estimate AND "Hito" (Child) has estimate, we only count the Child.
+                                const isParentOfOthers = issueIdsWithChildren.has(issue.id);
+                                const hasParentInList = evolutivosRes.issues.some((i: any) => i.id === issue.fields.parent?.id);
+
+                                if (isParentOfOthers && issue.fields.timeoriginalestimate > 0) {
+                                    addLog(`[INFO] Skipping parent Evolutivo estimate for ${issue.key} because children (Hitos) exist.`);
+                                    return;
+                                }
+
                                 const createdDate = new Date(issue.fields.created);
                                 const year = createdDate.getFullYear();
                                 const month = createdDate.getMonth() + 1;
