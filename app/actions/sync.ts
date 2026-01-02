@@ -447,7 +447,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 } else {
                     // Filter by project AND by the candidate Account IDs to avoid cross-WP leaks
                     // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId
-                    const jql = `project IN (${projectKeys.join(',')}) AND account IN (${accountIds.map(id => `"${id}"`).join(',')}) AND (issuetype = Evolutivo OR issuetype = "Hitos Evolutivos") AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
+                    // Refined JQL: 
+                    // 1. "Bolsa de Horas" (where estimating happens) must match our accounts to avoid inter-WP leaks.
+                    // 2. "T&M contra bolsa" must be picked up project-wide (user request) regardless of the ticket account.
+                    const accountList = accountIds.map(id => `"${id}"`).join(',');
+                    const jql = `project IN (${projectKeys.join(',')}) AND (issuetype = Evolutivo OR issuetype = "Hitos Evolutivos") AND ( (account IN (${accountList}) AND ("Modo de Facturación" IN ("Bolsa de Horas", "Facturable") OR "Modo de Facturación" IS EMPTY)) OR ("Modo de Facturación" = "T&M contra bolsa") )`;
+
                     const bodyData = JSON.stringify({
                         jql,
                         maxResults: 1000,
