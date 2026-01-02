@@ -1,6 +1,7 @@
 import { Client } from "@prisma/client";
 import { createClient, getClientById, updateClient } from "@/app/actions/clients";
 import { getParametersByCategory } from "@/app/actions/parameters";
+import { getEligibleManagers } from "@/app/actions/users";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ClientFormFields } from "../components/client-form-fields";
 
@@ -16,7 +17,12 @@ export default async function ClientFormPage(props: any) {
 
     // Fetch custom fields definition
     const customFieldsDef = await getParametersByCategory("CUSTOM_FIELD_CLIENT");
-    const managers = await getParametersByCategory("MANAGER");
+    const eligibleUsers = await getEligibleManagers();
+    const managers = eligibleUsers.map(u => ({
+        id: u.id,
+        value: u.id,
+        label: `${u.name}${u.surname ? ` ${u.surname}` : ""}`
+    }));
 
     async function action(formData: FormData) {
         "use server";

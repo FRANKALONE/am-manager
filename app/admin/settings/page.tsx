@@ -54,11 +54,6 @@ export default async function SettingsPage() {
                     category="RENEWAL_TYPE"
                     data={await getParametersByCategory("RENEWAL_TYPE")}
                 />
-                <ParameterManager
-                    title="Gerentes"
-                    category="MANAGER"
-                    data={await getParametersByCategory("MANAGER")}
-                />
 
 
                 {/* Custom Fields Definitions */}

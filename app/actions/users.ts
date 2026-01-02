@@ -21,6 +21,21 @@ export async function getUsers() {
     }
 }
 
+export async function getEligibleManagers() {
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                role: { in: ['ADMIN', 'GERENTE'] }
+            },
+            orderBy: { name: 'asc' }
+        });
+        return users;
+    } catch (error) {
+        console.error("Failed to fetch eligible managers:", error);
+        return [];
+    }
+}
+
 export async function getUserById(id: string) {
     try {
         return await prisma.user.findUnique({
