@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getEvolutivosForBilling } from "@/app/actions/evolutivos-billing";
-import { FileText, Loader2, DollarSign, Download } from "lucide-react";
+import { getEvolutivosForBilling, markEvolutivoAsBilled, unmarkEvolutivoAsBilled } from "@/app/actions/evolutivos-billing";
+import { FileText, Loader2, DollarSign, Download, Filter, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MONTHS_LABELS = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -28,6 +30,11 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
     const [adjustedHours, setAdjustedHours] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [togglingBilled, setTogglingBilled] = useState<string | null>(null);
+
+    // Filters
+    const [filterMode, setFilterMode] = useState<string>("all");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
 
     useEffect(() => {
         if (clientId && year && month) {
@@ -57,17 +64,48 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
         }
     };
 
+    const handleToggleBilled = async (issueKey: string, currentStatus: boolean, wpId: string) => {
+        setTogglingBilled(issueKey);
+        try {
+            if (currentStatus) {
+                const res = await unmarkEvolutivoAsBilled(issueKey, year, month);
+                if (res.success) {
+                    setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: false } : e));
+                    toast.success(`${issueKey} marcado como pendiente`);
+                }
+            } else {
+                const res = await markEvolutivoAsBilled(issueKey, year, month, wpId);
+                if (res.success) {
+                    setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: true } : e));
+                    toast.success(`${issueKey} marcado como facturado`);
+                }
+            }
+        } catch (error) {
+            toast.error("Error al cambiar estado de facturación");
+        } finally {
+            setTogglingBilled(null);
+        }
+    };
+
     const handleHoursChange = (issueKey: string, value: string) => {
         const hours = parseFloat(value) || 0;
         setAdjustedHours(prev => ({ ...prev, [issueKey]: hours }));
     };
 
+    const filteredEvolutivos = evolutivos.filter(evo => {
+        const matchesMode = filterMode === "all" || evo.billingMode === filterMode;
+        const matchesStatus = filterStatus === "all" ||
+            (filterStatus === "billed" && evo.isBilled) ||
+            (filterStatus === "pending" && !evo.isBilled);
+        return matchesMode && matchesStatus;
+    });
+
     const getTotalHours = () => {
-        return Object.values(adjustedHours).reduce((sum, hours) => sum + hours, 0);
+        return filteredEvolutivos.reduce((sum, evo) => sum + (adjustedHours[evo.issueKey] || 0), 0);
     };
 
     const generateReport = async () => {
-        if (evolutivos.length === 0) return;
+        if (filteredEvolutivos.length === 0) return;
 
         setIsGenerating(true);
         try {
@@ -77,7 +115,6 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
             try {
                 doc.addImage("/logo-am.png", 'PNG', 14, 10, 22, 13);
             } catch (e) {
-                // Fallback if logo not found
                 doc.setFontSize(14);
                 doc.setTextColor(0, 59, 40);
                 doc.text("ALTIM AMA", 14, 20);
@@ -98,7 +135,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
             doc.text(`Fecha de emisión: ${new Date().toLocaleDateString('es-ES')}`, 14, 43);
 
             // Table Data
-            const tableData = evolutivos.map(evo => [
+            const tableData = filteredEvolutivos.map(evo => [
                 evo.issueKey,
                 evo.issueSummary,
                 evo.clientName,
@@ -122,7 +159,6 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                 }
             });
 
-            // Final total
             const finalY = (doc as any).lastAutoTable.finalY + 10;
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
@@ -140,95 +176,153 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
         }
     };
 
-    if (!clientId) {
-        return null;
-    }
+    if (!clientId) return null;
+
+    const uniqueModes = Array.from(new Set(evolutivos.map(e => e.billingMode)));
 
     return (
-        <Card className="border-t-4 border-t-green-500">
-            <CardHeader>
-                <div className="flex items-center justify-between">
+        <Card className="border-t-4 border-t-green-500 shadow-lg">
+            <CardHeader className="bg-slate-50/50 pb-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-green-600" />
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                            <DollarSign className="h-6 w-6 text-green-600" />
                             Facturación de Evolutivos
                         </CardTitle>
                         <CardDescription>
-                            Evolutivos T&M facturable con dedicación en {month}/{year}
+                            Control de facturación para evolutivos con dedicación en {MONTHS_LABELS[month - 1]} {year}
                         </CardDescription>
                     </div>
-                    {evolutivos.length > 0 && (
-                        <Button
-                            onClick={generateReport}
-                            disabled={isGenerating}
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generando...
-                                </>
-                            ) : (
-                                <>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Generar Reporte
-                                </>
-                            )}
-                        </Button>
-                    )}
+                    <div className="flex gap-2">
+                        {filteredEvolutivos.length > 0 && (
+                            <Button
+                                onClick={generateReport}
+                                disabled={isGenerating}
+                                className="bg-green-600 hover:bg-green-700 shadow-sm"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Generar Reporte
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* FILTERS AREA */}
+                <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-slate-400" />
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Filtros:</span>
+                    </div>
+
+                    <Select value={filterMode} onValueChange={setFilterMode}>
+                        <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
+                            <SelectValue placeholder="Modo de Facturación" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos los Modos</SelectItem>
+                            {uniqueModes.map(mode => (
+                                <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
+                            <SelectValue placeholder="Estado de Facturación" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos los Estados</SelectItem>
+                            <SelectItem value="pending">Pendientes</SelectItem>
+                            <SelectItem value="billed">Facturados</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <div className="flex-grow" />
+
+                    <div className="text-xs font-medium text-slate-400 flex items-center">
+                        Mostrando {filteredEvolutivos.length} de {evolutivos.length}
+                    </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
                 {isLoading ? (
                     <div className="flex items-center justify-center p-12">
                         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
                     </div>
                 ) : evolutivos.length === 0 ? (
-                    <div className="text-center p-12 text-muted-foreground">
-                        <p>No hay evolutivos facturables con dedicación en este mes.</p>
+                    <div className="text-center p-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                        <DollarSign className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No hay evolutivos facturables con dedicación en este mes.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <div className="border rounded-lg overflow-hidden">
+                        <div className="border rounded-xl overflow-hidden shadow-sm">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-slate-50 border-b">
                                     <TableRow>
+                                        <TableHead className="w-[100px]">Estado</TableHead>
                                         <TableHead>Ticket</TableHead>
                                         <TableHead>Resumen</TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Work Package</TableHead>
-                                        <TableHead>Modo Facturación</TableHead>
-                                        <TableHead className="text-right">Horas Trabajadas</TableHead>
-                                        <TableHead className="text-right">Horas a Facturar</TableHead>
+                                        <TableHead>WP / Cliente</TableHead>
+                                        <TableHead>Modo Fact.</TableHead>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Reales</th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Facturar</th>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {evolutivos.map((evo) => (
-                                        <TableRow key={evo.issueKey}>
-                                            <TableCell className="font-medium">{evo.issueKey}</TableCell>
-                                            <TableCell className="max-w-md truncate">{evo.issueSummary}</TableCell>
-                                            <TableCell className="font-semibold">{evo.clientName}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">{evo.workPackageName}</TableCell>
+                                    {filteredEvolutivos.map((evo) => (
+                                        <TableRow key={evo.issueKey} className={evo.isBilled ? "bg-green-50/30" : ""}>
+                                            <TableCell className="py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Switch
+                                                        checked={evo.isBilled}
+                                                        disabled={togglingBilled === evo.issueKey}
+                                                        onCheckedChange={() => handleToggleBilled(evo.issueKey, !!evo.isBilled, evo.workPackageId)}
+                                                    />
+                                                    {evo.isBilled && <CheckCircle2 className="w-4 h-4 text-green-600 animate-in zoom-in" />}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-bold text-slate-700">{evo.issueKey}</TableCell>
+                                            <TableCell className="max-w-xs truncate" title={evo.issueSummary}>
+                                                {evo.issueSummary}
+                                            </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">{evo.billingMode}</Badge>
+                                                <div className="text-xs font-bold text-slate-600">{evo.workPackageName}</div>
+                                                <div className="text-[10px] text-slate-400">{evo.clientName}</div>
                                             </TableCell>
-                                            <TableCell className="text-right text-muted-foreground">
+                                            <TableCell>
+                                                <Badge variant="outline" className="text-[10px] font-bold uppercase truncate max-w-[120px]">
+                                                    {evo.billingMode}
+                                                </Badge>
+                                            </TableCell>
+                                            <td className="px-4 py-3 text-right text-slate-400 font-medium italic">
                                                 {evo.workedHours.toFixed(2)}h
-                                            </TableCell>
-                                            <TableCell className="text-right">
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
                                                 <Input
                                                     type="number"
                                                     step="0.25"
                                                     min="0"
                                                     value={adjustedHours[evo.issueKey] || 0}
                                                     onChange={(e) => handleHoursChange(evo.issueKey, e.target.value)}
-                                                    className="w-24 text-right"
+                                                    className={`w-20 text-right h-8 text-sm focus-visible:ring-green-500 ${evo.isBilled ? 'bg-green-100/50 border-green-200' : ''}`}
                                                 />
-                                            </TableCell>
+                                            </td>
                                         </TableRow>
                                     ))}
-                                    <TableRow className="bg-green-50 font-semibold">
-                                        <TableCell colSpan={6} className="text-right">TOTAL</TableCell>
+                                    <TableRow className="bg-slate-50/80 font-bold border-t-2">
+                                        <TableCell colSpan={6} className="text-right text-slate-600 uppercase text-xs tracking-widest">
+                                            Total Facturable
+                                        </TableCell>
                                         <TableCell className="text-right text-green-700 text-lg">
                                             {getTotalHours().toFixed(2)}h
                                         </TableCell>
@@ -237,8 +331,9 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                             </Table>
                         </div>
 
-                        <div className="text-sm text-muted-foreground">
-                            <p>💡 Puedes ajustar las horas a facturar antes de generar el reporte.</p>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <Info className="w-4 h-4 text-blue-400" />
+                            <p>Usa los filtros superiores para organizar el listado. Marca como facturado para llevar el control de lo que ya se ha procesado.</p>
                         </div>
                     </div>
                 )}
@@ -246,3 +341,4 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
         </Card>
     );
 }
+
