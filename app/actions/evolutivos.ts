@@ -209,7 +209,7 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
         // 2. Jira Search - Split into two queries to avoid pagination issues
         // IMPORTANT: Sync Evolutivos and Hitos separately because when combined,
         // Hitos (more numerous) crowd out Evolutivos from the 1000 result limit
-        const projectList = projectKeys.join(',');
+        const projectList = projectKeys.map(k => `"${k}"`).join(',');
 
         // First: Fetch all Evolutivos
         const evolutivosJql = `project IN (${projectList}) AND issuetype = "Evolutivo" ORDER BY created DESC`;
