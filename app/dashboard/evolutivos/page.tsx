@@ -11,9 +11,12 @@ export default async function EvolutivosPage() {
     }
 
     const isAdmin = user.role === "ADMIN";
-    const initialClientId = isAdmin ? "" : (user.clientId || "");
+    const isGerente = user.role === "GERENTE";
+    const initialClientId = isAdmin || isGerente ? "" : (user.clientId || "");
 
-    const clients = isAdmin ? await getClientsWithEvolutivos() : [];
+    const clients = (isAdmin || isGerente)
+        ? await getClientsWithEvolutivos(isGerente ? user.id : undefined)
+        : [];
 
     let initialData: any = { evolutivos: [], hitos: [], workPackages: [] };
     if (initialClientId) {

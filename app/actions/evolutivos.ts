@@ -127,9 +127,14 @@ async function getAccumulatedHoursWithCorrection(issueKey: string) {
     }
 }
 
-export async function syncTotalEvolutivos() {
+export async function syncTotalEvolutivos(managerId?: string) {
     try {
+        const where: any = {};
+        if (managerId) {
+            where.manager = managerId;
+        }
         const clients = await prisma.client.findMany({
+            where,
             include: { workPackages: true }
         });
 
@@ -283,10 +288,15 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
     }
 }
 
-export async function getClientsWithEvolutivos() {
+export async function getClientsWithEvolutivos(managerId?: string) {
     try {
+        const where: any = {};
+        if (managerId) {
+            where.manager = managerId;
+        }
         // Return all clients to allow sync or selection even if they don't have evolutivos yet
         return await prisma.client.findMany({
+            where,
             select: { id: true, name: true, jiraProjectKey: true, portalUrl: true } as any,
             orderBy: { name: 'asc' }
         });

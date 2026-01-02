@@ -7,8 +7,9 @@ import { getPermissionsByRoleName } from "@/lib/permissions";
 import { getMe } from "@/app/actions/users";
 
 export default async function DashboardPage() {
-    const clients = await getDashboardClients();
     const user = await getMe();
+    const isManager = user?.role === 'GERENTE';
+    const clients = await getDashboardClients(isManager ? user?.id : undefined);
     const perms = await getPermissionsByRoleName(user?.role || "");
 
     return (

@@ -78,9 +78,14 @@ async function getTicketCountFromJira(projectKeys: string, month: number, year: 
     }
 }
 
-export async function getDashboardClients() {
+export async function getDashboardClients(managerId?: string) {
     try {
+        const where: any = {};
+        if (managerId) {
+            where.manager = managerId;
+        }
         return await prisma.client.findMany({
+            where,
             orderBy: { name: 'asc' },
             select: { id: true, name: true }
         });
@@ -89,11 +94,15 @@ export async function getDashboardClients() {
     }
 }
 
-export async function getDashboardWPs(clientId: string) {
+export async function getDashboardWPs(clientId: string, managerId?: string) {
     if (!clientId) return [];
     try {
+        const where: any = { clientId };
+        if (managerId) {
+            where.client = { manager: managerId };
+        }
         return await prisma.workPackage.findMany({
-            where: { clientId },
+            where,
             orderBy: { name: 'asc' },
             select: { id: true, name: true }
         });

@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
@@ -31,6 +31,12 @@ export async function AdminSidebar() {
                 {perms.edit_billing && (
                     <SidebarLink href="/admin/regularizations" label="Regularizaciones">
                         <ArrowLeftRight className="h-4 w-4" />
+                    </SidebarLink>
+                )}
+
+                {(perms.manage_wps || perms.manage_clients || perms.view_renewals) && (
+                    <SidebarLink href="/admin/renewals" label="Renovaciones">
+                        <Calendar className="h-4 w-4" />
                     </SidebarLink>
                 )}
 

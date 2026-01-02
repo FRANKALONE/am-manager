@@ -23,9 +23,10 @@ interface Props {
     initialPendingRequests: any[];
     initialHistoryRequests: any[];
     userId: string;
+    userRole?: string;
 }
 
-export function ReviewRequestClient({ initialPendingRequests, initialHistoryRequests, userId }: Props) {
+export function ReviewRequestClient({ initialPendingRequests, initialHistoryRequests, userId, userRole }: Props) {
     const [pendingRequests] = useState(initialPendingRequests);
     const [historyRequests] = useState(initialHistoryRequests);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -149,6 +150,7 @@ export function ReviewRequestClient({ initialPendingRequests, initialHistoryRequ
                     }}
                     requestId={selectedRequest.id}
                     adminId={userId}
+                    userRole={userRole}
                     onStatusUpdate={() => {
                         setIsModalOpen(false);
                         window.location.reload();

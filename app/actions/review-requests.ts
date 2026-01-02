@@ -48,6 +48,22 @@ export async function createReviewRequest(
             );
         }
 
+        // Notify Manager if assigned
+        const wpFull = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: { client: true }
+        });
+        const managerId = wpFull?.client.manager;
+        if (managerId && !admins.some(a => a.id === managerId)) {
+            await createNotification(
+                managerId,
+                "REVIEW_REQUEST_CREATED",
+                "Nueva reclamación de horas (Asignada)",
+                `Se ha solicitado revisar ${worklogs.length} imputaciones en el WP ${wp?.name || wpId} de tu cliente.`,
+                reviewRequest.id
+            );
+        }
+
         revalidatePath("/admin/review-requests");
         return { success: true, id: reviewRequest.id };
     } catch (error) {
@@ -83,7 +99,7 @@ export async function getPendingReviewRequests() {
                     select: { name: true, surname: true }
                 },
                 workPackage: {
-                    select: { name: true, clientName: true }
+                    select: { name: true, clientName: true, client: { select: { manager: true } } }
                 }
             }
         });
@@ -110,7 +126,7 @@ export async function getReviewRequestsHistory() {
                     select: { name: true, surname: true }
                 },
                 workPackage: {
-                    select: { name: true, clientName: true }
+                    select: { name: true, clientName: true, client: { select: { manager: true } } }
                 }
             }
         });
@@ -260,6 +276,20 @@ export async function approveReviewRequest(
             request.id
         );
 
+        // Notify Manager of the decision
+        if (currentRequest.workPackage.clientId) {
+            const client = await prisma.client.findUnique({ where: { id: currentRequest.workPackage.clientId } });
+            if (client?.manager) {
+                await createNotification(
+                    client.manager,
+                    "REVIEW_DECIDED",
+                    "Reclamación Resuelta (Aprobada)",
+                    `Se ha aprobado una reclamación en el WP ${currentRequest.workPackage.name}. Notas: ${notes}`,
+                    request.id
+                );
+            }
+        }
+
         revalidatePath("/admin/review-requests");
         revalidatePath("/admin/regularizations");
         revalidatePath("/");
@@ -293,6 +323,21 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
             `Tu reclamación de horas ha sido rechazada. Notas: ${notes}`,
             request.id
         );
+
+        // Notify Manager of the decision
+        const wp = await prisma.workPackage.findFirst({
+            where: { reviewRequests: { some: { id } } },
+            include: { client: true }
+        });
+        if (wp?.client.manager) {
+            await createNotification(
+                wp.client.manager,
+                "REVIEW_DECIDED",
+                "Reclamación Resuelta (Rechazada)",
+                `Se ha rechazado una reclamación en el WP ${wp.name}. Notas: ${notes}`,
+                request.id
+            );
+        }
 
         revalidatePath("/admin/review-requests");
         revalidatePath("/");

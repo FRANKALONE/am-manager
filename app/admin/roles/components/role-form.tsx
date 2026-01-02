@@ -23,14 +23,17 @@ type Permission = {
 const PERMISSIONS: Permission[] = [
     { key: "view_dashboard", label: "Ver Dashboard de Consumos", section: "General" },
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
+    { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },
     { key: "manage_users", label: "Gestionar Usuarios", section: "Administración" },
     { key: "manage_clients", label: "Gestionar Clientes", section: "Administración" },
     { key: "manage_wps", label: "Gestionar Work Packages", section: "Administración" },
     { key: "manage_roles", label: "Gestionar Roles", section: "Administración" },
+    { key: "view_renewals", label: "Gestión de Renovaciones", section: "Administración" },
     { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
     { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },
     { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
-    { key: "manage_reviews", label: "Gestionar Reclamaciones", section: "Administración" },
+    { key: "manage_reviews", label: "Gestionar Reclamaciones (Admin)", section: "Administración" },
+    { key: "view_reviews", label: "Ver Reclamaciones (Gerente)", section: "Administración" },
 ];
 
 type Props = {
