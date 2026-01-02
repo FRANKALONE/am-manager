@@ -233,6 +233,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                     if (!wp.includeEvoTM && isEvolutivoTM) return false;
                     if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
 
+                    // Exclude Facturable/T&M Facturable entirely from consumption
+                    const billingModeLower = t.billingMode?.toLowerCase() || '';
+                    if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
+
                     // Filter by includedTicketTypes if defined
                     if (includedTypes.length > 0) {
                         if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
@@ -321,6 +325,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                         if (!wp.includeEvoTM && isEvolutivoTM) return false;
                         if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                        // Exclude Facturable/T&M Facturable entirely from consumption
+                        const billingModeLower = t.billingMode?.toLowerCase() || '';
+                        if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
 
                         if (includedTypes.length > 0) {
                             if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
@@ -731,7 +739,14 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             where: {
                 workPackageId: wpId,
                 year,
-                month
+                month,
+                // Exclude tickets billed separately (Facturable / T&M Facturable)
+                // They show up in the specialized Evolutivos Billing report, not here.
+                NOT: {
+                    billingMode: {
+                        in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable']
+                    }
+                }
             },
             orderBy: [
                 { issueType: 'asc' },
@@ -921,6 +936,10 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             if (!wp.includeEvoTM && isEvolutivoTM) return false;
             if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
 
+            // Exclude Facturable/T&M Facturable entirely from consumption
+            const billingModeLower = t.billingMode?.toLowerCase() || '';
+            if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
+
             if (includedTypes.length > 0) {
                 if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
             }
@@ -1039,6 +1058,11 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             const isEvolutivoEstimate = w.issueType === 'Evolutivo' ||
                 w.billingMode === 'Bolsa de Horas' ||
                 w.billingMode === 'Bolsa de horas';
+
+            // Filter out Facturable/T&M Facturable entirely from this report
+            const billingModeLower = w.billingMode?.toLowerCase() || '';
+            const isFacturableOnly = billingModeLower === 'facturable' || billingModeLower === 't&m facturable';
+            if (isFacturableOnly) return false;
 
             const includedTypes = (wp as any).includedTicketTypes
                 ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
