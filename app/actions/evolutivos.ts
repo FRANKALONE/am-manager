@@ -211,7 +211,7 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
         // IMPORTANT: This JQL is for MANAGEMENT VIEW, not consumption calculation
         // We want to show ALL Evolutivos regardless of billing mode
         const projectList = projectKeys.join(',');
-        const jql = `project IN (${projectList}) AND issuetype IN ("Evolutivo", "Hitos Evolutivos")`;
+        const jql = `project IN (${projectList}) AND issuetype IN ("Evolutivo", "Hitos Evolutivos") ORDER BY created DESC`;
 
         const jiraRes = await fetchJira(`/search/jql`, {
             method: "POST",
@@ -221,6 +221,11 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
                 fields: ['key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'customfield_10121', 'created', 'timeoriginalestimate', 'priority']
             })
         });
+
+        console.log(`[EVOLUTIVOS SYNC] Jira returned ${jiraRes.issues?.length || 0} issues (total: ${jiraRes.total || 'unknown'})`);
+        if (jiraRes.total && jiraRes.total > (jiraRes.issues?.length || 0)) {
+            console.log(`[EVOLUTIVOS SYNC] ⚠️ WARNING: ${jiraRes.total - (jiraRes.issues?.length || 0)} issues not fetched due to pagination limit`);
+        }
 
         if (!jiraRes.issues) return { success: false, message: "No se encontraron tickets en JIRA" };
 
