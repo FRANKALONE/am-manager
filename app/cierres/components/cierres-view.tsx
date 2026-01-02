@@ -21,6 +21,7 @@ import {
     type EventosStatus
 } from "@/app/actions/cierres";
 import { syncWorkPackage } from "@/app/actions/sync";
+import { EvolutivosBillingPanel } from "./evolutivos-billing-panel";
 import {
     Dialog,
     DialogContent,
@@ -827,6 +828,8 @@ export function CierresView() {
                     </div>
                 </CardContent>
             </Card>
+
+            <EvolutivosBillingPanel clientId="all" year={year} month={month} />
 
             {/* Already Processed Closures Section - HIGHER VISIBILITY */}
             {processed.length > 0 && (
