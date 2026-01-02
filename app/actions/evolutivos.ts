@@ -207,30 +207,46 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
     try {
         if (projectKeys.length === 0) return { success: false, message: "No hay proyectos que sincronizar" };
 
-        // 2. Jira Search for Evolutivos and Hitos
-        // IMPORTANT: This JQL is for MANAGEMENT VIEW, not consumption calculation
-        // We want to show ALL Evolutivos regardless of billing mode
+        // 2. Jira Search - Split into two queries to avoid pagination issues
+        // IMPORTANT: Sync Evolutivos and Hitos separately because when combined,
+        // Hitos (more numerous) crowd out Evolutivos from the 1000 result limit
         const projectList = projectKeys.join(',');
-        const jql = `project IN (${projectList}) AND issuetype IN ("Evolutivo", "Hitos Evolutivos") ORDER BY created DESC`;
 
-        const jiraRes = await fetchJira(`/search/jql`, {
+        // First: Fetch all Evolutivos
+        const evolutivosJql = `project IN (${projectList}) AND issuetype = "Evolutivo" ORDER BY created DESC`;
+        const evolutivosRes = await fetchJira(`/search/jql`, {
             method: "POST",
             body: JSON.stringify({
-                jql,
+                jql: evolutivosJql,
                 maxResults: 1000,
                 fields: ['key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'customfield_10121', 'created', 'timeoriginalestimate', 'priority']
             })
         });
 
-        console.log(`[EVOLUTIVOS SYNC] Jira returned ${jiraRes.issues?.length || 0} issues (total: ${jiraRes.total || 'unknown'})`);
-        if (jiraRes.total && jiraRes.total > (jiraRes.issues?.length || 0)) {
-            console.log(`[EVOLUTIVOS SYNC] ⚠️ WARNING: ${jiraRes.total - (jiraRes.issues?.length || 0)} issues not fetched due to pagination limit`);
+        console.log(`[EVOLUTIVOS SYNC] Jira returned ${evolutivosRes.issues?.length || 0} Evolutivos (total: ${evolutivosRes.total || 'unknown'})`);
+        if (evolutivosRes.total && evolutivosRes.total > (evolutivosRes.issues?.length || 0)) {
+            console.log(`[EVOLUTIVOS SYNC] ⚠️ WARNING: ${evolutivosRes.total - (evolutivosRes.issues?.length || 0)} Evolutivos not fetched due to pagination`);
         }
 
-        if (!jiraRes.issues) return { success: false, message: "No se encontraron tickets en JIRA" };
+        // Second: Fetch all Hitos
+        const hitosJql = `project IN (${projectList}) AND issuetype = "Hitos Evolutivos" ORDER BY created DESC`;
+        const hitosRes = await fetchJira(`/search/jql`, {
+            method: "POST",
+            body: JSON.stringify({
+                jql: hitosJql,
+                maxResults: 1000,
+                fields: ['key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'customfield_10121', 'created', 'timeoriginalestimate', 'priority']
+            })
+        });
+
+        console.log(`[EVOLUTIVOS SYNC] Jira returned ${hitosRes.issues?.length || 0} Hitos (total: ${hitosRes.total || 'unknown'})`);
+
+        // Combine results
+        const allIssues = [...(evolutivosRes.issues || []), ...(hitosRes.issues || [])];
+        if (allIssues.length === 0) return { success: false, message: "No se encontraron tickets en JIRA" };
 
         let upsertedCount = 0;
-        for (const issue of jiraRes.issues) {
+        for (const issue of allIssues) {
             const fields = issue.fields;
             const issueType = fields.issuetype?.name;
             const billingModeRaw = fields.customfield_10121;
