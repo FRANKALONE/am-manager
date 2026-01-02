@@ -211,8 +211,10 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
         if (projectKeys.length === 0) return { success: false, message: "No hay proyectos que sincronizar" };
 
         // 2. Jira Search for Evolutivos and Hitos
+        // IMPORTANT: This JQL is for MANAGEMENT VIEW, not consumption calculation
+        // We want to show ALL Evolutivos regardless of billing mode
         const projectList = projectKeys.join(',');
-        const jql = `project IN (${projectList}) AND (issuetype IN ("Evolutivo", "Hitos Evolutivos") OR issuetype in subTaskIssueTypes()) AND ("Modo de Facturación" IN ("${EVOLUTIVO_BILLING_MODES.join('","')}") OR issuetype = "Hitos Evolutivos")`;
+        const jql = `project IN (${projectList}) AND issuetype IN ("Evolutivo", "Hitos Evolutivos")`;
 
         const jiraRes = await fetchJira(`/search/jql`, {
             method: "POST",
