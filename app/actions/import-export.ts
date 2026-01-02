@@ -23,9 +23,10 @@ export async function exportBulkData() {
         const csvRows = [];
         // Header v3.0 - Updated for new schema
         csvRows.push([
-            "ClientId", "ClientName", "ClientManager", "ClientAmOnboardingDate", "ClientCustomAttributes",
+            "ClientId", "ClientName", "ClientManager", "ClientAmOnboardingDate", "ClientPortalUrl", "ClientJiraProjectKey", "ClientCustomAttributes",
             "WPId", "WPName", "WPContractType", "WPBillingType", "WPRenewalType",
             "WPOldWpId", "WPTempoAccountId", "WPJiraProjectKeys",
+            "WPIasService", "WPIncludeEvoEst", "WPIncludeEvoTM",
             "WPAccumulatedHours", "WPAccumulatedHoursDate", "WPCustomAttributes",
             // ValidityPeriod fields (first period)
             "PeriodStartDate", "PeriodEndDate",
@@ -40,9 +41,10 @@ export async function exportBulkData() {
             if (client.workPackages.length === 0) {
                 // Client without WPs
                 csvRows.push([
-                    client.id, client.name, client.manager || "", onboardingDate, client.customAttributes || "{}",
+                    client.id, client.name, client.manager || "", onboardingDate, client.portalUrl || "", client.jiraProjectKey || "", client.customAttributes || "{}",
                     "", "", "", "", "",
-                    "", "",
+                    "", "", "",
+                    "", "", "",
                     "", "", "{}",
                     "", "",
                     "", "", "",
@@ -58,10 +60,13 @@ export async function exportBulkData() {
                 const accumDate = wp.accumulatedHoursDate ? wp.accumulatedHoursDate.toISOString().split('T')[0] : "";
 
                 csvRows.push([
-                    client.id, client.name, client.manager || "", onboardingDate, client.customAttributes || "{}",
+                    client.id, client.name, client.manager || "", onboardingDate, client.portalUrl || "", client.jiraProjectKey || "", client.customAttributes || "{}",
 
                     wp.id, wp.name, wp.contractType, wp.billingType, wp.renewalType,
                     wp.oldWpId || "", wp.tempoAccountId || "", wp.jiraProjectKeys || "",
+                    wp.hasIaasService ? "TRUE" : "FALSE",
+                    wp.includeEvoEstimates ? "TRUE" : "FALSE",
+                    wp.includeEvoTM ? "TRUE" : "FALSE",
                     wp.accumulatedHours.toString(), accumDate, wp.customAttributes || "{}",
 
                     // ValidityPeriod fields
@@ -158,7 +163,7 @@ export async function importBulkData(formData: FormData) {
     console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
 
     const headerRow = rows[0];
-    const expectedColumns = 27; // Based on the export format (added rateEvolutivo)
+    const expectedColumns = 32; // Updated for all fields v4.0
     const headerCols = parseCSVRow(headerRow, delimiter);
 
     if (headerCols.length < expectedColumns) {
@@ -183,9 +188,10 @@ export async function importBulkData(formData: FormData) {
         }
 
         const [
-            clientId, clientName, clientManager, clientAmOnboardingDate, clientCustomAttrs,
+            clientId, clientName, clientManager, clientAmOnboardingDate, clientPortalUrl, clientJiraProjectKey, clientCustomAttrs,
             wpId, wpName, wpContractType, wpBillingType, wpRenewalType,
             wpOldWpId, wpTempoAccountId, wpJiraProjectKeys,
+            wpIaasService, wpIncludeEvoEst, wpIncludeEvoTM,
             wpAccumulatedHours, wpAccumulatedHoursDate, wpCustomAttrs,
             // ValidityPeriod fields
             periodStartDate, periodEndDate,
@@ -207,6 +213,8 @@ export async function importBulkData(formData: FormData) {
                     name: clientName,
                     manager: clientManager || null,
                     amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
+                    portalUrl: clientPortalUrl || null,
+                    jiraProjectKey: clientJiraProjectKey || null,
                     customAttributes: clientCustomAttrs || "{}"
                 },
                 create: {
@@ -214,6 +222,8 @@ export async function importBulkData(formData: FormData) {
                     name: clientName,
                     manager: clientManager || null,
                     amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
+                    portalUrl: clientPortalUrl || null,
+                    jiraProjectKey: clientJiraProjectKey || null,
                     customAttributes: clientCustomAttrs || "{}"
                 }
             });
@@ -232,6 +242,9 @@ export async function importBulkData(formData: FormData) {
                         oldWpId: wpOldWpId || null,
                         tempoAccountId: wpTempoAccountId || null,
                         jiraProjectKeys: wpJiraProjectKeys || null,
+                        hasIaasService: wpIaasService === "TRUE",
+                        includeEvoEstimates: wpIncludeEvoEst !== "FALSE", // Default true
+                        includeEvoTM: wpIncludeEvoTM !== "FALSE",        // Default true
                         accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
                         accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,
                         customAttributes: wpCustomAttrs || "{}"
@@ -247,6 +260,9 @@ export async function importBulkData(formData: FormData) {
                         oldWpId: wpOldWpId || null,
                         tempoAccountId: wpTempoAccountId || null,
                         jiraProjectKeys: wpJiraProjectKeys || null,
+                        hasIaasService: wpIaasService === "TRUE",
+                        includeEvoEstimates: wpIncludeEvoEst !== "FALSE",
+                        includeEvoTM: wpIncludeEvoTM !== "FALSE",
                         accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
                         accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,
                         customAttributes: wpCustomAttrs || "{}"
