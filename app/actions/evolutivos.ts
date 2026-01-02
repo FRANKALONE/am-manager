@@ -241,8 +241,12 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
                 where: { jiraProjectKeys: { contains: projectKey } }
             });
 
-            if (!wp) continue;
+            if (!wp) {
+                console.log(`[SYNC] Skipping ${issue.key} - no WP found for project ${projectKey}`);
+                continue;
+            }
 
+            console.log(`[SYNC] Processing ${issue.key} (${issueType}) for WP ${wp.id}`);
             await (prisma.ticket as any).upsert({
                 where: {
                     workPackageId_issueKey: {
