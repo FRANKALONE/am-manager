@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { LogoUpload } from "./logo-upload";
 
@@ -82,15 +83,48 @@ export function ClientFormFields({
                 <p className="text-xs text-muted-foreground">URL del portal web del cliente (opcional)</p>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="reportEmails">Emails para Reportes Mensuales</Label>
-                <Input
-                    id="reportEmails"
-                    name="reportEmails"
-                    placeholder="email1@cliente.com, email2@cliente.com"
-                    defaultValue={client?.reportEmails || ""}
-                />
-                <p className="text-xs text-muted-foreground">Emails de contactos del cliente para enviar reportes mensuales (separados por coma).</p>
+            <div className="space-y-4 pt-4 border-t">
+                <Label className="text-base font-bold">Emails para Reportes Mensuales</Label>
+
+                {isEdit && client?.users && client.users.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        {client.users.map((user: any) => {
+                            const isChecked = client.reportEmails?.includes(user.email);
+                            return (
+                                <div key={user.id} className="flex items-center space-x-3 p-2 bg-white rounded border border-slate-200">
+                                    <Checkbox
+                                        id={`user_${user.id}`}
+                                        name="selectedReportEmails"
+                                        value={user.email}
+                                        defaultChecked={isChecked}
+                                    />
+                                    <Label htmlFor={`user_${user.id}`} className="flex flex-col gap-0.5 cursor-pointer">
+                                        <span className="font-bold text-sm">{user.name} {user.surname || ""}</span>
+                                        <span className="text-[10px] text-muted-foreground">{user.email}</span>
+                                    </Label>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-dashed text-center">
+                        {isEdit
+                            ? "No hay usuarios registrados asociados a este cliente para seleccionar."
+                            : "Guarda el cliente primero para poder asociar usuarios y seleccionarlos para los reportes."
+                        }
+                    </div>
+                )}
+
+                <div className="space-y-2">
+                    <Label htmlFor="reportEmails" className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Emails Adicionales / Otros</Label>
+                    <Input
+                        id="reportEmails"
+                        name="reportEmails"
+                        placeholder="email-externo@cliente.com, otro-email@test.com"
+                        defaultValue={client?.reportEmails && isEdit ? client.reportEmails.split(',').filter((e: string) => !client.users?.some((u: any) => u.email === e.trim())).join(', ') : (client?.reportEmails || "")}
+                    />
+                    <p className="text-[10px] text-muted-foreground">Emails adicionales separados por coma. Los usuarios seleccionados arriba se añadirán automáticamente.</p>
+                </div>
             </div>
 
             <LogoUpload

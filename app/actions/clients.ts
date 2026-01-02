@@ -24,7 +24,8 @@ export async function getClients() {
 export async function getClientById(id: string) {
     try {
         return await prisma.client.findUnique({
-            where: { id }
+            where: { id },
+            include: { users: true }
         });
     } catch (error) {
         return null;
@@ -37,8 +38,16 @@ export async function createClient(prevState: any, formData: FormData) {
     const manager = formData.get("manager") as string;
     const amOnboardingDateStr = formData.get("amOnboardingDate") as string;
     const clientPortalUrl = formData.get("clientPortalUrl") as string;
-    const reportEmails = formData.get("reportEmails") as string;
+    const reportEmailsManual = formData.get("reportEmails") as string;
+    const selectedUsersEmails = formData.getAll("selectedReportEmails") as string[];
     const clientLogo = formData.get("clientLogo") as string;
+
+    // Combine emails
+    const allEmails = [
+        ...selectedUsersEmails,
+        ...(reportEmailsManual ? reportEmailsManual.split(',').map(e => e.trim()).filter(e => e !== "") : [])
+    ];
+    const reportEmails = Array.from(new Set(allEmails)).join(', ');
 
     // Custom Attributes Handling
     const customAttributes: Record<string, any> = {};
@@ -83,8 +92,16 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
     const manager = formData.get("manager") as string;
     const amOnboardingDateStr = formData.get("amOnboardingDate") as string;
     const clientPortalUrl = formData.get("clientPortalUrl") as string;
-    const reportEmails = formData.get("reportEmails") as string;
+    const reportEmailsManual = formData.get("reportEmails") as string;
+    const selectedUsersEmails = formData.getAll("selectedReportEmails") as string[];
     const clientLogo = formData.get("clientLogo") as string;
+
+    // Combine emails
+    const allEmails = [
+        ...selectedUsersEmails,
+        ...(reportEmailsManual ? reportEmailsManual.split(',').map(e => e.trim()).filter(e => e !== "") : [])
+    ];
+    const reportEmails = Array.from(new Set(allEmails)).join(', ');
 
     // Custom Attributes Handling
     const customAttributes: Record<string, any> = {};
