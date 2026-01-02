@@ -274,7 +274,6 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             </div>
                         </div>
 
-                        {/* Row 2: Tarifa y Tipo Facturación */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="rate">Tarifa</Label>
@@ -286,6 +285,20 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     defaultValue={currentPeriod?.rate || 0}
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="rateEvolutivo">Tarifa de Evolutivos</Label>
+                                <Input
+                                    id="rateEvolutivo"
+                                    name="rateEvolutivo"
+                                    type="number"
+                                    step="0.01"
+                                    defaultValue={currentPeriod?.rateEvolutivo || ""}
+                                    placeholder="Opcional"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-4">
                             <div className="space-y-2">
                                 <Label htmlFor="billingType">Tipo de Facturación</Label>
                                 <Select name="billingType" defaultValue={wp.billingType}>

@@ -130,6 +130,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const scopeUnit = formData.get("scopeUnit") as string;
     const regularizationType = formData.get("regularizationType") as string;
     const surplusStrategy = formData.get("surplusStrategy") as string;
+    const rateEvolutivoStr = formData.get("rateEvolutivo") as string;
+    const rateEvolutivo = rateEvolutivoStr ? parseFloat(rateEvolutivoStr) : null;
 
     // Accumulation fields
     const accumulatedHoursStr = formData.get("accumulatedHours") as string;
@@ -208,7 +210,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                         // Management fields now in ValidityPeriod
                         scopeUnit,
                         regularizationType: regularizationType || null,
-                        surplusStrategy: surplusStrategy || null
+                        surplusStrategy: surplusStrategy || null,
+                        rateEvolutivo
                     }
                 } : undefined
             },
@@ -248,6 +251,8 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const regularizationRateStr = formData.get("regularizationRate") as string;
     const regularizationRate = regularizationRateStr ? parseFloat(regularizationRateStr) : null;
     const surplusStrategy = formData.get("surplusStrategy") as string;
+    const rateEvolutivoStr = formData.get("rateEvolutivo") as string;
+    const rateEvolutivo = rateEvolutivoStr ? parseFloat(rateEvolutivoStr) : null;
 
     // Period dates
     const periodStartDateStr = formData.get("periodStartDate") as string;
@@ -342,6 +347,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             if (regularizationType) periodUpdateData.regularizationType = regularizationType || null;
             if (regularizationRateStr !== null && regularizationRateStr !== undefined) periodUpdateData.regularizationRate = regularizationRate;
             if (surplusStrategy) periodUpdateData.surplusStrategy = surplusStrategy || null;
+            if (rateEvolutivoStr !== null && rateEvolutivoStr !== undefined) periodUpdateData.rateEvolutivo = rateEvolutivo;
             if (periodStartDateStr) periodUpdateData.startDate = new Date(periodStartDateStr);
             if (periodEndDateStr) periodUpdateData.endDate = new Date(periodEndDateStr);
 
@@ -387,7 +393,8 @@ export async function addValidityPeriod(
     scopeUnit: string,
     regularizationType: string | null,
     regularizationRate: number | null,
-    surplusStrategy: string | null
+    surplusStrategy: string | null,
+    rateEvolutivo: number | null
 ) {
     try {
         await prisma.validityPeriod.create({
@@ -402,7 +409,8 @@ export async function addValidityPeriod(
                 scopeUnit,
                 regularizationType,
                 regularizationRate,
-                surplusStrategy
+                surplusStrategy,
+                rateEvolutivo
             }
         });
         revalidatePath(`/admin/work-packages/${wpId}/edit`);
@@ -423,7 +431,8 @@ export async function updateValidityPeriod(
     scopeUnit: string,
     regularizationType: string | null,
     regularizationRate: number | null,
-    surplusStrategy: string | null
+    surplusStrategy: string | null,
+    rateEvolutivo: number | null
 ) {
     try {
         const vp = await prisma.validityPeriod.update({
@@ -438,7 +447,8 @@ export async function updateValidityPeriod(
                 scopeUnit,
                 regularizationType,
                 regularizationRate,
-                surplusStrategy
+                surplusStrategy,
+                rateEvolutivo
             }
         });
         revalidatePath(`/admin/work-packages/${vp.workPackageId}/edit`);

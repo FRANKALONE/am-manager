@@ -30,7 +30,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
         scopeUnit: "HORAS",
         regularizationType: null as string | null,
         regularizationRate: null as number | null,
-        renewalType: null as string | null
+        renewalType: null as string | null,
+        rateEvolutivo: null as number | null
     });
 
     // Editing state
@@ -51,7 +52,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 newPeriod.scopeUnit,
                 newPeriod.regularizationType,
                 newPeriod.regularizationRate,
-                null // surplusStrategy removed
+                null, // surplusStrategy removed
+                newPeriod.rateEvolutivo
             );
             // Reset form
             setNewPeriod({
@@ -65,7 +67,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 scopeUnit: "HORAS",
                 regularizationType: null,
                 regularizationRate: null,
-                renewalType: null
+                renewalType: null,
+                rateEvolutivo: null
             });
         });
     }
@@ -82,7 +85,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             scopeUnit: p.scopeUnit || "HORAS",
             regularizationType: p.regularizationType || null,
             regularizationRate: p.regularizationRate || null,
-            surplusStrategy: p.surplusStrategy || null
+            surplusStrategy: p.surplusStrategy || null,
+            rateEvolutivo: p.rateEvolutivo || null
         });
     }
 
@@ -105,7 +109,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 editPeriod.scopeUnit,
                 editPeriod.regularizationType,
                 editPeriod.regularizationRate,
-                editPeriod.surplusStrategy
+                editPeriod.surplusStrategy,
+                editPeriod.rateEvolutivo
             );
             setEditingId(null);
             setEditPeriod(null);
@@ -188,6 +193,21 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                 onChange={(e) => setNewPeriod({ ...newPeriod, rate: parseFloat(e.target.value) })}
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="newRateEvolutivo">Tarifa de Evolutivos</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                id="newRateEvolutivo"
+                                value={newPeriod.rateEvolutivo || ""}
+                                onChange={(e) => setNewPeriod({ ...newPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })}
+                                placeholder="Opcional"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Row 2.5: Tipo Facturación */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="newBillingType">Tipo de Facturación</Label>
                             <Select value={newPeriod.billingType || "MENSUAL"} onValueChange={(value) => setNewPeriod({ ...newPeriod, billingType: value })}>
@@ -277,161 +297,167 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             </Card>
 
             {/* Existing Periods Table - SECOND */}
-            {periods.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted">
-                            <tr>
-                                <th className="px-3 py-2 text-left font-medium">Periodo</th>
-                                <th className="px-3 py-2 text-left font-medium">Cantidad</th>
-                                <th className="px-3 py-2 text-left font-medium">Tarifa</th>
-                                <th className="px-3 py-2 text-left font-medium">Premium</th>
-                                <th className="px-3 py-2 text-left font-medium">Regularización</th>
-                                <th className="px-3 py-2 text-left font-medium">Excedente</th>
-                                <th className="px-3 py-2 text-right font-medium">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {periods.map((p) => {
-                                const isEditing = editingId === p.id;
-                                const data = isEditing ? editPeriod : p;
+            {
+                periods.length > 0 && (
+                    <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-muted">
+                                <tr>
+                                    <th className="px-3 py-2 text-left font-medium">Periodo</th>
+                                    <th className="px-3 py-2 text-left font-medium">Cantidad</th>
+                                    <th className="px-3 py-2 text-left font-medium">Tarifa</th>
+                                    <th className="px-3 py-2 text-left font-medium">Premium</th>
+                                    <th className="px-3 py-2 text-left font-medium">Regularización</th>
+                                    <th className="px-3 py-2 text-left font-medium">Excedente</th>
+                                    <th className="px-3 py-2 text-right font-medium">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {periods.map((p) => {
+                                    const isEditing = editingId === p.id;
+                                    const data = isEditing ? editPeriod : p;
 
-                                return (
-                                    <tr key={p.id} className={isEditing ? "bg-primary/5" : ""}>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <div className="space-y-1">
-                                                    <Input type="date" value={data.startDate} onChange={e => setEditPeriod({ ...editPeriod, startDate: e.target.value })} className="text-xs h-7" />
-                                                    <Input type="date" value={data.endDate} onChange={e => setEditPeriod({ ...editPeriod, endDate: e.target.value })} className="text-xs h-7" />
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs">
-                                                    <div>{new Date(data.startDate).toLocaleDateString('es-ES')}</div>
-                                                    <div className="text-muted-foreground">{new Date(data.endDate).toLocaleDateString('es-ES')}</div>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <div className="space-y-1">
-                                                    <Input type="number" step="0.01" value={data.totalQuantity} onChange={e => setEditPeriod({ ...editPeriod, totalQuantity: parseFloat(e.target.value) })} className="text-xs h-7" />
-                                                    <Select value={data.scopeUnit} onValueChange={(value) => setEditPeriod({ ...editPeriod, scopeUnit: value })}>
-                                                        <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {scopeUnits?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs">
-                                                    <div>{data.totalQuantity}</div>
-                                                    <div className="text-muted-foreground">{data.scopeUnit}</div>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <div className="space-y-1">
-                                                    <Input type="number" step="0.01" value={data.rate} onChange={e => setEditPeriod({ ...editPeriod, rate: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Tarifa" />
-                                                    <Input type="number" step="0.01" value={data.correctionFactor} onChange={e => setEditPeriod({ ...editPeriod, correctionFactor: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Factor" />
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs">
-                                                    <div>{data.rate} €/h</div>
-                                                    <div className="text-muted-foreground">x{data.correctionFactor}</div>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <div className="space-y-1">
-                                                    <Select value={data.isPremium ? "true" : "false"} onValueChange={(value) => setEditPeriod({ ...editPeriod, isPremium: value === "true" })}>
-                                                        <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="false">No</SelectItem>
-                                                            <SelectItem value="true">Sí</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {data.isPremium && (
-                                                        <Input type="number" step="0.01" value={data.premiumPrice || ""} onChange={e => setEditPeriod({ ...editPeriod, premiumPrice: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Precio" />
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs">
-                                                    <div>{data.isPremium ? "Sí" : "No"}</div>
-                                                    {data.isPremium && data.premiumPrice && <div className="text-muted-foreground">{data.premiumPrice} €</div>}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <div className="space-y-1">
-                                                    <Select value={data.regularizationType || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, regularizationType: value === "NONE" ? null : value })}>
+                                    return (
+                                        <tr key={p.id} className={isEditing ? "bg-primary/5" : ""}>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <div className="space-y-1">
+                                                        <Input type="date" value={data.startDate} onChange={e => setEditPeriod({ ...editPeriod, startDate: e.target.value })} className="text-xs h-7" />
+                                                        <Input type="date" value={data.endDate} onChange={e => setEditPeriod({ ...editPeriod, endDate: e.target.value })} className="text-xs h-7" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>{new Date(data.startDate).toLocaleDateString('es-ES')}</div>
+                                                        <div className="text-muted-foreground">{new Date(data.endDate).toLocaleDateString('es-ES')}</div>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <div className="space-y-1">
+                                                        <Input type="number" step="0.01" value={data.totalQuantity} onChange={e => setEditPeriod({ ...editPeriod, totalQuantity: parseFloat(e.target.value) })} className="text-xs h-7" />
+                                                        <Select value={data.scopeUnit} onValueChange={(value) => setEditPeriod({ ...editPeriod, scopeUnit: value })}>
+                                                            <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {scopeUnits?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>{data.totalQuantity}</div>
+                                                        <div className="text-muted-foreground">{data.scopeUnit}</div>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <div className="space-y-1">
+                                                        <Input type="number" step="0.01" value={data.rate} onChange={e => setEditPeriod({ ...editPeriod, rate: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Tarifa" />
+                                                        <Input type="number" step="0.01" value={data.rateEvolutivo || ""} onChange={e => setEditPeriod({ ...editPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Tarifa Evo" />
+                                                        <Input type="number" step="0.01" value={data.correctionFactor} onChange={e => setEditPeriod({ ...editPeriod, correctionFactor: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Factor" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>Tarifa: {data.rate} €/h</div>
+                                                        {data.rateEvolutivo && <div className="text-green-600 font-medium">Evo: {data.rateEvolutivo} €/h</div>}
+                                                        <div className="text-muted-foreground">x{data.correctionFactor}</div>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <div className="space-y-1">
+                                                        <Select value={data.isPremium ? "true" : "false"} onValueChange={(value) => setEditPeriod({ ...editPeriod, isPremium: value === "true" })}>
+                                                            <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="false">No</SelectItem>
+                                                                <SelectItem value="true">Sí</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {data.isPremium && (
+                                                            <Input type="number" step="0.01" value={data.premiumPrice || ""} onChange={e => setEditPeriod({ ...editPeriod, premiumPrice: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Precio" />
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>{data.isPremium ? "Sí" : "No"}</div>
+                                                        {data.isPremium && data.premiumPrice && <div className="text-muted-foreground">{data.premiumPrice} €</div>}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <div className="space-y-1">
+                                                        <Select value={data.regularizationType || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, regularizationType: value === "NONE" ? null : value })}>
+                                                            <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="NONE">-</SelectItem>
+                                                                {regularizationTypes?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Input type="number" step="0.01" value={data.regularizationRate || ""} onChange={e => setEditPeriod({ ...editPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Tarifa Reg." />
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        <div>{data.regularizationType || "-"}</div>
+                                                        {data.regularizationRate && <div className="text-muted-foreground">{data.regularizationRate} €/h</div>}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <Select value={data.surplusStrategy || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, surplusStrategy: value === "NONE" ? null : value })}>
                                                         <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="NONE">-</SelectItem>
-                                                            {regularizationTypes?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                                            <SelectItem value="ACCUMULATE">Acumular</SelectItem>
+                                                            <SelectItem value="LOSE">Perder</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Input type="number" step="0.01" value={data.regularizationRate || ""} onChange={e => setEditPeriod({ ...editPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Tarifa Reg." />
-                                                </div>
-                                            ) : (
-                                                <div className="text-xs">
-                                                    <div>{data.regularizationType || "-"}</div>
-                                                    {data.regularizationRate && <div className="text-muted-foreground">{data.regularizationRate} €/h</div>}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {isEditing ? (
-                                                <Select value={data.surplusStrategy || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, surplusStrategy: value === "NONE" ? null : value })}>
-                                                    <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="NONE">-</SelectItem>
-                                                        <SelectItem value="ACCUMULATE">Acumular</SelectItem>
-                                                        <SelectItem value="LOSE">Perder</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : (
-                                                <div className="text-xs">{data.surplusStrategy || "-"}</div>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            <div className="flex gap-1 justify-end">
-                                                {isEditing ? (
-                                                    <>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => handleUpdate(p.id)} type="button">
-                                                            <Save className="w-3 h-3" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500" onClick={cancelEdit} type="button">
-                                                            <Undo className="w-3 h-3" />
-                                                        </Button>
-                                                    </>
                                                 ) : (
-                                                    <>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(p)} type="button">
-                                                            <Pencil className="w-3 h-3" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDelete(p.id)} type="button">
-                                                            <Trash2 className="w-3 h-3" />
-                                                        </Button>
-                                                    </>
+                                                    <div className="text-xs">{data.surplusStrategy || "-"}</div>
                                                 )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                <div className="flex gap-1 justify-end">
+                                                    {isEditing ? (
+                                                        <>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => handleUpdate(p.id)} type="button">
+                                                                <Save className="w-3 h-3" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500" onClick={cancelEdit} type="button">
+                                                                <Undo className="w-3 h-3" />
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(p)} type="button">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDelete(p.id)} type="button">
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            }
 
-            {periods.length === 0 && (
-                <div className="text-center text-muted-foreground py-8 border rounded-md">
-                    Sin periodos definidos. Añade el primer periodo arriba.
-                </div>
-            )}
-        </div>
+            {
+                periods.length === 0 && (
+                    <div className="text-center text-muted-foreground py-8 border rounded-md">
+                        Sin periodos definidos. Añade el primer periodo arriba.
+                    </div>
+                )
+            }
+        </div >
     );
 }

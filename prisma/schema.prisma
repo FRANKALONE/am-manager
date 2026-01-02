@@ -126,6 +126,7 @@ model ValidityPeriod {
   scopeUnit          String      @default("HORAS")
   regularizationType String?
   surplusStrategy    String?
+  rateEvolutivo      Float?
   workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
