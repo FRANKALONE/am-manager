@@ -59,15 +59,21 @@ export async function getRegularization(id: number) {
 export async function createRegularization(data: {
     workPackageId: string;
     date: Date;
-    type: "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR"; // "EXCESS", "RETURN", "MANUAL_CONSUMPTION", "SOBRANTE_ANTERIOR"
+    type: "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR" | "CONTRATACION_PUNTUAL";
     quantity: number;
     description?: string;
     ticketId?: string;
     note?: string;
+    isRevenueRecognized?: boolean;
+    isBilled?: boolean;
 }) {
     try {
         const regularization = await prisma.regularization.create({
-            data
+            data: {
+                ...data,
+                isRevenueRecognized: data.isRevenueRecognized ?? false,
+                isBilled: data.isBilled ?? true
+            }
         });
 
         revalidatePath('/admin/regularizations');

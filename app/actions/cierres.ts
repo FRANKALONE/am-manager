@@ -18,6 +18,9 @@ export interface CierreCandidate {
     suggestedCashAmount: number; // (Quantity to bill) * (Regularization Rate)
     unit: string;
     needsPO?: boolean;
+    reportEmails?: string | null;
+    reportSentAt?: Date | null;
+    reportSentBy?: string | null;
 }
 
 export interface EventosMonthStatus {
@@ -70,7 +73,7 @@ export async function getPendingCierres(month: number, year: number) {
     try {
         const wps = await prisma.workPackage.findMany({
             include: {
-                client: { select: { name: true } },
+                client: { select: { name: true, reportEmails: true } },
                 validityPeriods: {
                     orderBy: { startDate: 'asc' }
                 },
@@ -127,14 +130,15 @@ export async function getPendingCierres(month: number, year: number) {
                     });
                     const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
                     const returns = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
+                    const puntualContracted = regs.filter(r => r.type === 'CONTRATACION_PUNTUAL').reduce((sum, r) => sum + r.quantity, 0);
 
                     const consumed = ticketsInMonth + manualCons - returns;
 
                     monthsData.push({
                         label: `${pm.toString().padStart(2, '0')}/${py}`,
-                        contracted: monthlyContracted,
+                        contracted: monthlyContracted + puntualContracted,
                         consumed: consumed,
-                        isExceeded: consumed > monthlyContracted
+                        isExceeded: consumed > (monthlyContracted + puntualContracted)
                     });
 
                     iterDate.setMonth(iterDate.getMonth() + 1);
@@ -197,7 +201,8 @@ export async function getPendingCierres(month: number, year: number) {
                     }) || [];
 
                     const pReturnTotal = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const pRegTotal = pRegs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pRegTotal = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pPuntualTotal = pRegs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     pConsumed = pConsumed - pReturnTotal;
 
@@ -208,7 +213,7 @@ export async function getPendingCierres(month: number, year: number) {
                         pMonthlyContractedAmount = pMonthlyContracted;
                     }
 
-                    accumulatedBalance += (pMonthlyContractedAmount - pConsumed + pRegTotal);
+                    accumulatedBalance += ((pMonthlyContractedAmount + pPuntualTotal) - pConsumed + pRegTotal);
                     pIterDate.setMonth(pIterDate.getMonth() + 1);
                 }
             }
@@ -223,7 +228,7 @@ export async function getPendingCierres(month: number, year: number) {
                     const pEnd = new Date(p.endDate);
                     return pEnd < firstPeriodStart && regDate >= pStart && regDate <= pEnd;
                 });
-                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
             }).reduce((sum, r) => sum + r.quantity, 0) || 0;
 
             accumulatedBalance += sobrantesBeforeSelection;
@@ -269,7 +274,8 @@ export async function getPendingCierres(month: number, year: number) {
                 }) || [];
 
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                 consumed = consumed - returnTotal;
 
@@ -280,7 +286,7 @@ export async function getPendingCierres(month: number, year: number) {
                     monthlyContracted = standardMonthlyContracted;
                 }
 
-                accumulatedBalance += (monthlyContracted - consumed + regTotal);
+                accumulatedBalance += ((monthlyContracted + puntualTotal) - consumed + regTotal);
                 iterDate.setMonth(iterDate.getMonth() + 1);
             }
 
@@ -302,7 +308,10 @@ export async function getPendingCierres(month: number, year: number) {
                 unit: period.scopeUnit || 'HORAS',
                 suggestedAmount: balance < 0 ? Math.abs(balance) : 0,
                 suggestedCashAmount: (balance < 0 ? Math.abs(balance) : 0) * regRate,
-                needsPO: balance < -0.01 && period.regularizationType?.toUpperCase() === 'BAJO_PEDIDO'
+                needsPO: balance < -0.01 && period.regularizationType?.toUpperCase() === 'BAJO_PEDIDO',
+                reportEmails: wp.client.reportEmails,
+                reportSentAt: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentAt,
+                reportSentBy: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentBy
             };
 
             if (hasProcessedThisMonth) {
@@ -375,7 +384,7 @@ export async function processBatchCierres(month: number, year: number, selection
     }
 }
 
-export async function processCierre(wpId: string, month: number, year: number, amount: number, note: string) {
+export async function processCierre(wpId: string, month: number, year: number, amount: number, note: string, isRevenueRecognized: boolean = false, isBilled: boolean = true) {
     try {
         // 1. Mandatory safety sync
         console.log(`[CIERRE] Safety sync for ${wpId}...`);
@@ -389,6 +398,8 @@ export async function processCierre(wpId: string, month: number, year: number, a
                 type: 'EXCESS',
                 quantity: amount,
                 description: `Regularización Cierre ${month}/${year}. ${note}`,
+                isRevenueRecognized,
+                isBilled
             }
         });
 
@@ -399,6 +410,37 @@ export async function processCierre(wpId: string, month: number, year: number, a
         return { success: true };
     } catch (error: any) {
         console.error("Error processing cierre:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function markReportAsSent(wpId: string, month: number, year: number, sentBy: string) {
+    try {
+        await prisma.monthlyMetric.upsert({
+            where: {
+                workPackageId_year_month: {
+                    workPackageId: wpId,
+                    year,
+                    month
+                }
+            },
+            create: {
+                workPackageId: wpId,
+                year,
+                month,
+                reportSentAt: new Date(),
+                reportSentBy: sentBy
+            },
+            update: {
+                reportSentAt: new Date(),
+                reportSentBy: sentBy
+            }
+        });
+
+        revalidatePath("/cierres");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error marking report as sent:", error);
         return { success: false, error: error.message };
     }
 }
@@ -481,7 +523,8 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 }) || [];
 
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                 consumed = consumed - returnTotal;
 
@@ -497,7 +540,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                     monthlyContracted = pMonthlyContracted;
                 }
 
-                const monthBalance = monthlyContracted - consumed + regTotal;
+                const monthBalance = (monthlyContracted + puntualTotal) - consumed + regTotal;
                 accumulatedBalance += monthBalance;
 
                 // Dynamic filtering: start from cutoff or first negative balance
@@ -508,7 +551,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 if (cutoffYYYYMM !== null && pIterYYYYMM >= cutoffYYYYMM && pIterYYYYMM < targetYYYYMM) {
                     summary.push({
                         label: `${pm.toString().padStart(2, '0')}/${py}`,
-                        contracted: monthlyContracted,
+                        contracted: monthlyContracted + puntualTotal,
                         consumed: consumed,
                         balance: accumulatedBalance
                     });
@@ -561,7 +604,8 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                     }) || [];
 
                     const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const regTotal = regs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     consumed = consumed - returnTotal;
 
@@ -572,12 +616,12 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                         monthlyContracted = pMonthlyContracted;
                     }
 
-                    const monthBalance = monthlyContracted - consumed + regTotal;
+                    const monthBalance = (monthlyContracted + puntualTotal) - consumed + regTotal;
                     accumulatedBalance += monthBalance;
 
                     summary.push({
                         label: `${pm.toString().padStart(2, '0')}/${py}`,
-                        contracted: monthlyContracted,
+                        contracted: monthlyContracted + puntualTotal,
                         consumed: consumed,
                         balance: accumulatedBalance
                     });

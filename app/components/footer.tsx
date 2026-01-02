@@ -2,7 +2,7 @@ import React from 'react';
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
-    const version = "2512.2";
+    const version = "2601.3";
 
     return (
         <footer className="w-full bg-slate-900 text-slate-400 py-6 border-t border-slate-800">

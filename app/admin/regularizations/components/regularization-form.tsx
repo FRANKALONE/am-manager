@@ -31,7 +31,9 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
         quantity: "",
         description: "",
         ticketId: "",
-        note: ""
+        note: "",
+        isRevenueRecognized: false,
+        isBilled: true
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -41,11 +43,13 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
         const result = await createRegularization({
             workPackageId: formData.workPackageId,
             date: new Date(formData.date),
-            type: formData.type as "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR",
+            type: formData.type as any,
             quantity: parseFloat(formData.quantity),
             description: formData.description || undefined,
             ticketId: formData.ticketId || undefined,
-            note: formData.note || undefined
+            note: formData.note || undefined,
+            isRevenueRecognized: formData.isRevenueRecognized,
+            isBilled: formData.isBilled
         });
 
         if (result.success) {
@@ -129,6 +133,7 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
                                         <SelectItem value="RETURN">Devolución/Anulación</SelectItem>
                                         <SelectItem value="SOBRANTE_ANTERIOR">Sobrante Periodo Anterior</SelectItem>
                                         <SelectItem value="MANUAL_CONSUMPTION">Consumo Manual</SelectItem>
+                                        <SelectItem value="CONTRATACION_PUNTUAL">Contratación Puntual</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -147,6 +152,44 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
                                 />
                             </div>
                         </div>
+
+                        {formData.type === "EXCESS" && (
+                            <div className="grid gap-4 md:grid-cols-2 p-4 bg-muted/30 rounded-lg border">
+                                <div className="flex items-center justify-between space-x-2">
+                                    <Label htmlFor="isRevenueRecognized" className="flex flex-col gap-1">
+                                        <span>Reconocimiento del ingreso</span>
+                                        <span className="font-normal text-xs text-muted-foreground">Marcar si el ingreso se reconoce aunque no se haya facturado aún.</span>
+                                    </Label>
+                                    <input
+                                        id="isRevenueRecognized"
+                                        type="checkbox"
+                                        className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={formData.isRevenueRecognized}
+                                        onChange={(e) => setFormData({ ...formData, isRevenueRecognized: e.target.checked })}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between space-x-2">
+                                    <Label htmlFor="isBilled" className="flex flex-col gap-1">
+                                        <span>Facturado</span>
+                                        <span className="font-normal text-xs text-muted-foreground">¿Se ha emitido ya la factura de este exceso?</span>
+                                    </Label>
+                                    <input
+                                        id="isBilled"
+                                        type="checkbox"
+                                        className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={formData.isBilled}
+                                        onChange={(e) => {
+                                            const val = e.target.checked;
+                                            setFormData({
+                                                ...formData,
+                                                isBilled: val,
+                                                // If it's billed, it's usually recognized. If not billed but manually created, user might want to recognize it.
+                                            });
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {isManualConsumption && (
                             <div className="space-y-2">

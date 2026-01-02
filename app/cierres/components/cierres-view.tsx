@@ -11,8 +11,28 @@ import { AlertCircle, CheckCircle2, RefreshCcw, DollarSign, Calendar, Clock, Tre
 import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { getPendingCierres, processCierre, processBatchCierres, getClosureReportData, type CierreCandidate, type EventosStatus } from "@/app/actions/cierres";
+import {
+    getPendingCierres,
+    processCierre,
+    processBatchCierres,
+    getClosureReportData,
+    markReportAsSent,
+    type CierreCandidate,
+    type EventosStatus
+} from "@/app/actions/cierres";
 import { syncWorkPackage } from "@/app/actions/sync";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Mail, Send, ExternalLink, Download } from "lucide-react";
 
 const MONTHS_LABELS = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -32,6 +52,33 @@ export function CierresView() {
     const [processingWp, setProcessingWp] = useState<string | null>(null);
     const [batchProcessing, setBatchProcessing] = useState(false);
     const [downloadingReport, setDownloadingReport] = useState<string | null>(null);
+
+    // Modal states
+    const [processingModal, setProcessingModal] = useState<{
+        isOpen: boolean;
+        candidate: CierreCandidate | null;
+        note: string;
+        isRevenueRecognized: boolean;
+        isBilled: boolean;
+    }>({
+        isOpen: false,
+        candidate: null,
+        note: "",
+        isRevenueRecognized: false,
+        isBilled: true
+    });
+
+    const [draftModal, setDraftModal] = useState<{
+        isOpen: boolean;
+        candidate: CierreCandidate | null;
+        subject: string;
+        body: string;
+    }>({
+        isOpen: false,
+        candidate: null,
+        subject: "",
+        body: ""
+    });
 
     // Filtros de UI
     const [searchTerm, setSearchTerm] = useState("");
@@ -183,6 +230,68 @@ export function CierresView() {
         }
     };
 
+    const generateDraftEmail = (candidate: CierreCandidate) => {
+        const clientEmails = candidate.reportEmails || "";
+        const subject = `Resumen Mensual de Consumo - ${candidate.clientName} - ${MONTHS_LABELS[month - 1]} ${year}`;
+        const body = `Hola,\n\nAdjunto os enviamos el resumen de consumo y regularización correspondiente al mes de ${MONTHS_LABELS[month - 1]} para el Work Package ${candidate.wpName}.\n\nQuedamos a vuestra disposición para cualquier duda.\n\nSaludos.`;
+
+        setDraftModal({
+            isOpen: true,
+            candidate,
+            subject,
+            body
+        });
+    };
+
+    const handleMarkAsSent = async (candidate: CierreCandidate) => {
+        if (!confirm(`¿Marcar el reporte de ${candidate.clientName} como enviado?`)) return;
+
+        try {
+            const result = await markReportAsSent(candidate.wpId, month, year, "Admin"); // Replace with actual user if available
+            if (result.success) {
+                await loadData();
+            } else {
+                alert("Error: " + result.error);
+            }
+        } catch (error: any) {
+            alert("Error: " + error.message);
+        }
+    };
+
+    const generateInternalSummary = () => {
+        let text = `RESUMEN INTERNO DE CIERRE - ${MONTHS_LABELS[month - 1]} ${year}\n\n`;
+
+        text += `Pendientes de Facturar:\n`;
+        candidates.filter(c => c.suggestedAmount > 0).forEach(c => {
+            text += `- ${c.clientName} (${c.wpName}): ${c.suggestedAmount.toFixed(1)} ${c.unit} (${c.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })})\n`;
+        });
+
+        text += `\nYa Procesados:\n`;
+        processed.forEach(p => {
+            text += `- [OK] ${p.clientName} (${p.wpName}): ${p.suggestedAmount.toFixed(1)} ${p.unit} (${p.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })})\n`;
+        });
+
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Resumen_Interno_${month}_${year}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleProcessClick = (candidate: CierreCandidate) => {
+        setProcessingModal({
+            isOpen: true,
+            candidate,
+            note: "",
+            isRevenueRecognized: false,
+            isBilled: true
+        });
+    };
+
     const handleSync = async (wpId: string) => {
         setSyncingWp(wpId);
         try {
@@ -195,25 +304,23 @@ export function CierresView() {
         }
     };
 
-    const handleProcess = async (candidate: CierreCandidate) => {
-        if (!confirm(`¿Confirmas el lanzamiento de la facturación por ${candidate.suggestedAmount.toFixed(2)} ${candidate.unit}?`)) {
-            return;
-        }
+    const confirmProcess = async () => {
+        const { candidate, note, isRevenueRecognized, isBilled } = processingModal;
+        if (!candidate) return;
 
         setProcessingWp(candidate.wpId);
+        setProcessingModal(prev => ({ ...prev, isOpen: false }));
+
         try {
-            const result = await processCierre(candidate.wpId, month, year, candidate.suggestedAmount, "Cierre manual administrado");
+            const result = await processCierre(candidate.wpId, month, year, candidate.suggestedAmount, note, isRevenueRecognized, isBilled);
             if (result.success) {
-                // Auto generate PDF
-                console.log("[CIERRES] Success! Launching auto-report for:", candidate.wpName);
                 await downloadReport(candidate);
-                alert("Facturación procesada correctamente. El justificante PDF se ha descargado automáticamente.");
                 await loadData();
             } else {
                 alert("Error: " + result.error);
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            alert("Error: " + error.message);
         } finally {
             setProcessingWp(null);
         }
@@ -543,12 +650,104 @@ export function CierresView() {
                                                     </Button>
                                                     <Button
                                                         size="sm"
-                                                        onClick={() => handleProcess(c)}
+                                                        onClick={() => handleProcessClick(c)}
                                                         disabled={processingWp === c.wpId || syncingWp === c.wpId}
                                                         className="bg-malachite hover:bg-dark-green text-white font-bold h-8 flex items-center gap-2 shadow-sm px-4"
                                                     >
                                                         <DollarSign className="w-3.5 h-3.5" />
                                                         {processingWp === c.wpId ? '...' : 'Facturar'}
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Monthly Reports Section */}
+            <Card className="border-none shadow-md overflow-hidden bg-slate-50/50">
+                <CardHeader className="bg-white border-b border-slate-100 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-blue-500" />
+                        Reportes Mensuales a Clientes
+                    </CardTitle>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={generateInternalSummary}
+                        className="text-xs font-bold gap-2"
+                    >
+                        <FileText className="w-4 h-4" />
+                        Generar Resumen Interno
+                    </Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
+                                <tr>
+                                    <th className="px-6 py-4">Cliente / Contactos</th>
+                                    <th className="px-6 py-4">Estado del Reporte</th>
+                                    <th className="px-6 py-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {candidates.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-10 text-center text-slate-400 font-medium">
+                                            No hay datos disponibles para reportar
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    candidates.map((c) => (
+                                        <tr key={c.wpId} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-slate-900">{c.clientName}</div>
+                                                <div className="text-xs text-slate-500 truncate max-w-xs" title={c.reportEmails || 'No hay emails configurados'}>
+                                                    {c.reportEmails || <span className="text-amber-500 font-semibold italic">Sin contactos configurados</span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {c.reportSentAt ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200 gap-1 w-fit">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            Enviado
+                                                        </Badge>
+                                                        <span className="text-[10px] text-slate-400">
+                                                            {new Date(c.reportSentAt).toLocaleDateString()} por {c.reportSentBy}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-slate-400 border-slate-200 gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        Pendiente
+                                                    </Badge>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => generateDraftEmail(c)}
+                                                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-500 hover:bg-blue-50"
+                                                        title="Generar Borrador Email"
+                                                    >
+                                                        <Mail className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleMarkAsSent(c)}
+                                                        className="h-8 w-8 p-0 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50"
+                                                        title="Marcar como enviado"
+                                                    >
+                                                        <Send className="w-4 h-4" />
                                                     </Button>
                                                 </div>
                                             </td>
@@ -713,6 +912,164 @@ export function CierresView() {
                     </div>
                 </div>
             </div>
+
+            {/* Processing Modal */}
+            <Dialog
+                open={processingModal.isOpen}
+                onOpenChange={(open) => setProcessingModal(prev => ({ ...prev, isOpen: open }))}
+            >
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-malachite" />
+                            Facturación de Regularización
+                        </DialogTitle>
+                        <DialogDescription>
+                            Configure los detalles de la facturación para {processingModal.candidate?.clientName}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cantidad a Facturar</p>
+                                <p className="text-2xl font-black text-slate-800">
+                                    {processingModal.candidate?.suggestedAmount.toFixed(1)}
+                                    <span className="text-sm font-normal text-slate-500 ml-1 uppercase">{processingModal.candidate?.unit}</span>
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Importe Económico</p>
+                                <p className="text-xl font-bold text-malachite">
+                                    {processingModal.candidate?.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="note">Nota Addicional (opcional)</Label>
+                            <Textarea
+                                id="note"
+                                placeholder="Ej: Facturación correspondiente a la bolsa del Q3..."
+                                value={processingModal.note}
+                                onChange={(e) => setProcessingModal(prev => ({ ...prev, note: e.target.value }))}
+                                rows={2}
+                            />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 p-4 bg-muted/30 rounded-lg border">
+                            <div className="flex items-center justify-between space-x-2">
+                                <Label htmlFor="revenue-rec" className="flex flex-col gap-1 cursor-pointer">
+                                    <span className="font-bold">Reconcimiento Ingreso</span>
+                                    <span className="font-normal text-[10px] text-muted-foreground leading-tight">Incluir en métricas aunque no haya factura.</span>
+                                </Label>
+                                <Switch
+                                    id="revenue-rec"
+                                    checked={processingModal.isRevenueRecognized}
+                                    onCheckedChange={(val) => setProcessingModal(prev => ({ ...prev, isRevenueRecognized: val }))}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between space-x-2">
+                                <Label htmlFor="billed" className="flex flex-col gap-1 cursor-pointer">
+                                    <span className="font-bold">Facturado</span>
+                                    <span className="font-normal text-[10px] text-muted-foreground leading-tight">Marcar si ya existe factura emitida.</span>
+                                </Label>
+                                <Switch
+                                    id="billed"
+                                    checked={processingModal.isBilled}
+                                    onCheckedChange={(val) => setProcessingModal(prev => ({ ...prev, isBilled: val }))}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setProcessingModal(prev => ({ ...prev, isOpen: false }))}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmProcess} className="bg-malachite hover:bg-dark-green text-white font-bold gap-2">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Confirmar y Descargar Reporte
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Draft Email Modal */}
+            <Dialog
+                open={draftModal.isOpen}
+                onOpenChange={(open) => setDraftModal(prev => ({ ...prev, isOpen: open }))}
+            >
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-blue-500" />
+                            Borrador de Reporte Mensual
+                        </DialogTitle>
+                        <DialogDescription>
+                            Copie este contenido para enviarlo por email al cliente
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Destinatarios</Label>
+                            <div className="bg-slate-50 p-2 rounded border border-slate-200 text-sm font-medium text-slate-700 flex items-center justify-between">
+                                <span className="truncate flex-grow mr-2">{draftModal.candidate?.reportEmails || "Sin emails configurados"}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px]"
+                                    onClick={() => {
+                                        if (draftModal.candidate?.reportEmails) {
+                                            navigator.clipboard.writeText(draftModal.candidate.reportEmails);
+                                        }
+                                    }}
+                                >
+                                    Copiar
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Asunto</Label>
+                            <Input value={draftModal.subject} readOnly className="bg-slate-50 border-slate-200" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Cuerpo del Mensaje</Label>
+                            <Textarea
+                                value={draftModal.body}
+                                readOnly
+                                className="bg-slate-50 border-slate-200 min-h-[150px]"
+                            />
+                        </div>
+
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex gap-3">
+                            <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                            <p className="text-xs text-blue-700 leading-normal">
+                                **Importante:** Recuerde adjuntar el justificante PDF descargado previamente antes de enviar el correo.
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDraftModal(prev => ({ ...prev, isOpen: false }))}>
+                            Cerrar
+                        </Button>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2"
+                            onClick={() => {
+                                const mailto = `mailto:${draftModal.candidate?.reportEmails || ''}?subject=${encodeURIComponent(draftModal.subject)}&body=${encodeURIComponent(draftModal.body)}`;
+                                window.location.href = mailto;
+                            }}
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            Abrir en Outlook/Mail
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

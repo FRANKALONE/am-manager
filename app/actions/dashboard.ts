@@ -240,11 +240,13 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                 const manualConsumption = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
                 const returnReg = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                const excessReg = regs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                const excessReg = regs.filter(r => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && (r as any).isBilled !== false).reduce((sum, r) => sum + r.quantity, 0);
+                const puntualContracted = regs.filter(r => r.type === 'CONTRATACION_PUNTUAL').reduce((sum, r) => sum + r.quantity, 0);
 
                 const consumed = ticketsInMonth + manualConsumption - returnReg;
                 // Difference is strictly Contracted - Consumed
-                const monthlyDifference = monthlyContractedEvents - consumed;
+                const monthlyContractedWithPuntual = monthlyContractedEvents + puntualContracted;
+                const monthlyDifference = monthlyContractedWithPuntual - consumed;
 
                 const isStrictFuture = iterDate > now;
 
@@ -255,7 +257,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 evolutionData.push({
                     month: label,
                     year: y,
-                    contracted: monthlyContractedEvents,
+                    contracted: monthlyContractedWithPuntual,
                     consumed: consumed,
                     regularization: excessReg,
                     monthlyBalance: monthlyDifference,
@@ -280,7 +282,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                     const pEnd = new Date(p.endDate);
                     return pEnd < firstPeriodStartDate && regDate >= pStart && regDate <= pEnd;
                 });
-                return !isInAnyPrevPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+                return !isInAnyPrevPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && (reg as any).isBilled !== false;
             }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
 
             // 2. Previous periods balance
@@ -324,9 +326,10 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
                     const pManual = pRegs.filter((r: any) => r.type === 'MANUAL_CONSUMPTION').reduce((sum: number, r: any) => sum + r.quantity, 0);
                     const pReturn = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const pExcess = pRegs.filter((r: any) => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pExcess = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && (r as any).isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pPuntual = pRegs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
-                    eventInitialBalance += (pMonthlyContracted - (ticketsInMonth + pManual - pReturn) + pExcess);
+                    eventInitialBalance += (pMonthlyContracted + pPuntual - (ticketsInMonth + pManual - pReturn) + pExcess);
                     pIter.setMonth(pIter.getMonth() + 1);
                 }
             }
@@ -408,7 +411,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 const pEnd = new Date(p.endDate);
                 return pEnd < firstPeriodStartDate && regDate >= pStart && regDate <= pEnd;
             });
-            return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN');
+            return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && (reg as any).isBilled !== false;
         }).reduce((sum, r) => {
             // RETURN in a gap contributes as a positive "refund" to the bag
             // EXCESS/SOBRANTE also positive
@@ -452,7 +455,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 const pReturnTotal = pRegs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
                 pConsumed = pConsumed - pReturnTotal;
 
-                const pRegTotal = pRegs.filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR').reduce((sum, r) => sum + r.quantity, 0);
+                const pRegTotal = pRegs.filter(r => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && (r as any).isBilled !== false).reduce((sum, r) => sum + r.quantity, 0);
+                const pPuntualTotal = pRegs.filter(r => r.type === 'CONTRATACION_PUNTUAL').reduce((sum, r) => sum + r.quantity, 0);
 
                 let pMonthlyContractedAmount = 0;
                 if (pIsBolsaPuntual) {
@@ -463,7 +467,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                     pMonthlyContractedAmount = pMonthlyContracted;
                 }
 
-                const pMonthlyBalance = pMonthlyContractedAmount - pConsumed + pRegTotal;
+                const pMonthlyBalance = (pMonthlyContractedAmount + pPuntualTotal) - pConsumed + pRegTotal;
                 accumulatedBalance += pMonthlyBalance;
 
                 pIterDate.setMonth(pIterDate.getMonth() + 1);
@@ -497,9 +501,13 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             consumed = consumed - returnTotal; // Adjust consumed with returns
 
-            // Only EXCESS and SOBRANTE_ANTERIOR regularizations appear in regularization column
+            // Only EXCESS and SOBRANTE_ANTERIOR regularizations appear in regularization column (if billed)
             const regularizationTotal = regularizationsThisMonth
-                .filter(r => r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR')
+                .filter(r => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && (r as any).isBilled !== false)
+                .reduce((sum, r) => sum + r.quantity, 0);
+
+            const puntualTotal = regularizationsThisMonth
+                .filter(r => r.type === 'CONTRATACION_PUNTUAL')
                 .reduce((sum, r) => sum + r.quantity, 0);
 
             const isStrictFuture = (y > now.getFullYear()) || (y === now.getFullYear() && m > (now.getMonth() + 1));
@@ -519,7 +527,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
             // Logic: Balance = Contratado - Consumido (ya ajustado con RETURN)
             // EXCLUDE excess regularizations from the monthly difference
-            const monthlyBalance = monthlyContracted - consumed;
+            const monthlyContractedWithPuntual = monthlyContracted + puntualTotal;
+            const monthlyBalance = monthlyContractedWithPuntual - consumed;
 
             // Logic: Accumulated
             if (!isStrictFuture) {
@@ -529,7 +538,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             evolutionData.push({
                 month: label,
                 year: y,
-                contracted: monthlyContracted,
+                contracted: monthlyContractedWithPuntual,
                 consumed: consumed,
                 regularization: regularizationTotal,
                 monthlyBalance: monthlyBalance,

@@ -82,6 +82,17 @@ export function ClientFormFields({
                 <p className="text-xs text-muted-foreground">URL del portal web del cliente (opcional)</p>
             </div>
 
+            <div className="space-y-2">
+                <Label htmlFor="reportEmails">Emails para Reportes Mensuales</Label>
+                <Input
+                    id="reportEmails"
+                    name="reportEmails"
+                    placeholder="email1@cliente.com, email2@cliente.com"
+                    defaultValue={client?.reportEmails || ""}
+                />
+                <p className="text-xs text-muted-foreground">Emails de contactos del cliente para enviar reportes mensuales (separados por coma).</p>
+            </div>
+
             <LogoUpload
                 currentLogoUrl={client?.clientLogo}
                 onLogoChange={setLogoUrl}

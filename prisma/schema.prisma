@@ -30,6 +30,7 @@ model Client {
   clientLogo       String?
   clientPortalUrl  String?
   jiraProjectKey   String?
+  reportEmails     String?
   users            User[]
   workPackages     WorkPackage[]
 }
@@ -75,6 +76,8 @@ model Regularization {
   ticketId              String?
   note                  String?
   reviewedForDuplicates Boolean     @default(false)
+  isRevenueRecognized   Boolean     @default(false)
+  isBilled              Boolean     @default(true)
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
   workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
@@ -157,6 +160,8 @@ model MonthlyMetric {
   year          Int
   month         Int
   consumedHours Float       @default(0.0)
+  reportSentAt  DateTime?
+  reportSentBy  String?
   workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, year, month])

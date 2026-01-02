@@ -37,6 +37,7 @@ export async function createClient(prevState: any, formData: FormData) {
     const manager = formData.get("manager") as string;
     const amOnboardingDateStr = formData.get("amOnboardingDate") as string;
     const clientPortalUrl = formData.get("clientPortalUrl") as string;
+    const reportEmails = formData.get("reportEmails") as string;
     const clientLogo = formData.get("clientLogo") as string;
 
     // Custom Attributes Handling
@@ -63,6 +64,7 @@ export async function createClient(prevState: any, formData: FormData) {
                 manager: manager || null,
                 amOnboardingDate: amOnboardingDateStr ? new Date(amOnboardingDateStr) : null,
                 clientPortalUrl: clientPortalUrl || null,
+                reportEmails: reportEmails || null,
                 clientLogo: clientLogo || null,
                 customAttributes: JSON.stringify(customAttributes),
             },
@@ -81,6 +83,7 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
     const manager = formData.get("manager") as string;
     const amOnboardingDateStr = formData.get("amOnboardingDate") as string;
     const clientPortalUrl = formData.get("clientPortalUrl") as string;
+    const reportEmails = formData.get("reportEmails") as string;
     const clientLogo = formData.get("clientLogo") as string;
 
     // Custom Attributes Handling
@@ -104,6 +107,7 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
                 manager: manager || null,
                 amOnboardingDate: amOnboardingDateStr ? new Date(amOnboardingDateStr) : null,
                 clientPortalUrl: clientPortalUrl || null,
+                reportEmails: reportEmails || null,
                 clientLogo: clientLogo || null,
                 customAttributes: JSON.stringify(customAttributes),
             },
