@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { syncWorkPackage } from "@/app/actions/sync";
 import { getWorkPackages } from "@/app/actions/work-packages";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Terminal, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Terminal, AlertCircle, CheckCircle2, Search } from "lucide-react";
 
-export default function SyncDebugPage() {
+export function WpSyncDiagnostic() {
     const [wps, setWps] = useState<any[]>([]);
     const [selectedWp, setSelectedWp] = useState<string>("");
     const [loading, setLoading] = useState(false);
@@ -38,21 +38,22 @@ export default function SyncDebugPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Terminal className="h-8 w-8 text-blue-500" />
-                Diagnóstico de Sincronización
-            </h1>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Configuración de Prueba</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-end gap-4">
+        <Card className="border-amber-200 bg-amber-50/10 shadow-sm border-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Search className="h-5 w-5 text-amber-500" />
+                    Diagnóstico de Sincronización WP
+                </CardTitle>
+                <CardDescription>
+                    Compara los datos de JIRA/Tempo con la base de datos para un Work Package concreto.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="flex items-end gap-4 bg-white/50 p-4 rounded-lg border border-amber-100">
                     <div className="flex-1 space-y-2">
                         <label className="text-sm font-medium">Seleccionar Work Package</label>
                         <Select onValueChange={setSelectedWp} value={selectedWp}>
-                            <SelectTrigger>
+                            <SelectTrigger className="bg-white">
                                 <SelectValue placeholder="Busca un WP..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -67,45 +68,39 @@ export default function SyncDebugPage() {
                     <Button
                         onClick={runDebugSync}
                         disabled={loading || !selectedWp}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ejecutar Diagnóstico"}
                     </Button>
-                </CardContent>
-            </Card>
+                </div>
 
-            {result && (
-                <Card className={result.error ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
-                    <CardContent className="py-4 flex items-center gap-2">
+                {result && (
+                    <div className={`p-4 rounded-lg border flex items-center gap-3 ${result.error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>
                         {result.error ? (
                             <>
-                                <AlertCircle className="h-5 w-5 text-red-500" />
-                                <span className="font-semibold text-red-700">Error: {result.error}</span>
+                                <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                <span className="font-semibold text-sm">Error: {result.error}</span>
                             </>
                         ) : (
                             <>
-                                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                <span className="font-semibold text-green-700">
+                                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                                <span className="font-semibold text-sm">
                                     Éxito: {result.processed} worklogs procesados, {result.totalHours?.toFixed(2)}h totales.
                                 </span>
                             </>
                         )}
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                )}
 
-            <Card className="bg-slate-900 border-slate-700">
-                <CardHeader className="border-b border-slate-800">
-                    <CardTitle className="text-slate-200 flex items-center gap-2 text-sm font-mono">
-                        <Terminal className="h-4 w-4" />
-                        SALIDA DE LOGS (LIVE)
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <ScrollArea className="h-[600px] w-full p-4">
-                        <div className="font-mono text-sm space-y-1">
+                <div className="bg-slate-900 border-slate-700 rounded-lg overflow-hidden shadow-inner">
+                    <div className="bg-slate-800 px-4 py-2 border-b border-slate-700 flex items-center gap-2">
+                        <Terminal className="h-4 w-4 text-slate-400" />
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">Salida de Logs</span>
+                    </div>
+                    <ScrollArea className="h-[300px] w-full p-4">
+                        <div className="font-mono text-xs space-y-1">
                             {logs.length === 0 && !loading && (
-                                <p className="text-slate-500 italic">No hay logs para mostrar. Selecciona un WP y pulsa "Ejecutar".</p>
+                                <p className="text-slate-500 italic">No hay logs para mostrar. Selecciona un WP y pulsa "Ejecutar Diagnóstico".</p>
                             )}
                             {logs.map((log, i) => {
                                 const isError = log.includes("[ERROR]");
@@ -120,21 +115,21 @@ export default function SyncDebugPage() {
                                 else if (isFilter) color = "text-slate-500";
 
                                 return (
-                                    <div key={i} className={`${color} whitespace-pre-wrap`}>
+                                    <div key={i} className={`${color} whitespace-pre-wrap py-0.5 border-b border-white/5 last:border-0`}>
                                         {log}
                                     </div>
                                 );
                             })}
                             {loading && (
-                                <div className="text-blue-400 animate-pulse flex items-center gap-2">
+                                <div className="text-blue-400 animate-pulse flex items-center gap-2 py-2">
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     Sincronizando y recolectando logs...
                                 </div>
                             )}
                         </div>
                     </ScrollArea>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 }

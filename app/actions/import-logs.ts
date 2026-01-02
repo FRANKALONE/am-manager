@@ -23,3 +23,24 @@ export async function clearImportLogs() {
         return { error: "Failed to clear logs" };
     }
 }
+
+export async function createImportLog(data: {
+    type: string;
+    status: string;
+    filename: string;
+    totalRows: number;
+    processedCount: number;
+    errors?: string;
+}) {
+    try {
+        return await prisma.importLog.create({
+            data: {
+                ...data,
+                date: new Date()
+            }
+        });
+    } catch (error) {
+        console.error("Failed to create import log:", error);
+        return { error: "Failed to create log" };
+    }
+}

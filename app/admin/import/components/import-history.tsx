@@ -92,7 +92,8 @@ export function ImportHistory() {
                                                 <Badge variant="outline" className="text-[10px] uppercase">
                                                     {log.type === 'BULK_DATA' ? 'Bulk Data' :
                                                         log.type === 'CRON_SYNC' ? 'Auto Sync' :
-                                                            'Regularizaciones'}
+                                                            log.type === 'MANUAL_SYNC' ? 'Manual Sync' :
+                                                                'Regularizaciones'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -117,7 +118,7 @@ export function ImportHistory() {
                                             <TableRow className="bg-slate-50/50">
                                                 <TableCell colSpan={6} className="p-4 border-t border-slate-100">
                                                     <div className="space-y-4">
-                                                        {log.type === 'CRON_SYNC' ? (
+                                                        {log.type === 'CRON_SYNC' || log.type === 'MANUAL_SYNC' ? (
                                                             <div className="text-xs space-y-3">
                                                                 <p className="font-semibold text-slate-700">Resumen de Sincronización Automática:</p>
                                                                 {(() => {

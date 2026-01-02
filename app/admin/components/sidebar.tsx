@@ -63,10 +63,6 @@ export async function AdminSidebar() {
                         <Database className="h-4 w-4" />
                     </SidebarLink>
 
-                    <SidebarLink href="/admin/settings/sync-debug" label="Diagnóstico Sync">
-                        <Activity className="h-4 w-4" />
-                    </SidebarLink>
-
                     <div className="pt-2">
                         <SidebarLink href="/help" label="Documentación">
                             <BookOpen className="h-4 w-4" />

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { getEligibleWorkPackagesForSync } from "@/app/actions/cron";
 import { syncWorkPackage } from "@/app/actions/sync";
+import { createImportLog } from "@/app/actions/import-logs";
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,6 +85,21 @@ export function BulkSyncManager() {
                 const newProgress = ((i + 1) / wps.length) * 100;
                 setProgress(newProgress);
             }
+
+            // Guardar en el historial
+            await createImportLog({
+                type: 'MANUAL_SYNC',
+                status: results.errors === 0 ? 'SUCCESS' : (results.success > 0 ? 'PARTIAL' : 'ERROR'),
+                filename: `manual_bulk_sync_${new Date().toISOString().split('T')[0]}`,
+                totalRows: wps.length,
+                processedCount: results.success,
+                errors: JSON.stringify({
+                    totalProcessed: wps.length,
+                    success: results.success,
+                    errors: results.errors,
+                    executionTime: Date.now() - start
+                })
+            });
 
             toast.success("Sincronización masiva finalizada");
         } finally {
