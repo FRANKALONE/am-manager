@@ -31,7 +31,7 @@ export async function exportBulkData() {
             "PeriodStartDate", "PeriodEndDate",
             "PeriodTotalQuantity", "PeriodScopeUnit", "PeriodRate",
             "PeriodIsPremium", "PeriodPremiumPrice",
-            "PeriodRegularizationType", "PeriodRegularizationRate", "PeriodSurplusStrategy"
+            "PeriodRegularizationType", "PeriodRegularizationRate", "PeriodSurplusStrategy", "PeriodRateEvolutivo"
         ].join(";"));
 
         for (const client of clients) {
@@ -47,7 +47,7 @@ export async function exportBulkData() {
                     "", "",
                     "", "", "",
                     "", "",
-                    "", "", ""
+                    "", "", "", ""
                 ].join(";"));
             }
 
@@ -73,7 +73,8 @@ export async function exportBulkData() {
                     period && period.premiumPrice ? period.premiumPrice.toString() : "",
                     period && period.regularizationType ? period.regularizationType : "",
                     period && period.regularizationRate !== undefined && period.regularizationRate !== null ? period.regularizationRate.toString() : "",
-                    period && period.surplusStrategy ? period.surplusStrategy : ""
+                    period && period.surplusStrategy ? period.surplusStrategy : "",
+                    period && period.rateEvolutivo !== undefined && period.rateEvolutivo !== null ? period.rateEvolutivo.toString() : ""
                 ].join(";"));
             }
         }
@@ -157,7 +158,7 @@ export async function importBulkData(formData: FormData) {
     console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
 
     const headerRow = rows[0];
-    const expectedColumns = 26; // Based on the export format (added WPTempoAccountId)
+    const expectedColumns = 27; // Based on the export format (added rateEvolutivo)
     const headerCols = parseCSVRow(headerRow, delimiter);
 
     if (headerCols.length < expectedColumns) {
@@ -190,7 +191,7 @@ export async function importBulkData(formData: FormData) {
             periodStartDate, periodEndDate,
             periodTotalQuantity, periodScopeUnit, periodRate,
             periodIsPremium, periodPremiumPrice,
-            periodRegularizationType, periodRegularizationRate, periodSurplusStrategy
+            periodRegularizationType, periodRegularizationRate, periodSurplusStrategy, periodRateEvolutivo
         ] = cols;
 
         if (!clientId || !clientName) {
@@ -278,7 +279,8 @@ export async function importBulkData(formData: FormData) {
                         premiumPrice: (periodPremiumPrice && !isNaN(parseFloat(periodPremiumPrice))) ? parseFloat(periodPremiumPrice) : null,
                         regularizationType: periodRegularizationType || null,
                         regularizationRate: (periodRegularizationRate && !isNaN(parseFloat(periodRegularizationRate))) ? parseFloat(periodRegularizationRate) : null,
-                        surplusStrategy: periodSurplusStrategy || null
+                        surplusStrategy: periodSurplusStrategy || null,
+                        rateEvolutivo: (periodRateEvolutivo && !isNaN(parseFloat(periodRateEvolutivo))) ? parseFloat(periodRateEvolutivo) : null
                     };
 
                     if (existingPeriods[0]) {
