@@ -30,7 +30,7 @@ export default async function AdminHomePage() {
             title: "Gestión de Evolutivos",
             description: "Seguimiento de hitos, responsables y planificación",
             icon: Calendar,
-            href: "/dashboard/evolutivos",
+            href: "/evolutivos",
             color: "from-orange-500 to-orange-600",
             visible: perms.view_dashboard
         },
