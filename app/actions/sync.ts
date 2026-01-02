@@ -670,6 +670,116 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const combinedWorklogs = [...allWorklogs, ...tmWorklogs];
         addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (${allWorklogs.length} from accounts + ${tmWorklogs.length} from T&M)`);
 
+// 8.8. Fetch missing issue details for T&M worklogs not in allWorklogs
+const combinedIssueIds = Array.from(new Set(combinedWorklogs
+    .map((log: any) => log.issue?.id)
+    .filter(Boolean)
+));
+const missingIssueIds = combinedIssueIds.filter(id => !issueDetails.has(String(id)));
+
+if (missingIssueIds.length > 0) {
+    addLog(`[INFO] Fetching details for ${missingIssueIds.length} additional issues from T&M worklogs`);
+
+    const missingBatches = [];
+    const batchSize = 50;
+    for (let i = 0; i < missingIssueIds.length; i += batchSize) {
+        missingBatches.push(missingIssueIds.slice(i, i + batchSize));
+    }
+
+    const jiraUrl = process.env.JIRA_URL?.trim();
+    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+
+    const missingBatchTasks = missingBatches.map(batch => async () => {
+        const jql = `id IN (${batch.join(',')})`;
+        const bodyData = JSON.stringify({
+            jql,
+            maxResults: 100,
+            fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
+        });
+
+        try {
+            const jiraRes: any = await new Promise((resolve, reject) => {
+                const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Content-Type': 'application/json'
+                    }
+                }, (res: any) => {
+                    let data = '';
+                    res.on('data', (c: any) => data += c);
+                    res.on('end', () => {
+                        try {
+                            if (res.statusCode === 200) {
+                                resolve(JSON.parse(data));
+                            } else {
+                                resolve({ issues: [] });
+                            }
+                        } catch (e) {
+                            resolve({ issues: [] });
+                        }
+                    });
+                });
+                req.on('error', (err: any) => resolve({ issues: [] }));
+                req.write(bodyData);
+                req.end();
+            });
+
+            if (jiraRes.issues) {
+                jiraRes.issues.forEach((issue: any) => {
+                    const billingModeRaw = issue.fields.customfield_10121;
+                    const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
+
+                    const getSlaInfo = (field: any) => {
+                        if (!field) return { status: null, time: null };
+
+                        let status = null;
+                        let elapsed = null;
+
+                        if (field.ongoingCycle) {
+                            elapsed = field.ongoingCycle.elapsedTime?.friendly || null;
+                            if (field.ongoingCycle.breached) {
+                                status = "Incumplido";
+                            } else {
+                                status = field.ongoingCycle.remainingTime?.friendly || "En plazo";
+                            }
+                        } else if (field.completedCycles && field.completedCycles.length > 0) {
+                            const last = field.completedCycles[field.completedCycles.length - 1];
+                            elapsed = last.elapsedTime?.friendly || null;
+                            status = last.breached ? "Incumplido" : "Cumplido";
+                        }
+
+                        return { status, time: elapsed };
+                    };
+
+                    const resSla = getSlaInfo(issue.fields.customfield_10065);
+                    const resolSla = getSlaInfo(issue.fields.customfield_10064);
+
+                    issueDetails.set(issue.id, {
+                        key: issue.key,
+                        summary: issue.fields.summary || '',
+                        issueType: issue.fields.issuetype?.name,
+                        status: issue.fields.status?.name || 'Unknown',
+                        priority: issue.fields.priority?.name || 'Media',
+                        billingMode: billingMode,
+                        created: issue.fields.created,
+                        slaResponse: resSla.status,
+                        slaResponseTime: resSla.time,
+                        slaResolution: resolSla.status,
+                        slaResolutionTime: resolSla.time
+                    });
+                });
+            }
+        } catch (e) { }
+    });
+
+    await limitConcurrency(missingBatchTasks, 3);
+    addLog(`[INFO] Total issue details now: ${issueDetails.size}`);
+}
+
+
         let firstLog = true;
         for (const log of combinedWorklogs) {
             const issueId = log.issue?.id ? String(log.issue.id) : null;
