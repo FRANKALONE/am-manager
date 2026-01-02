@@ -747,7 +747,7 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             const logPath = path.join(process.cwd(), 'detail-debug.log');
             fs.appendFileSync(logPath, `\n[${new Date().toISOString()}] WP:${wpId} Y:${year} M:${month} Logs:${worklogs.length}\n`);
             worklogs.forEach(w => {
-                if (w.issueKey.includes('1218')) {
+                if (w.issueKey && w.issueKey.includes('1218')) {
                     fs.appendFileSync(logPath, `FOUND 1218: ${JSON.stringify(w)}\n`);
                 }
             });
