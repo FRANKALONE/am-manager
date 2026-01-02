@@ -5,7 +5,14 @@ const prisma = new PrismaClient();
 const mapping = {
     "PS": "paco-user-1766417468729", // PACO SOLA
     "XS": "0e939ae9-63e9-4c84-be56-95218216ad96", // XOANA SANCHEZ
-    // Add more mappings here as users are created
+    "AE": "ae-user",             // Antonio Espejo
+    "NB": "nb-user",             // Nines Bueno
+    "UI": "ui-user",             // Unai Iparraguirre
+    "AT": "at-user",             // Angel Trevejo
+    "JAT": "jat-user",           // Juan Antonio Trevejo
+    "RM": "rm-user",             // Raquel Malo
+    "CP": "cp-user",             // Carlos del Pino
+    "FT": "ft-user",             // Fernando Talavera
 };
 
 async function migrate() {
