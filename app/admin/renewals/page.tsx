@@ -1,5 +1,3 @@
-"use server";
-
 import Link from "next/link";
 import { getMe } from "@/app/actions/users";
 import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations } from "@/app/actions/contract-actions";
@@ -17,6 +15,13 @@ export default async function RenewalsPage() {
 
     const isGerente = user.role === 'GERENTE';
     const expiringWPs = await getExpiringWPs(isGerente ? user.id : undefined);
+
+    // Sort by proximity
+    expiringWPs.sort((a, b) => {
+        const dateA = a.validityPeriods[0]?.endDate ? new Date(a.validityPeriods[0].endDate).getTime() : Infinity;
+        const dateB = b.validityPeriods[0]?.endDate ? new Date(b.validityPeriods[0].endDate).getTime() : Infinity;
+        return dateA - dateB;
+    });
 
     // Filter into groups
     const autoRenewals = expiringWPs.filter(wp => wp.renewalType?.toUpperCase() === 'AUTO');

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "@/app/actions/sync";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "./notifications";
 
 export interface CierreCandidate {
     wpId: string;
@@ -391,7 +392,7 @@ export async function processCierre(wpId: string, month: number, year: number, a
         await syncWorkPackage(wpId);
 
         // 2. Create regularization record
-        await prisma.regularization.create({
+        const regularization = await prisma.regularization.create({
             data: {
                 workPackageId: wpId,
                 date: new Date(year, month - 1, 28), // End of month typically
@@ -400,8 +401,28 @@ export async function processCierre(wpId: string, month: number, year: number, a
                 description: `Regularización Cierre ${month}/${year}. ${note}`,
                 isRevenueRecognized,
                 isBilled
+            },
+            include: {
+                workPackage: {
+                    include: {
+                        client: true,
+                        validityPeriods: {
+                            orderBy: { endDate: 'desc' },
+                            take: 1
+                        }
+                    }
+                }
             }
         });
+
+        // 3. Notify Manager if assigned
+        const managerId = regularization.workPackage.client.manager;
+        if (managerId) {
+            const unit = regularization.workPackage.validityPeriods[0]?.scopeUnit || 'Horas';
+            const title = `📈 Exceso detectado: ${regularization.workPackage.client.name}`;
+            const message = `Se ha generado una regularización por exceso de ${amount.toFixed(2)} ${unit} en el WP "${regularization.workPackage.name}" durante el cierre de ${month}/${year}.`;
+            await createNotification(managerId, "SURPLUS_DETECTED", title, message, regularization.id.toString());
+        }
 
         // 3. Re-scan to update WP total hours if needed (handled by sync normally)
         revalidatePath("/cierres");

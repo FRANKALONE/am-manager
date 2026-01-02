@@ -4,13 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export async function getClients() {
+export async function getClients(managerId?: string) {
     try {
+        const where: any = {};
+        if (managerId) {
+            where.manager = managerId;
+        }
+
         const clients = await prisma.client.findMany({
+            where,
             orderBy: { name: "asc" },
             include: {
                 _count: {
-                    select: { workPackages: true }, // Updated from projects to workPackages
+                    select: { workPackages: true },
                 },
             },
         });
