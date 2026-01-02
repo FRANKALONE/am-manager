@@ -445,14 +445,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 if (!includeEvoEstimates && !includeEvoTM) {
                     addLog(`[INFO] Both Evolutivo types disabled for this WP. Skipping Jira search.`);
                 } else {
-                    // Filter by project AND by the candidate Account IDs to avoid cross-WP leaks
-                    // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId
-                    // Refined JQL: 
-                    // 1. "Bolsa de Horas" (where estimating happens) must match our accounts to avoid inter-WP leaks.
-                    // 2. "T&M contra bolsa" must be picked up project-wide (user request) regardless of the ticket account.
-                    const accountList = accountIds.map(id => `"${id}"`).join(',');
-                    // REMOVED "Hitos Evolutivos" per user request.
-                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ( (account IN (${accountList}) AND ("Modo de Facturación" IN ("Bolsa de Horas", "Facturable") OR "Modo de Facturación" IS EMPTY)) OR ("Modo de Facturación" = "T&M contra bolsa") )`;
+                    // Fetch Evolutivos project-wide as requested by the user.
+                    // We stick to the "Evolutivo" type and relevant billing modes.
+                    // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId, but we now "obviar el WP" (ignore account) 
+                    // to ensure all relevant hours are captured project-wide.
+                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = Evolutivo AND ("Modo de Facturación" IN ("Bolsa de Horas", "T&M contra bolsa", "Facturable") OR "Modo de Facturación" IS EMPTY)`;
 
                     const bodyData = JSON.stringify({
                         jql,
