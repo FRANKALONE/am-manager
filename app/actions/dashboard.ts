@@ -740,6 +740,19 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             ]
         });
 
+        // DEBUG: Write to a file since we can't see server logs easily
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(process.cwd(), 'detail-debug.log');
+            fs.appendFileSync(logPath, `\n[${new Date().toISOString()}] WP:${wpId} Y:${year} M:${month} Logs:${worklogs.length}\n`);
+            worklogs.forEach(w => {
+                if (w.issueKey.includes('1218')) {
+                    fs.appendFileSync(logPath, `FOUND 1218: ${JSON.stringify(w)}\n`);
+                }
+            });
+        } catch (e) { }
+
         // Get all regularizations for this month (EXCESS, RETURN, SOBRANTE_ANTERIOR, MANUAL_CONSUMPTION)
         const regularizations = await prisma.regularization.findMany({
             where: {
