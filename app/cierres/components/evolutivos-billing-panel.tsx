@@ -36,11 +36,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
     const [filterMode, setFilterMode] = useState<string>("all");
     const [filterStatus, setFilterStatus] = useState<string>("all");
 
-    useEffect(() => {
-        if (clientId && year && month) {
-            loadEvolutivos();
-        }
-    }, [clientId, year, month]);
+    // Removed auto-load on mount - user must click "Actualizar" button
 
     const loadEvolutivos = async () => {
         setIsLoading(true);
@@ -194,10 +190,28 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                         </CardDescription>
                     </div>
                     <div className="flex gap-2">
+                        <Button
+                            onClick={loadEvolutivos}
+                            disabled={isLoading}
+                            variant="outline"
+                            className="shadow-sm"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Actualizando...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Actualizar
+                                </>
+                            )}
+                        </Button>
                         {filteredEvolutivos.length > 0 && (
                             <Button
                                 onClick={generateReport}
-                                disabled={isGenerating}
+                                disabled={isGenerating || isLoading}
                                 className="bg-green-600 hover:bg-green-700 shadow-sm"
                             >
                                 {isGenerating ? (
@@ -223,7 +237,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Filtros:</span>
                     </div>
 
-                    <Select value={filterMode} onValueChange={setFilterMode}>
+                    <Select value={filterMode} onValueChange={setFilterMode} disabled={isLoading}>
                         <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
                             <SelectValue placeholder="Modo de Facturación" />
                         </SelectTrigger>
@@ -235,7 +249,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                         </SelectContent>
                     </Select>
 
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <Select value={filterStatus} onValueChange={setFilterStatus} disabled={isLoading}>
                         <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
                             <SelectValue placeholder="Estado de Facturación" />
                         </SelectTrigger>
