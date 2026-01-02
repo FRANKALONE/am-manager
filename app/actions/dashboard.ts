@@ -743,9 +743,14 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 // Exclude tickets billed separately (Facturable / T&M Facturable)
                 // They show up in the specialized Evolutivos Billing report, not here.
                 NOT: {
-                    billingMode: {
-                        in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable']
-                    }
+                    AND: [
+                        { issueType: 'Evolutivo' },
+                        {
+                            billingMode: {
+                                in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable']
+                            }
+                        }
+                    ]
                 }
             },
             orderBy: [
@@ -1061,7 +1066,7 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
 
             // Filter out Facturable/T&M Facturable entirely from this report
             const billingModeLower = w.billingMode?.toLowerCase() || '';
-            const isFacturableOnly = billingModeLower === 'facturable' || billingModeLower === 't&m facturable';
+            const isFacturableOnly = (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') && w.issueType === 'Evolutivo';
             if (isFacturableOnly) return false;
 
             const includedTypes = (wp as any).includedTicketTypes
