@@ -154,7 +154,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                             Facturación de Evolutivos
                         </CardTitle>
                         <CardDescription>
-                            Evolutivos (T&M, Hitos, Facturables) con dedicación en {month}/{year}
+                            Evolutivos T&M facturable con dedicación en {month}/{year}
                         </CardDescription>
                     </div>
                     {evolutivos.length > 0 && (

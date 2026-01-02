@@ -15,8 +15,8 @@ export interface EvolutivoForBilling {
 export async function getEvolutivosForBilling(clientId: string | undefined | 'all', year: number, month: number) {
     try {
         const whereClause: any = {
-            issueType: { in: ['Evolutivo', 'Hitos Evolutivos'] },
-            billingMode: { in: ['T&M Facturable', 'Facturable', 'Evolutivo T&M'] }
+            issueType: 'Evolutivo',
+            billingMode: { in: ['T&M facturable', 'T&M Facturable'] }
         };
 
         if (clientId && clientId !== 'all') {
