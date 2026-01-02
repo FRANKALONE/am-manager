@@ -164,11 +164,14 @@ export async function getExpiringWPs(managerId?: string) {
         const sixtyDaysOut = new Date();
         sixtyDaysOut.setDate(today.getDate() + 60);
 
+        // Temp change for January: Include Dec 2025
+        const startDate = new Date(2025, 11, 1); // Dec 1, 2025
+
         const where: any = {
             validityPeriods: {
                 some: {
                     endDate: {
-                        gte: today,
+                        gte: startDate,
                         lte: sixtyDaysOut
                     }
                 }
@@ -179,17 +182,21 @@ export async function getExpiringWPs(managerId?: string) {
             where.client = { manager: managerId };
         }
 
-        return await prisma.workPackage.findMany({
+        const wps = await prisma.workPackage.findMany({
             where,
             include: {
                 client: true,
                 validityPeriods: {
                     orderBy: { endDate: 'desc' }
                 }
-            },
-            orderBy: {
-                createdAt: 'desc' // Actually want to sort by proximity but prisma needs more complex logic for nested sort
             }
+        });
+
+        // Ensure the LATEST period is the one that's expiring or recently expired
+        return wps.filter(wp => {
+            const latestEndDate = wp.validityPeriods[0]?.endDate;
+            if (!latestEndDate) return false;
+            return latestEndDate >= startDate && latestEndDate <= sixtyDaysOut;
         });
     } catch (error) {
         console.error("Error loading expiring WPs:", error);

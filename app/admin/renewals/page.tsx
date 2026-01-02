@@ -33,7 +33,7 @@ export default async function RenewalsPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Gestión de Renovaciones</h2>
                     <p className="text-muted-foreground">
-                        Seguimiento de contratos y Work Packages próximos a vencer (60 días).
+                        Seguimiento de contratos próximamente vencidos (60 días) y expirados en Dic 2025.
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -94,11 +94,25 @@ export default async function RenewalsPage() {
 
 function RenewalRow({ wp, isAuto }: { wp: any, isAuto: boolean }) {
     const lastPeriod = wp.validityPeriods[0];
-    const daysLeft = lastPeriod ? Math.ceil((new Date(lastPeriod.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today
+    const endDate = new Date(lastPeriod.endDate);
+    endDate.setHours(0, 0, 0, 0);
+
+    const diffTime = endDate.getTime() - today.getTime();
+    const daysLeft = Math.ceil(diffTime / (1000 * 3600 * 24));
 
     let badgeColor = "bg-green-100 text-green-800";
-    if (daysLeft < 15) badgeColor = "bg-red-100 text-red-800";
-    else if (daysLeft < 45) badgeColor = "bg-yellow-100 text-yellow-800";
+    let badgeText = `${daysLeft} días restantes`;
+
+    if (daysLeft < 0) {
+        badgeColor = "bg-gray-200 text-gray-800 border-gray-400 font-bold";
+        badgeText = `Expirado hace ${Math.abs(daysLeft)} días`;
+    } else if (daysLeft < 15) {
+        badgeColor = "bg-red-100 text-red-800 border-red-200";
+    } else if (daysLeft < 45) {
+        badgeColor = "bg-yellow-100 text-yellow-800 border-yellow-200";
+    }
 
     return (
         <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
@@ -114,7 +128,7 @@ function RenewalRow({ wp, isAuto }: { wp: any, isAuto: boolean }) {
                         Vence: {lastPeriod ? new Date(lastPeriod.endDate).toLocaleDateString('es-ES') : 'N/A'}
                     </div>
                     <Badge className={badgeColor} variant="secondary">
-                        {daysLeft} días restantes
+                        {badgeText}
                     </Badge>
                 </div>
             </div>
