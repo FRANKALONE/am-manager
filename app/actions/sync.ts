@@ -685,9 +685,15 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
             if (!details) {
                 const logKey = log.issue?.key || log.issue?.id || 'Unknown';
+                addLog(`[WARN] Missing Jira details for ${logKey} (ID: ${issueId}) - this ticket will be skipped`);
                 addLog(`[FILTER] Skipped ${logKey}: No Jira details found for ID ${issueId}`);
                 skippedCount++;
                 continue;
+            }
+
+            // Defensive check for missing issueType
+            if (!details.issueType) {
+                addLog(`[WARN] Missing issueType for ${details.key || 'unknown'} - this indicates incomplete Jira data`);
             }
 
             // Check if valid (normalize both sides for comparison)
@@ -781,7 +787,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 year,
                 month,
                 issueKey: details.key,  // Use key from Jira details
-                issueType: details.issueType,
+                issueType: details.issueType || 'Unknown',  // Fallback for missing type
                 issueSummary: details.summary || '',
                 issueCreatedDate: details.created ? new Date(details.created) : null,
                 timeSpentHours: correctedHours,

@@ -865,10 +865,12 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                     isClaimed: claimedFingerprints.has(fingerprint),
                     isRefunded: refundedFingerprints.has(fingerprint),
                     originWpId: log.originWpId,
-                    isTM: log.billingMode === 'T&M contra bolsa',
-                    isBolsa: log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas',
-                    label: log.billingMode === 'T&M contra bolsa' ? 'Evolutivo T&M contra bolsa' :
-                        (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas' ? 'Evolutivo contra bolsa' : null)
+                    isTM: log.issueType === 'Evolutivo' && log.billingMode === 'T&M contra bolsa',
+                    isBolsa: log.issueType === 'Evolutivo' && (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas'),
+                    label: (log.issueType === 'Evolutivo' && log.billingMode === 'T&M contra bolsa') ? 'Evolutivo T&M contra bolsa' :
+                        (log.issueType === 'Evolutivo' && (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas')) ? 'Evolutivo Bolsa' :
+                            (log.billingMode === 'T&M contra bolsa') ? 'T&M contra bolsa' :
+                                null
                 };
             }),
             portalUrl: wp?.client?.portalUrl || null
