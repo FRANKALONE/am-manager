@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { authenticate } from "@/app/actions/users";
 import { LanguageSelector } from "./components/language-selector";
+import { useTranslations } from "@/lib/use-translations";
 
 const initialState = {
     error: "",
@@ -20,6 +21,7 @@ const initialState = {
 export default function LoginPage() {
     const router = useRouter();
     const [state, formAction] = useFormState(authenticate as any, initialState);
+    const { t } = useTranslations();
 
     useEffect(() => {
         if (state?.redirect) {
@@ -41,10 +43,10 @@ export default function LoginPage() {
                         />
                     </div>
                     <CardTitle className="text-2xl font-bold text-center text-dark-green">
-                        Bienvenido
+                        {t('auth.welcome')}
                     </CardTitle>
                     <CardDescription className="text-center">
-                        Ingresa tus credenciales para acceder al sistema
+                        {t('auth.enterCredentials')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -56,7 +58,7 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t('auth.email')}</Label>
                             <Input
                                 id="email"
                                 name="email"
@@ -69,12 +71,12 @@ export default function LoginPage() {
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Contraseña</Label>
+                                <Label htmlFor="password">{t('auth.password')}</Label>
                                 <Link
                                     href="/login/forgot-password"
                                     className="text-xs text-primary hover:underline font-medium"
                                 >
-                                    ¿Olvidaste tu contraseña?
+                                    {t('auth.forgotPassword')}
                                 </Link>
                             </div>
                             <Input
@@ -89,7 +91,7 @@ export default function LoginPage() {
                             <LanguageSelector />
 
                             <Button type="submit" className="w-full bg-malachite hover:bg-jade transition-colors">
-                                Iniciar Sesión
+                                {t('auth.login')}
                             </Button>
                         </div>
                     </form>
