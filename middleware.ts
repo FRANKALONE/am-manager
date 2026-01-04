@@ -1,16 +1,25 @@
-import createMiddleware from 'next-intl/middleware';
-import { locales } from './lib/i18n';
+// Temporarily disabled i18n middleware - will be enabled in Phase 2
+// import createMiddleware from 'next-intl/middleware';
+// import { locales } from './lib/i18n';
 
-export default createMiddleware({
-    // A list of all locales that are supported
-    locales,
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-    // Used when no locale matches
-    defaultLocale: 'es',
+// Pass-through middleware - i18n will be implemented in Phase 2
+export function middleware(request: NextRequest) {
+    return NextResponse.next();
+}
 
-    // Don't use locale prefix for default locale
-    localePrefix: 'as-needed'
-});
+// export default createMiddleware({
+//     // A list of all locales that are supported
+//     locales,
+//
+//     // Used when no locale matches
+//     defaultLocale: 'es',
+//
+//     // Don't use locale prefix for default locale
+//     localePrefix: 'as-needed'
+// });
 
 export const config = {
     // Match all pathnames except for:
