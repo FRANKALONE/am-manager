@@ -11,7 +11,7 @@ export function getLocale(): Locale {
     return defaultLocale;
 }
 
-export function setLocaleCookie(locale: Locale) {
+export async function setLocaleCookie(locale: Locale) {
     'use server';
     cookies().set('NEXT_LOCALE', locale, {
         maxAge: 365 * 24 * 60 * 60, // 1 year
