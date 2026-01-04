@@ -31,20 +31,14 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 p-4">
             <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-malachite">
                 <CardHeader className="space-y-4">
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1" />
-                        <div className="flex justify-center flex-1">
-                            <Image
-                                src="/logo-am.png"
-                                alt="Manager AM"
-                                width={120}
-                                height={50}
-                                className="drop-shadow-sm"
-                            />
-                        </div>
-                        <div className="flex-1 flex justify-end">
-                            <LanguageSelector />
-                        </div>
+                    <div className="flex justify-center">
+                        <Image
+                            src="/logo-am.png"
+                            alt="Manager AM"
+                            width={120}
+                            height={50}
+                            className="drop-shadow-sm"
+                        />
                     </div>
                     <CardTitle className="text-2xl font-bold text-center text-dark-green">
                         Bienvenido
@@ -56,7 +50,7 @@ export default function LoginPage() {
                 <CardContent>
                     <form action={formAction} className="space-y-4">
                         {state?.error && (
-                            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm font-medium">
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                                 {state.error}
                             </div>
                         )}
@@ -67,6 +61,7 @@ export default function LoginPage() {
                                 id="email"
                                 name="email"
                                 type="email"
+                                autoComplete="email"
                                 placeholder="tu@email.com"
                                 required
                             />
@@ -90,9 +85,13 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        <Button type="submit" className="w-full bg-malachite hover:bg-jade transition-colors">
-                            Iniciar Sesión
-                        </Button>
+                        <div className="space-y-3">
+                            <LanguageSelector />
+
+                            <Button type="submit" className="w-full bg-malachite hover:bg-jade transition-colors">
+                                Iniciar Sesión
+                            </Button>
+                        </div>
                     </form>
 
                 </CardContent>
