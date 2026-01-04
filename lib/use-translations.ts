@@ -32,23 +32,29 @@ function getLocale(): Locale {
 }
 
 export function useTranslations() {
-    const [locale, setLocale] = useState<Locale>('es');
     const [messages, setMessages] = useState<any>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const locale = getLocale(); // Get locale once, don't put in state
 
     useEffect(() => {
-        const currentLocale = getLocale();
-        setLocale(currentLocale);
-
-        // Load messages for current locale
-        import(`@/messages/${currentLocale}.json`)
-            .then((module) => setMessages(module.default))
+        // Load messages for current locale - only runs once on mount
+        import(`@/messages/${locale}.json`)
+            .then((module) => {
+                setMessages(module.default);
+                setIsLoading(false);
+            })
             .catch(() => {
                 // Fallback to Spanish if translation file not found
-                import('@/messages/es.json').then((module) => setMessages(module.default));
+                import('@/messages/es.json').then((module) => {
+                    setMessages(module.default);
+                    setIsLoading(false);
+                });
             });
-    }, []);
+    }, []); // Empty dependency array - only run once
 
     const t = (key: string): string => {
+        if (isLoading) return key;
+
         const keys = key.split('.');
         let value: any = messages;
 
