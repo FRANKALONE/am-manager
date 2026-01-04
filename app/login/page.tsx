@@ -66,7 +66,15 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Contraseña</Label>
+                                <Link
+                                    href="/login/forgot-password"
+                                    className="text-xs text-primary hover:underline font-medium"
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </Link>
+                            </div>
                             <Input
                                 id="password"
                                 name="password"
@@ -79,15 +87,6 @@ export default function LoginPage() {
                             Iniciar Sesión
                         </Button>
                     </form>
-
-                    <div className="text-center mt-4">
-                        <Link
-                            href="/login/forgot-password"
-                            className="text-sm text-primary hover:underline font-medium"
-                        >
-                            ¿Olvidaste tu contraseña?
-                        </Link>
-                    </div>
 
                 </CardContent>
             </Card>
