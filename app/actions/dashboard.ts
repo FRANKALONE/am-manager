@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "@/app/actions/sync";
 import https from 'https';
-import { getNowSpain, getStartOfTodaySpain } from "@/lib/utils";
+import { getNow, formatDate } from "@/lib/date-utils";
 
 // Helper function to count tickets created in a specific month from JIRA
 async function getTicketCountFromJira(projectKeys: string, month: number, year: number): Promise<number> {
@@ -152,8 +152,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
 
         // --- Determine which validity period to use ---
         let selectedPeriod = null;
-        const now = getNowSpain();
-        const startOfToday = getStartOfTodaySpain();
+        const now = getNow();
 
         if (validityPeriodId) {
             // Use specified period
@@ -378,7 +377,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 pEnd.setHours(23, 59, 59, 999);
                 return {
                     id: p.id,
-                    label: `${pStart.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${pEnd.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                    label: `${formatDate(pStart, { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${formatDate(pEnd, { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
                     startDate: p.startDate,
                     endDate: p.endDate,
                     isCurrent: now >= pStart && now <= pEnd
@@ -604,7 +603,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             pEnd.setHours(23, 59, 59, 999);
             return {
                 id: p.id,
-                label: `${pStart.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${pEnd.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                label: `${formatDate(pStart, { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${formatDate(pEnd, { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
                 startDate: p.startDate,
                 endDate: p.endDate,
                 isCurrent: now >= pStart && now <= pEnd
@@ -1199,7 +1198,7 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             totalTickets: tickets.length,
             totalHours: tickets.reduce((sum: number, t: any) => sum + t.totalHours, 0),
             portalUrl: wp.client?.portalUrl || null,
-            periodLabel: `${new Date(selectedPeriod.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${new Date(selectedPeriod.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+            periodLabel: `${formatDate(selectedPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${formatDate(selectedPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}`
         };
     } catch (error) {
         console.error("Error fetching ticket consumption report:", error);

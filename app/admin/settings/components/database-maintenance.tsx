@@ -7,13 +7,16 @@ import { Wrench, RefreshCw, CheckCircle2, AlertCircle, Trash2, ShieldCheck } fro
 import { repairRegularizationSequence } from "@/app/actions/regularizations";
 import { cleanupManualConsumptions, applyReviewedForDuplicatesMigration } from "@/app/actions/maintenance";
 
+import { useTranslations } from "@/lib/use-translations";
+
 export function DatabaseMaintenance() {
+    const { t } = useTranslations();
     const [isRepairing, setIsRepairing] = useState(false);
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
     const [cleanupDetails, setCleanupDetails] = useState<any[]>([]);
 
     const handleRepair = async () => {
-        if (!confirm("Esto sincronizará las secuencias de IDs de la base de datos para evitar errores de duplicidad. ¿Continuar?")) {
+        if (!confirm(t('admin.maintenance.repair.confirm'))) {
             return;
         }
 
@@ -23,9 +26,9 @@ export function DatabaseMaintenance() {
         try {
             const res = await repairRegularizationSequence();
             if (res.success) {
-                setResult({ success: true, message: "Secuencias de IDs reparadas correctamente." });
+                setResult({ success: true, message: t('admin.maintenance.repair.success') });
             } else {
-                setResult({ success: false, message: res.error || "Error desconocido al reparar secuencias." });
+                setResult({ success: false, message: res.error || t('common.error') });
             }
         } catch (error: any) {
             setResult({ success: false, message: error.message });
@@ -35,7 +38,7 @@ export function DatabaseMaintenance() {
     };
 
     const handleCleanup = async (dryRun: boolean) => {
-        if (!dryRun && !confirm("¿Seguro que quieres eliminar los consumos manuales duplicados? Esta acción es irreversible.")) {
+        if (!dryRun && !confirm(t('admin.maintenance.cleanup.confirm'))) {
             return;
         }
 
@@ -48,13 +51,13 @@ export function DatabaseMaintenance() {
             if (res.success) {
                 setResult({
                     success: true,
-                    message: res.message || "Limpieza completada."
+                    message: res.message || t('admin.maintenance.cleanup.success')
                 });
                 if (res.details && res.details.length > 0) {
                     setCleanupDetails(res.details);
                 }
             } else {
-                setResult({ success: false, message: res.error || "Error al realizar la limpieza." });
+                setResult({ success: false, message: res.error || t('common.error') });
             }
         } catch (error: any) {
             setResult({ success: false, message: error.message });
@@ -64,7 +67,7 @@ export function DatabaseMaintenance() {
     };
 
     const handleApplyMigration = async () => {
-        if (!confirm("Esto aplicará la migración para agregar el campo 'reviewedForDuplicates' a la base de datos. ¿Continuar?")) {
+        if (!confirm(t('admin.maintenance.migration.confirm'))) {
             return;
         }
 
@@ -77,11 +80,11 @@ export function DatabaseMaintenance() {
                 setResult({
                     success: true,
                     message: res.alreadyExists
-                        ? "El campo ya existe en la base de datos."
-                        : "Migración aplicada correctamente. Ahora puedes usar la función de limpieza de duplicados."
+                        ? t('admin.maintenance.migration.exists')
+                        : t('admin.maintenance.migration.success')
                 });
             } else {
-                setResult({ success: false, message: res.error || "Error al aplicar la migración." });
+                setResult({ success: false, message: res.error || t('common.error') });
             }
         } catch (error: any) {
             setResult({ success: false, message: error.message });
@@ -95,18 +98,18 @@ export function DatabaseMaintenance() {
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <Wrench className="h-5 w-5 text-orange-600" />
-                    <CardTitle>Mantenimiento de Base de Datos</CardTitle>
+                    <CardTitle>{t('admin.maintenance.db.title')}</CardTitle>
                 </div>
                 <CardDescription>
-                    Herramientas para corregir problemas de integridad y sincronización.
+                    {t('admin.maintenance.db.subtitle')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-orange-200 rounded-lg bg-white/50">
                     <div className="space-y-1">
-                        <p className="font-medium text-sm">Sincronizar Secuencias de IDs</p>
+                        <p className="font-medium text-sm">{t('admin.maintenance.repair.title')}</p>
                         <p className="text-xs text-muted-foreground max-w-md">
-                            Corrige el error "Unique constraint failed" al crear registros si se han realizado importaciones manuales previas.
+                            {t('admin.maintenance.repair.desc')}
                         </p>
                     </div>
                     <Button
@@ -121,15 +124,15 @@ export function DatabaseMaintenance() {
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
                         )}
-                        Reparar Secuencias
+                        {t('admin.maintenance.repair.button')}
                     </Button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-green-200 rounded-lg bg-green-50/50">
                     <div className="space-y-1">
-                        <p className="font-medium text-sm">Aplicar Migración: reviewedForDuplicates</p>
+                        <p className="font-medium text-sm">{t('admin.maintenance.migration.title')}</p>
                         <p className="text-xs text-muted-foreground max-w-md">
-                            Agrega el campo necesario para el sistema de limpieza selectiva de duplicados. Ejecuta esto solo una vez.
+                            {t('admin.maintenance.migration.desc')}
                         </p>
                     </div>
                     <Button
@@ -144,15 +147,15 @@ export function DatabaseMaintenance() {
                         ) : (
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                         )}
-                        Aplicar Migración
+                        {t('admin.maintenance.migration.button')}
                     </Button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-blue-200 rounded-lg bg-blue-50/50">
                     <div className="space-y-1">
-                        <p className="font-medium text-sm">Limpieza de Evolutivos T&M</p>
+                        <p className="font-medium text-sm">{t('admin.maintenance.cleanup.title')}</p>
                         <p className="text-xs text-muted-foreground max-w-md">
-                            Elimina consumos manuales que coinciden con tickets ya sincronizados automáticamente por la nueva lógica de Issue Key.
+                            {t('admin.maintenance.cleanup.desc')}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -164,7 +167,7 @@ export function DatabaseMaintenance() {
                             className="border-blue-300 hover:bg-blue-100/50 text-blue-700 font-bold"
                         >
                             <ShieldCheck className="mr-2 h-4 w-4" />
-                            Simular
+                            {t('admin.maintenance.cleanup.simulate')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -174,7 +177,7 @@ export function DatabaseMaintenance() {
                             className="font-bold"
                         >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Limpiar Reales
+                            {t('admin.maintenance.cleanup.clean')}
                         </Button>
                     </div>
                 </div>
@@ -195,19 +198,19 @@ export function DatabaseMaintenance() {
                     <div className="border rounded-lg overflow-hidden">
                         <div className="bg-blue-50 px-4 py-2 border-b">
                             <p className="text-sm font-medium text-blue-900">
-                                Detalles de consumos manuales duplicados ({cleanupDetails.length})
+                                {t('admin.maintenance.cleanup.details', { count: cleanupDetails.length })}
                             </p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Ticket</th>
-                                        <th className="px-4 py-2 text-left font-medium text-gray-700">WP</th>
-                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Mes</th>
-                                        <th className="px-4 py-2 text-right font-medium text-gray-700">Horas Manuales</th>
-                                        <th className="px-4 py-2 text-right font-medium text-gray-700">Horas Sincronizadas</th>
-                                        <th className="px-4 py-2 text-center font-medium text-gray-700">Coincidencia</th>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">{t('admin.maintenance.table.ticket')}</th>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">{t('admin.maintenance.table.wp')}</th>
+                                        <th className="px-4 py-2 text-left font-medium text-gray-700">{t('admin.maintenance.table.month')}</th>
+                                        <th className="px-4 py-2 text-right font-medium text-gray-700">{t('admin.maintenance.table.manual')}</th>
+                                        <th className="px-4 py-2 text-right font-medium text-gray-700">{t('admin.maintenance.table.sync')}</th>
+                                        <th className="px-4 py-2 text-center font-medium text-gray-700">{t('admin.maintenance.table.match')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -221,11 +224,11 @@ export function DatabaseMaintenance() {
                                             <td className="px-4 py-2 text-center">
                                                 {detail.exactMatch ? (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                        ✓ Exacta
+                                                        ✓ {t('admin.maintenance.table.exact')}
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                        ≈ Aproximada
+                                                        ≈ {t('admin.maintenance.table.approx')}
                                                     </span>
                                                 )}
                                             </td>

@@ -12,7 +12,10 @@ const initialState: any = {
     error: null
 };
 
+import { useTranslations } from "@/lib/use-translations";
+
 export function ParameterForm({ category }: { category: string }) {
+    const { t } = useTranslations();
     const [state, formAction] = useFormState(createParameter, initialState);
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -27,10 +30,10 @@ export function ParameterForm({ category }: { category: string }) {
             <input type="hidden" name="category" value={category} />
             <div className="flex gap-2">
                 <div className="grid gap-1 flex-1">
-                    <Input name="label" placeholder="Nombre (ej: Bolsa X)" required />
+                    <Input name="label" placeholder={t('admin.settings.form.labelPlaceholder')} required />
                 </div>
                 <div className="grid gap-1 w-1/3">
-                    <Input name="value" placeholder="VALOR_INTERNO" required />
+                    <Input name="value" placeholder={t('admin.settings.form.valuePlaceholder')} required />
                 </div>
                 <SubmitButton />
             </div>

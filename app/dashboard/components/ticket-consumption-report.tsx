@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTranslations } from "@/lib/use-translations";
+import { formatShortDate } from "@/lib/date-utils";
 
 interface TicketConsumptionReportProps {
     data: any;
@@ -14,6 +16,7 @@ interface TicketConsumptionReportProps {
 }
 
 export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodId, onPeriodChange, isAdmin }: TicketConsumptionReportProps) {
+    const { t, locale } = useTranslations();
     const [expandedTickets, setExpandedTickets] = useState<Set<string>>(new Set());
     const [filterTicketId, setFilterTicketId] = useState("");
     const [filterType, setFilterType] = useState("all");
@@ -62,7 +65,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
         const isIncumplido = slaValue.includes("Incumplido");
         const isCumplido = slaValue.includes("Cumplido");
 
-        const tooltip = slaTime ? `Tiempo consumido: ${slaTime}` : "No hay detalle de tiempo";
+        const tooltip = slaTime ? `${t('dashboard.consumed')}: ${slaTime}` : t('dashboard.details.noData');
 
         return (
             <span
@@ -76,14 +79,21 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
         );
     };
 
+    const formatRate = (num: number, digits: number = 2) => {
+        return num.toLocaleString(locale || 'es', {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits
+        });
+    };
+
     if (!data || !data.tickets || data.tickets.length === 0) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Consumo por Ticket</CardTitle>
+                    <CardTitle>{t('dashboard.ticketsReport.title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground">No hay datos de consumo por ticket</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.ticketsReport.noData')}</p>
                 </CardContent>
             </Card>
         );
@@ -94,11 +104,11 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
         <Card className="border-t-4 border-t-primary">
             <CardHeader>
                 <div className="flex items-center justify-between flex-wrap gap-4">
-                    <CardTitle>Consumo por Ticket</CardTitle>
+                    <CardTitle>{t('dashboard.ticketsReport.title')}</CardTitle>
                     <div className="flex items-center gap-4">
                         {validityPeriods && validityPeriods.length > 1 && onPeriodChange && (
                             <div className="flex items-center gap-2">
-                                <label className="text-xs font-medium text-muted-foreground">Periodo:</label>
+                                <label className="text-xs font-medium text-muted-foreground">{t('dashboard.period')}:</label>
                                 <Select
                                     value={selectedPeriodId?.toString()}
                                     onValueChange={(value) => onPeriodChange(parseInt(value))}
@@ -109,7 +119,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                     <SelectContent>
                                         {validityPeriods.map((period: any) => (
                                             <SelectItem key={period.id} value={period.id.toString()}>
-                                                {new Date(period.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(period.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                {formatShortDate(period.startDate)} - {formatShortDate(period.endDate)}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -117,23 +127,22 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                             </div>
                         )}
                         <div className="text-sm text-muted-foreground">
-                            <span className="font-medium">{filteredTickets.length}</span> tickets •
+                            <span className="font-medium">{filteredTickets.length}</span> {t('dashboard.ticketsReport.totalTickets')} •
                             <span className="font-medium ml-1">
-                                {filteredTickets.reduce((sum: number, t: any) => sum + t.totalHours, 0).toFixed(2)}h
-                            </span> totales
+                                {formatRate(filteredTickets.reduce((sum: number, t: any) => sum + t.totalHours, 0), 2)}h
+                            </span> {t('dashboard.ticketsReport.totalHours')}
                         </div>
                     </div>
                 </div>
                 {data.periodLabel && (
-                    <p className="text-xs text-muted-foreground mt-1">Periodo: {data.periodLabel}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.period')}: {data.periodLabel}</p>
                 )}
 
-                {/* Filters - Centered with equal widths */}
                 <div className="flex justify-center gap-3 mt-4">
                     <div className="w-64">
                         <input
                             type="text"
-                            placeholder="Filtrar por ID ticket..."
+                            placeholder={t('dashboard.ticketsReport.filterPlaceholder')}
                             value={filterTicketId}
                             onChange={(e) => setFilterTicketId(e.target.value)}
                             className="w-full h-9 px-3 text-sm border rounded-md bg-background"
@@ -145,7 +154,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                             onChange={(e) => setFilterType(e.target.value)}
                             className="w-full h-9 px-3 text-sm border rounded-md bg-background"
                         >
-                            <option value="all">Todos los tipos</option>
+                            <option value="all">{t('dashboard.ticketsReport.allTypes')}</option>
                             {ticketTypes.map((type) => (
                                 <option key={String(type)} value={String(type)}>{String(type)}</option>
                             ))}
@@ -158,21 +167,20 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50">
                             <tr className="border-b">
-                                <th className="h-10 px-4 text-left font-medium">Tipo</th>
-                                <th className="h-10 px-4 text-left font-medium">ID Ticket</th>
-                                <th className="h-10 px-4 text-left font-medium">Descripción</th>
-                                <th className="h-10 px-4 text-left font-medium">Prioridad</th>
-                                <th className="h-10 px-4 text-left font-medium">SLA Resp.</th>
-                                <th className="h-10 px-4 text-left font-medium">SLA Resol.</th>
-                                <th className="h-10 px-4 text-left font-medium">Estado</th>
-                                <th className="h-10 px-4 text-right font-medium">Total Horas</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.type')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.issueId')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.description')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.priority')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.slaResponse')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.slaResolution')}</th>
+                                <th className="h-10 px-4 text-left font-medium">{t('dashboard.ticketsReport.status')}</th>
+                                <th className="h-10 px-4 text-right font-medium">{t('dashboard.ticketsReport.total')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredTickets.map((ticket: any) => (
-                                <>
+                                <React.Fragment key={ticket.issueKey}>
                                     <tr
-                                        key={ticket.issueKey}
                                         className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
                                         onClick={() => toggleTicket(ticket.issueKey)}
                                     >
@@ -235,7 +243,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                             </span>
                                         </td>
                                         <td className="p-3 px-4 text-right font-bold">
-                                            {ticket.totalHours.toFixed(2)}h
+                                            {formatRate(ticket.totalHours, 2)}h
                                         </td>
                                     </tr>
                                     {expandedTickets.has(ticket.issueKey) && (
@@ -243,7 +251,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                             <td colSpan={8} className="p-0 bg-muted/20">
                                                 <div className="p-4">
                                                     <h5 className="text-xs font-semibold mb-2 text-muted-foreground">
-                                                        Desglose Mensual:
+                                                        {t('dashboard.ticketsReport.monthlyBreakdown')}
                                                     </h5>
                                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                         {ticket.monthlyBreakdown.map((month: any) => (
@@ -255,7 +263,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                                                     {month.month}
                                                                 </div>
                                                                 <div className="text-sm font-semibold">
-                                                                    {month.hours.toFixed(2)}h
+                                                                    {formatRate(month.hours, 2)}h
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -264,7 +272,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                             </td>
                                         </tr>
                                     )}
-                                </>
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>

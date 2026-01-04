@@ -38,18 +38,29 @@ export function useTranslations() {
             });
     }, []); // CRITICAL: Empty array - only run once!
 
-    const t = (key: string): string => {
-        if (isLoading) return key;
+    const t = (key: string, options?: Record<string, any>): string => {
+        if (isLoading) return options?.defaultValue || key;
 
         const keys = key.split('.');
         let value: any = messages;
 
         for (const k of keys) {
             value = value?.[k];
-            if (value === undefined) return key;
         }
 
-        return value || key;
+        if (value === undefined || value === null) {
+            return options?.defaultValue || key;
+        }
+
+        if (typeof value === 'string' && options) {
+            Object.entries(options).forEach(([k, v]) => {
+                if (k !== 'defaultValue') {
+                    value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+                }
+            });
+        }
+
+        return typeof value === 'string' ? value : key;
     };
 
     return { t, locale };

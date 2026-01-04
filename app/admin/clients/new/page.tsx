@@ -4,12 +4,14 @@ import { getParametersByCategory } from "@/app/actions/parameters";
 import { getEligibleManagers } from "@/app/actions/users";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ClientFormFields } from "../components/client-form-fields";
+import { getTranslations } from "@/lib/get-translations";
 
 // Reuse this page for New and Edit
 export default async function ClientFormPage(props: any) {
     const params = props?.params || {};
     const isEdit = !!params.id;
     let client: Client | null = null;
+    const { t } = await getTranslations();
 
     if (isEdit && params.id) {
         client = await getClientById(params.id);
@@ -46,16 +48,18 @@ export default async function ClientFormPage(props: any) {
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">{isEdit ? "Editar Cliente" : "Nuevo Cliente"}</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                    {isEdit ? t('clients.form.editTitle') : t('clients.form.newTitle')}
+                </h1>
                 <p className="text-muted-foreground">
-                    {isEdit ? "Modifica los datos del cliente." : "Registra un nuevo cliente en el sistema."}
+                    {isEdit ? t('clients.form.editSubtitle') : t('clients.form.newSubtitle')}
                 </p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Datos Generales</CardTitle>
-                    <CardDescription>Información básica del cliente.</CardDescription>
+                    <CardTitle>{t('clients.form.cardTitle')}</CardTitle>
+                    <CardDescription>{t('clients.form.cardDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ClientFormFields

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { addWPCorrection, deleteWPCorrection } from "@/app/actions/corrections";
 import { Trash2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/date-utils";
 
 type Props = {
     wpId: string;
@@ -110,8 +111,8 @@ export function CorrectionManager({ wpId, corrections, models }: Props) {
                             {corrections.map((c) => (
                                 <TableRow key={c.id}>
                                     <TableCell className="font-medium">{c.correctionModel.name}</TableCell>
-                                    <TableCell>{new Date(c.startDate).toLocaleDateString()}</TableCell>
-                                    <TableCell>{c.endDate ? new Date(c.endDate).toLocaleDateString() : "Indefinido"}</TableCell>
+                                    <TableCell>{formatDate(c.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}</TableCell>
+                                    <TableCell>{c.endDate ? formatDate(c.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' }) : "Indefinido"}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="sm" onClick={() => handleDelete(c.id)} disabled={isPending}>
                                             <Trash2 className="w-4 h-4 text-red-500" />

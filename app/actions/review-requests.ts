@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "./notifications";
+import { getTranslations } from "@/lib/get-translations";
 
 export async function createReviewRequest(
     wpId: string,
@@ -38,12 +39,14 @@ export async function createReviewRequest(
             select: { name: true }
         });
 
+        const { t } = await getTranslations();
+
         for (const admin of admins) {
             await createNotification(
                 admin.id,
                 "REVIEW_REQUEST_CREATED",
-                "Nueva reclamación de horas",
-                `El usuario ha solicitado revisar ${worklogs.length} imputaciones en el WP ${wp?.name || wpId}.`,
+                t('notifications.titles.reviewCreated'),
+                t('notifications.messages.reviewCreated', { count: worklogs.length, wp: wp?.name || wpId }),
                 reviewRequest.id
             );
         }
@@ -55,11 +58,12 @@ export async function createReviewRequest(
         });
         const managerId = wpFull?.client.manager;
         if (managerId && !admins.some(a => a.id === managerId)) {
+            const { t } = await getTranslations();
             await createNotification(
                 managerId,
                 "REVIEW_REQUEST_CREATED",
-                "Nueva reclamación de horas (Asignada)",
-                `Se ha solicitado revisar ${worklogs.length} imputaciones en el WP ${wp?.name || wpId} de tu cliente.`,
+                t('notifications.titles.reviewCreatedAssigned'),
+                t('notifications.messages.reviewCreatedAssigned', { count: worklogs.length, wp: wp?.name || wpId }),
                 reviewRequest.id
             );
         }
@@ -68,7 +72,8 @@ export async function createReviewRequest(
         return { success: true, id: reviewRequest.id };
     } catch (error) {
         console.error("Error creating review request:", error);
-        return { success: false, error: "Error al enviar la reclamación" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.claimError') };
     }
 }
 
@@ -207,7 +212,8 @@ export async function approveReviewRequest(
         });
 
         if (!currentRequest) {
-            return { success: false, error: "Reclamación no encontrada" };
+            const { t } = await getTranslations();
+            return { success: false, error: t('errors.notFound', { item: t('admin.settings.claims') }) };
         }
 
         // 1. Update the review request status
@@ -254,37 +260,39 @@ export async function approveReviewRequest(
                 const ticketIds = Array.from(new Set(worklogs.map(w => w.issueKey).filter(Boolean)));
                 const ticketsText = ticketIds.length > 0 ? ` (Tickets: ${ticketIds.join(', ')})` : '';
 
+                const { t } = await getTranslations();
                 await prisma.regularization.create({
                     data: {
                         workPackageId: currentRequest.workPackageId,
                         date: regularizationDate,
                         type: "RETURN",
                         quantity: totalHours,
-                        description: `Devolución de horas${ticketsText}`,
+                        description: `${t('regularizations.types.return')}${ticketsText}`,
                         note: notes
                     }
                 });
             }
         }
 
+        const { t } = await getTranslations();
         // 3. Notify the user
         await createNotification(
             request.requestedBy,
             "REVIEW_APPROVED",
-            "Reclamación Aprobada",
-            `Tu reclamación de horas ha sido aprobada. Se han devuelto ${approvedWorklogIds.length} imputaciones. Notas: ${notes}`,
+            t('notifications.titles.reviewApproved'),
+            t('notifications.messages.reviewApproved', { count: approvedWorklogIds.length, notes }),
             request.id
         );
 
-        // Notify Manager of the decision
         if (currentRequest.workPackage.clientId) {
             const client = await prisma.client.findUnique({ where: { id: currentRequest.workPackage.clientId } });
             if (client?.manager) {
+                const { t } = await getTranslations();
                 await createNotification(
                     client.manager,
                     "REVIEW_DECIDED",
-                    "Reclamación Resuelta (Aprobada)",
-                    `Se ha aprobado una reclamación en el WP ${currentRequest.workPackage.name}. Notas: ${notes}`,
+                    t('notifications.titles.reviewDecidedApproved'),
+                    t('notifications.messages.reviewDecidedApproved', { wp: currentRequest.workPackage.name, notes }),
                     request.id
                 );
             }
@@ -296,9 +304,10 @@ export async function approveReviewRequest(
         return { success: true };
     } catch (error: any) {
         console.error("CRITICAL ERROR in approveReviewRequest:", error);
+        const { t } = await getTranslations();
         return {
             success: false,
-            error: `Error al aprobar: ${error.message || "Error desconocido"}`
+            error: `${t('errors.updateError', { item: t('admin.settings.claims') })}: ${error.message || t('errors.unknown')}`
         };
     }
 }
@@ -316,11 +325,12 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
             }
         });
 
+        const { t } = await getTranslations();
         await createNotification(
             request.requestedBy,
             "REVIEW_REJECTED",
-            "Reclamación Rechazada",
-            `Tu reclamación de horas ha sido rechazada. Notas: ${notes}`,
+            t('notifications.titles.reviewRejected'),
+            t('notifications.messages.reviewRejected', { notes }),
             request.id
         );
 
@@ -330,11 +340,12 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
             include: { client: true }
         });
         if (wp?.client.manager) {
+            const { t } = await getTranslations();
             await createNotification(
                 wp.client.manager,
                 "REVIEW_DECIDED",
-                "Reclamación Resuelta (Rechazada)",
-                `Se ha rechazado una reclamación en el WP ${wp.name}. Notas: ${notes}`,
+                t('notifications.titles.reviewDecidedRejected'),
+                t('notifications.messages.reviewDecidedRejected', { wp: wp.name, notes }),
                 request.id
             );
         }
@@ -344,9 +355,10 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
         return { success: true };
     } catch (error: any) {
         console.error("CRITICAL ERROR in rejectReviewRequest:", error);
+        const { t } = await getTranslations();
         return {
             success: false,
-            error: `Error al rechazar: ${error.message || "Error desconocido"}`
+            error: `${t('errors.updateError', { item: t('admin.settings.claims') })}: ${error.message || t('errors.unknown')}`
         };
     }
 }
@@ -361,6 +373,7 @@ export async function deleteReviewRequest(id: string) {
         return { success: true };
     } catch (error) {
         console.error("Error deleting review request:", error);
-        return { success: false, error: "Error al eliminar la reclamación" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('admin.settings.claims') }) };
     }
 }

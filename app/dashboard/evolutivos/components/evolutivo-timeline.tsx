@@ -3,8 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, ArrowRight, CheckCircle2, Circle, Clock, Rocket, ShieldAlert, FlaskConical, AlertTriangle, Hourglass, BarChart } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatShortDate } from "@/lib/date-utils";
 
 interface TimelineProps {
     evolutivo: any;
@@ -182,7 +181,7 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                                                                 <Calendar className="w-3.5 h-3.5" />
                                                                 <span>
                                                                     {hito.dueDate
-                                                                        ? format(new Date(hito.dueDate), "d 'de' MMMM 'de' yyyy", { locale: es })
+                                                                        ? formatShortDate(hito.dueDate)
                                                                         : 'Sin fecha'}
                                                                 </span>
                                                             </div>

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "@/lib/get-translations";
 
 export async function getClients(managerId?: string) {
     try {
@@ -65,10 +66,12 @@ export async function createClient(prevState: any, formData: FormData) {
     });
 
     if (!id || id.length > 10) {
-        return { error: "ID es obligatorio y máx 10 caracteres" };
+        const { t } = await getTranslations();
+        return { error: t('errors.maxLength', { field: 'ID', count: 10 }) };
     }
     if (!name) {
-        return { error: "Nombre es obligatorio" };
+        const { t } = await getTranslations();
+        return { error: t('errors.required', { field: t('common.name') }) };
     }
 
     try {
@@ -86,7 +89,8 @@ export async function createClient(prevState: any, formData: FormData) {
         });
     } catch (error) {
         console.error(error);
-        return { error: "Error al crear cliente. Puede que el ID ya exista." };
+        const { t } = await getTranslations();
+        return { error: t('errors.alreadyExists', { item: t('clients.title') }) };
     }
 
     revalidatePath("/admin/clients");
@@ -119,7 +123,8 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
     });
 
     if (!name) {
-        return { error: "Nombre es obligatorio" };
+        const { t } = await getTranslations();
+        return { error: t('errors.required', { field: t('common.name') }) };
     }
 
     try {
@@ -137,7 +142,8 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
         });
     } catch (error) {
         console.error("Error updating client:", error);
-        return { error: "Error al actualizar cliente" };
+        const { t } = await getTranslations();
+        return { error: t('errors.updateError', { item: t('clients.title') }) };
     }
 
     revalidatePath("/admin/clients");
@@ -152,6 +158,7 @@ export async function deleteClient(id: string) {
         revalidatePath("/admin/clients");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar cliente" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('clients.title') }) };
     }
 }

@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { formatDate } from "@/lib/date-utils";
 
 interface Props {
     isOpen: boolean;
@@ -150,7 +151,7 @@ export function ReviewDetailModal({
                                     </div>
                                     <div className="space-y-0.5">
                                         <p className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Fecha</p>
-                                        <p className="font-semibold">{new Date(request.createdAt).toLocaleDateString('es-ES')}</p>
+                                        <p className="font-semibold">{formatDate(request.createdAt, { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
                                     </div>
                                 </div>
 
@@ -216,7 +217,7 @@ export function ReviewDetailModal({
                                                                     />
                                                                 </td>
                                                             )}
-                                                            <td className="p-2 font-medium text-slate-600">{new Date(w.startDate).toLocaleDateString('es-ES')}</td>
+                                                            <td className="p-2 font-medium text-slate-600">{formatDate(w.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}</td>
                                                             <td className="p-2 font-bold text-slate-900">{w.issueKey}</td>
                                                             <td className="p-2 text-slate-600">{w.author}</td>
                                                             <td className="p-2 text-right font-extrabold text-slate-700">{w.timeSpentHours.toFixed(2)}h</td>

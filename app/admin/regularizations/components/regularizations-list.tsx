@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { ExternalLink, Plus, Filter } from "lucide-react";
 import { DeleteRegularizationButton } from "./delete-button";
+import { formatDate } from "@/lib/date-utils";
 
 interface RegularizationsListProps {
     regularizations: any[];
@@ -239,7 +240,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                 {filteredRegularizations.map((reg: any) => (
                                     <TableRow key={reg.id}>
                                         <TableCell>
-                                            {new Date(reg.date).toLocaleDateString("es-ES", {
+                                            {formatDate(reg.date, {
                                                 day: "2-digit",
                                                 month: "short",
                                                 year: "numeric"

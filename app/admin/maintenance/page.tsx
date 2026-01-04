@@ -1,12 +1,15 @@
 import { DatabaseMaintenance } from "../settings/components/database-maintenance";
+import { getTranslations } from "@/lib/get-translations";
 
-export default function MaintenancePage() {
+export default async function MaintenancePage() {
+    const { t } = await getTranslations();
+
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Manteinimiento de BBDD</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{t('admin.maintenance.title')}</h1>
                 <p className="text-muted-foreground">
-                    Herramientas para la gestión técnica y limpieza de datos.
+                    {t('admin.maintenance.subtitle')}
                 </p>
             </div>
 

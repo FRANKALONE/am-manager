@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
 import { BookOpen, BarChart3, Calendar, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { formatDate } from "@/lib/date-utils";
 
 type Props = {
     user: any;
@@ -167,15 +168,7 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                                         <div className="col-span-2">
                                                             <p className="text-xs text-blue-600 uppercase font-bold">Vigencia del Contrato Actual</p>
                                                             <p className="text-sm text-gray-800 font-medium">
-                                                                {new Date(currentPeriod.startDate).toLocaleDateString('es-ES', {
-                                                                    day: '2-digit',
-                                                                    month: '2-digit',
-                                                                    year: 'numeric'
-                                                                })} - {new Date(currentPeriod.endDate).toLocaleDateString('es-ES', {
-                                                                    day: '2-digit',
-                                                                    month: '2-digit',
-                                                                    year: 'numeric'
-                                                                })}
+                                                                {formatDate(currentPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })} - {formatDate(currentPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                                             </p>
                                                         </div>
                                                     )}

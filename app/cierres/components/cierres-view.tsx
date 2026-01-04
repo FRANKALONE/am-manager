@@ -34,6 +34,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, Send, ExternalLink, Download } from "lucide-react";
+import { formatDate } from "@/lib/date-utils";
+import { useTranslations } from "@/lib/use-translations";
 
 const MONTHS_LABELS = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -41,6 +43,7 @@ const MONTHS_LABELS = [
 ];
 
 export function CierresView() {
+    const { locale } = useTranslations();
     const today = new Date();
     const [month, setMonth] = useState(today.getMonth() + 1);
     const [year, setYear] = useState(today.getFullYear());
@@ -137,7 +140,7 @@ export function CierresView() {
 
             doc.setFontSize(9);
             doc.setTextColor(100);
-            doc.text(`Fecha de emisión: ${new Date().toLocaleDateString('es-ES')}`, 14, 38);
+            doc.text(`Fecha de emisión: ${formatDate(new Date(), { year: 'numeric', month: '2-digit', day: '2-digit' })}`, 14, 38);
 
             // Contact / Service Info Section
             doc.setFillColor(245, 247, 250);
@@ -169,7 +172,7 @@ export function CierresView() {
                 head: [['CONCEPTO', 'CANTIDAD']],
                 body: [
                     ['IMPORTE TOTAL A REGULARIZAR (Facturación adicional)', `${candidate.suggestedAmount.toFixed(2)} ${data.unit}`],
-                    ['Importe Económico Estimado', `${candidate.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`]
+                    ['Importe Económico Estimado', new Intl.NumberFormat(locale || 'es', { style: 'currency', currency: 'EUR' }).format(candidate.suggestedCashAmount)]
                 ],
                 theme: 'grid',
                 headStyles: { fillColor: [0, 59, 40], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -264,12 +267,12 @@ export function CierresView() {
 
         text += `Pendientes de Facturar:\n`;
         candidates.filter(c => c.suggestedAmount > 0).forEach(c => {
-            text += `- ${c.clientName} (${c.wpName}): ${c.suggestedAmount.toFixed(1)} ${c.unit} (${c.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })})\n`;
+            text += `- ${c.clientName} (${c.wpName}): ${c.suggestedAmount.toFixed(1)} ${c.unit} (${new Intl.NumberFormat(locale || 'es', { style: 'currency', currency: 'EUR' }).format(c.suggestedCashAmount)})\n`;
         });
 
         text += `\nYa Procesados:\n`;
         processed.forEach(p => {
-            text += `- [OK] ${p.clientName} (${p.wpName}): ${p.suggestedAmount.toFixed(1)} ${p.unit} (${p.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })})\n`;
+            text += `- [OK] ${p.clientName} (${p.wpName}): ${p.suggestedAmount.toFixed(1)} ${p.unit} (${new Intl.NumberFormat(locale || 'es', { style: 'currency', currency: 'EUR' }).format(p.suggestedCashAmount)})\n`;
         });
 
         const blob = new Blob([text], { type: 'text/plain' });
@@ -598,7 +601,7 @@ export function CierresView() {
                                                             Facturar: +{c.suggestedAmount.toFixed(1)} {c.unit}
                                                         </div>
                                                         <div className="text-[11px] text-red-600 font-bold whitespace-nowrap">
-                                                            ({c.suggestedCashAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })})
+                                                            ({new Intl.NumberFormat(locale || 'es', { style: 'currency', currency: 'EUR' }).format(c.suggestedCashAmount)})
                                                         </div>
                                                     </div>
                                                 )}
@@ -620,7 +623,7 @@ export function CierresView() {
                                                 <div className="flex items-center gap-2">
                                                     <Clock className={`w-3 h-3 ${c.needsSync ? 'text-orange-500' : 'text-slate-400'}`} />
                                                     <span className={`text-[11px] ${c.needsSync ? 'text-orange-600 font-bold' : 'text-slate-500'}`}>
-                                                        {c.lastSyncedAt ? new Date(c.lastSyncedAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Nunca'}
+                                                        {c.lastSyncedAt ? formatDate(c.lastSyncedAt) : 'Nunca'}
                                                     </span>
                                                     {c.needsSync && (
                                                         <AlertCircle className="w-3 h-3 text-red-500" />
@@ -720,7 +723,7 @@ export function CierresView() {
                                                             Enviado
                                                         </Badge>
                                                         <span className="text-[10px] text-slate-400">
-                                                            {new Date(c.reportSentAt).toLocaleDateString()} por {c.reportSentBy}
+                                                            {formatDate(c.reportSentAt, { year: 'numeric', month: '2-digit', day: '2-digit' })} por {c.reportSentBy}
                                                         </span>
                                                     </div>
                                                 ) : (

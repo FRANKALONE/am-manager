@@ -3,7 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { limitConcurrency } from "@/lib/utils-sync";
-import { getNowSpain } from "@/lib/utils";
+import { getNow } from "@/lib/date-utils";
+import { getTranslations } from "@/lib/get-translations";
+import { formatDate } from "@/lib/date-utils";
 
 async function isKillSwitchActive() {
     try {
@@ -79,7 +81,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
     const debugLogs: string[] = [];
     const addLog = (msg: string) => {
-        const logMsg = `[${new Date().toISOString()}] ${msg}`;
+        const logMsg = `[${formatDate(new Date())}] ${msg}`;
         debugLogs.push(logMsg);
         if (debug) console.log(logMsg);
 
@@ -102,7 +104,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         // 0. Check Kill Switch
         if (await isKillSwitchActive()) {
             addLog(`[CRITICAL] Sync aborted by Kill Switch`);
-            return { error: "Sincronización abortada por parada de emergencia", logs: debug ? debugLogs : undefined };
+            const { t } = await getTranslations();
+            return { error: t('errors.emergencyStop'), logs: debug ? debugLogs : undefined };
         }
 
         // 1. Get Work Package with validity periods
@@ -126,7 +129,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
         if (!wp) {
             addLog(`[ERROR] WP not found: ${wpId}`);
-            return { error: "Work Package no encontrado", logs: debug ? debugLogs : undefined };
+            const { t } = await getTranslations();
+            return { error: t('errors.notFound', { item: 'Work Package' }), logs: debug ? debugLogs : undefined };
         }
 
         addLog(`[INFO] WP found: ${wp.id}, Type: ${wp.contractType}`);
@@ -136,14 +140,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const contractType = wp.contractType?.toUpperCase();
         if (contractType !== 'BOLSA' && contractType !== 'BD' && contractType !== 'EVENTOS') {
             addLog(`[INFO] Skipping sync - Contract type not supported: ${wp.contractType}`);
-            return { success: true, message: "Sync no aplicable para este tipo de contrato", processed: 0, totalHours: 0, logs: debug ? debugLogs : undefined };
+            const { t } = await getTranslations();
+            return { success: true, message: t('errors.notApplicable'), processed: 0, totalHours: 0, logs: debug ? debugLogs : undefined };
         }
 
 
         // 3. Calculate date range from ALL validity periods
         if (wp.validityPeriods.length === 0) {
             addLog(`[ERROR] No validity periods defined`);
-            return { error: "No hay periodos de validez definidos", logs: debug ? debugLogs : undefined };
+            const { t } = await getTranslations();
+            return { error: t('errors.noPeriods'), logs: debug ? debugLogs : undefined };
         }
 
         // Find earliest start date and latest end date across all periods
@@ -161,7 +167,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         addLog(`[INFO] Total validity periods: ${wp.validityPeriods.length}`);
 
         // Keep 'now' for correction model logic later
-        const now = getNowSpain();
+        const now = getNow();
 
         // 4. Collect Tempo Account IDs (current, old, and mappings)
         const accountIdsSet = new Set<string>();
@@ -670,114 +676,114 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         const combinedWorklogs = [...allWorklogs, ...tmWorklogs];
         addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (${allWorklogs.length} from accounts + ${tmWorklogs.length} from T&M)`);
 
-// 8.8. Fetch missing issue details for T&M worklogs not in allWorklogs
-const combinedIssueIds = Array.from(new Set(combinedWorklogs
-    .map((log: any) => log.issue?.id)
-    .filter(Boolean)
-));
-const missingIssueIds = combinedIssueIds.filter(id => !issueDetails.has(String(id)));
+        // 8.8. Fetch missing issue details for T&M worklogs not in allWorklogs
+        const combinedIssueIds = Array.from(new Set(combinedWorklogs
+            .map((log: any) => log.issue?.id)
+            .filter(Boolean)
+        ));
+        const missingIssueIds = combinedIssueIds.filter(id => !issueDetails.has(String(id)));
 
-if (missingIssueIds.length > 0) {
-    addLog(`[INFO] Fetching details for ${missingIssueIds.length} additional issues from T&M worklogs`);
+        if (missingIssueIds.length > 0) {
+            addLog(`[INFO] Fetching details for ${missingIssueIds.length} additional issues from T&M worklogs`);
 
-    const missingBatches = [];
-    const batchSize = 50;
-    for (let i = 0; i < missingIssueIds.length; i += batchSize) {
-        missingBatches.push(missingIssueIds.slice(i, i + batchSize));
-    }
+            const missingBatches = [];
+            const batchSize = 50;
+            for (let i = 0; i < missingIssueIds.length; i += batchSize) {
+                missingBatches.push(missingIssueIds.slice(i, i + batchSize));
+            }
 
-    const jiraUrl = process.env.JIRA_URL?.trim();
-    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
-    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
-    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+            const jiraUrl = process.env.JIRA_URL?.trim();
+            const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+            const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+            const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
 
-    const missingBatchTasks = missingBatches.map(batch => async () => {
-        const jql = `id IN (${batch.join(',')})`;
-        const bodyData = JSON.stringify({
-            jql,
-            maxResults: 100,
-            fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
-        });
-
-        try {
-            const jiraRes: any = await new Promise((resolve, reject) => {
-                const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/json'
-                    }
-                }, (res: any) => {
-                    let data = '';
-                    res.on('data', (c: any) => data += c);
-                    res.on('end', () => {
-                        try {
-                            if (res.statusCode === 200) {
-                                resolve(JSON.parse(data));
-                            } else {
-                                resolve({ issues: [] });
-                            }
-                        } catch (e) {
-                            resolve({ issues: [] });
-                        }
-                    });
+            const missingBatchTasks = missingBatches.map(batch => async () => {
+                const jql = `id IN (${batch.join(',')})`;
+                const bodyData = JSON.stringify({
+                    jql,
+                    maxResults: 100,
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
                 });
-                req.on('error', (err: any) => resolve({ issues: [] }));
-                req.write(bodyData);
-                req.end();
+
+                try {
+                    const jiraRes: any = await new Promise((resolve, reject) => {
+                        const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Basic ${auth}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }, (res: any) => {
+                            let data = '';
+                            res.on('data', (c: any) => data += c);
+                            res.on('end', () => {
+                                try {
+                                    if (res.statusCode === 200) {
+                                        resolve(JSON.parse(data));
+                                    } else {
+                                        resolve({ issues: [] });
+                                    }
+                                } catch (e) {
+                                    resolve({ issues: [] });
+                                }
+                            });
+                        });
+                        req.on('error', (err: any) => resolve({ issues: [] }));
+                        req.write(bodyData);
+                        req.end();
+                    });
+
+                    if (jiraRes.issues) {
+                        jiraRes.issues.forEach((issue: any) => {
+                            const billingModeRaw = issue.fields.customfield_10121;
+                            const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
+
+                            const getSlaInfo = (field: any) => {
+                                if (!field) return { status: null, time: null };
+
+                                let status = null;
+                                let elapsed = null;
+
+                                if (field.ongoingCycle) {
+                                    elapsed = field.ongoingCycle.elapsedTime?.friendly || null;
+                                    if (field.ongoingCycle.breached) {
+                                        status = "Incumplido";
+                                    } else {
+                                        status = field.ongoingCycle.remainingTime?.friendly || "En plazo";
+                                    }
+                                } else if (field.completedCycles && field.completedCycles.length > 0) {
+                                    const last = field.completedCycles[field.completedCycles.length - 1];
+                                    elapsed = last.elapsedTime?.friendly || null;
+                                    status = last.breached ? "Incumplido" : "Cumplido";
+                                }
+
+                                return { status, time: elapsed };
+                            };
+
+                            const resSla = getSlaInfo(issue.fields.customfield_10065);
+                            const resolSla = getSlaInfo(issue.fields.customfield_10064);
+
+                            issueDetails.set(issue.id, {
+                                key: issue.key,
+                                summary: issue.fields.summary || '',
+                                issueType: issue.fields.issuetype?.name,
+                                status: issue.fields.status?.name || 'Unknown',
+                                priority: issue.fields.priority?.name || 'Media',
+                                billingMode: billingMode,
+                                created: issue.fields.created,
+                                slaResponse: resSla.status,
+                                slaResponseTime: resSla.time,
+                                slaResolution: resolSla.status,
+                                slaResolutionTime: resolSla.time
+                            });
+                        });
+                    }
+                } catch (e) { }
             });
 
-            if (jiraRes.issues) {
-                jiraRes.issues.forEach((issue: any) => {
-                    const billingModeRaw = issue.fields.customfield_10121;
-                    const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
-
-                    const getSlaInfo = (field: any) => {
-                        if (!field) return { status: null, time: null };
-
-                        let status = null;
-                        let elapsed = null;
-
-                        if (field.ongoingCycle) {
-                            elapsed = field.ongoingCycle.elapsedTime?.friendly || null;
-                            if (field.ongoingCycle.breached) {
-                                status = "Incumplido";
-                            } else {
-                                status = field.ongoingCycle.remainingTime?.friendly || "En plazo";
-                            }
-                        } else if (field.completedCycles && field.completedCycles.length > 0) {
-                            const last = field.completedCycles[field.completedCycles.length - 1];
-                            elapsed = last.elapsedTime?.friendly || null;
-                            status = last.breached ? "Incumplido" : "Cumplido";
-                        }
-
-                        return { status, time: elapsed };
-                    };
-
-                    const resSla = getSlaInfo(issue.fields.customfield_10065);
-                    const resolSla = getSlaInfo(issue.fields.customfield_10064);
-
-                    issueDetails.set(issue.id, {
-                        key: issue.key,
-                        summary: issue.fields.summary || '',
-                        issueType: issue.fields.issuetype?.name,
-                        status: issue.fields.status?.name || 'Unknown',
-                        priority: issue.fields.priority?.name || 'Media',
-                        billingMode: billingMode,
-                        created: issue.fields.created,
-                        slaResponse: resSla.status,
-                        slaResponseTime: resSla.time,
-                        slaResolution: resolSla.status,
-                        slaResolutionTime: resolSla.time
-                    });
-                });
-            }
-        } catch (e) { }
-    });
-
-    await limitConcurrency(missingBatchTasks, 3);
-    addLog(`[INFO] Total issue details now: ${issueDetails.size}`);
-}
+            await limitConcurrency(missingBatchTasks, 3);
+            addLog(`[INFO] Total issue details now: ${issueDetails.size}`);
+        }
 
 
         let firstLog = true;

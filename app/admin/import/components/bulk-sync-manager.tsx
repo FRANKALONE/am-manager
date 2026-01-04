@@ -9,8 +9,10 @@ import { syncWorkPackage } from "@/app/actions/sync";
 import { createImportLog } from "@/app/actions/import-logs";
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/use-translations";
 
 export function BulkSyncManager() {
+    const { t } = useTranslations();
     const [isSyncing, setIsSyncing] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -28,7 +30,7 @@ export function BulkSyncManager() {
     };
 
     const runBulkSync = async () => {
-        if (!confirm("¿Deseas iniciar la sincronización de todos los Work Packages? Este proceso puede tardar varios minutos.")) {
+        if (!confirm(t('import.sync.confirm'))) {
             return;
         }
 
@@ -43,7 +45,7 @@ export function BulkSyncManager() {
             const wps = await getEligibleWorkPackagesForSync();
 
             if (!wps || !Array.isArray(wps)) {
-                toast.error("Error al obtener la lista de Work Packages");
+                toast.error(t('import.sync.toast.error'));
                 setIsSyncing(false);
                 return;
             }
@@ -51,7 +53,7 @@ export function BulkSyncManager() {
             setTotalWps(wps.length);
 
             if (wps.length === 0) {
-                toast.info("No hay Work Packages elegibles para sincronizar.");
+                toast.info(t('import.sync.toast.empty'));
                 setIsSyncing(false);
                 return;
             }
@@ -79,7 +81,7 @@ export function BulkSyncManager() {
                     }
                 } catch (err: any) {
                     setResults(prev => ({ ...prev, errors: prev.errors + 1 }));
-                    toast.error(`Error crítico en sync de ${wp.name}`);
+                    toast.error(t('import.sync.toast.critical', { name: wp.name }));
                 }
 
                 const newProgress = ((i + 1) / wps.length) * 100;
@@ -101,7 +103,7 @@ export function BulkSyncManager() {
                 })
             });
 
-            toast.success("Sincronización masiva finalizada");
+            toast.success(t('import.sync.toast.success'));
         } finally {
             setIsSyncing(false);
             setEta(null);
@@ -113,23 +115,23 @@ export function BulkSyncManager() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <RefreshCw className={`h-5 w-5 text-blue-500 ${isSyncing ? 'animate-spin' : ''}`} />
-                    Sincronización Manual Masiva
+                    {t('import.sync.title')}
                 </CardTitle>
                 <CardDescription>
-                    Actualiza todos los Work Packages (Bolsa, BD y Eventos) con los últimos datos de JIRA y Tempo.
+                    {t('import.sync.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {!isSyncing && progress === 0 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white/50 rounded-lg border border-blue-100">
                         <p className="text-sm text-muted-foreground max-w-md">
-                            Este proceso sustituye a la sincronización nocturna. Se recomienda ejecutarlo al inicio de la jornada o tras cambios masivos en JIRA.
+                            {t('import.sync.warning')}
                         </p>
                         <Button
                             onClick={runBulkSync}
                             className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto px-8"
                         >
-                            Ejecutar Sincronización Total
+                            {t('import.sync.button')}
                         </Button>
                     </div>
                 )}
@@ -139,17 +141,17 @@ export function BulkSyncManager() {
                         <div className="flex justify-between items-end text-sm">
                             <div className="space-y-1">
                                 <p className="font-medium text-blue-900">
-                                    {isSyncing ? `Sincronizando: ${currentWpName}` : "Sincronización Finalizada"}
+                                    {isSyncing ? `${t('import.sync.inProgress')} (${currentWpName})` : t('import.sync.finished')}
                                 </p>
                                 <p className="text-xs text-blue-700">
-                                    Procesando {currentIdx} de {totalWps} paquetes
+                                    {t('import.sync.processing', { current: currentIdx, total: totalWps })}
                                 </p>
                             </div>
                             <div className="text-right space-y-1">
                                 {eta && isSyncing && (
                                     <p className="flex items-center gap-1 text-xs text-amber-600 font-medium justify-end">
                                         <Clock className="h-3 w-3" />
-                                        Tiempo restante est.: {eta}
+                                        {t('import.sync.eta', { time: eta })}
                                     </p>
                                 )}
                                 <p className="font-bold text-lg">{Math.round(progress)}%</p>
@@ -160,15 +162,15 @@ export function BulkSyncManager() {
 
                         <div className="grid grid-cols-3 gap-4 pt-2">
                             <div className="bg-white/50 p-2 rounded border border-blue-100 text-center">
-                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">Éxitos</p>
+                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">{t('import.sync.success')}</p>
                                 <p className="text-lg font-bold text-green-600">{results.success}</p>
                             </div>
                             <div className="bg-white/50 p-2 rounded border border-blue-100 text-center">
-                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">Errores</p>
+                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">{t('import.sync.errors')}</p>
                                 <p className="text-lg font-bold text-red-600">{results.errors}</p>
                             </div>
                             <div className="bg-white/50 p-2 rounded border border-blue-100 text-center">
-                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">Total</p>
+                                <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">{t('import.sync.total')}</p>
                                 <p className="text-lg font-bold text-blue-600">{totalWps}</p>
                             </div>
                         </div>
@@ -180,7 +182,7 @@ export function BulkSyncManager() {
                                     size="sm"
                                     onClick={() => { setProgress(0); setResults({ success: 0, errors: 0 }); }}
                                 >
-                                    Cerrar y Limpiar
+                                    {t('import.sync.close')}
                                 </Button>
                             </div>
                         )}
@@ -189,7 +191,7 @@ export function BulkSyncManager() {
                             <div className="flex justify-center pt-2">
                                 <Button disabled className="w-full bg-slate-100 text-slate-400">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sincronización en curso...
+                                    {t('import.sync.inProgress')}
                                 </Button>
                             </div>
                         )}

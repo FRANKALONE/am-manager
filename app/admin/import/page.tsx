@@ -7,8 +7,10 @@ import { EvolutivosDiagnostic } from "./components/evolutivos-diagnostic";
 import { WpSyncDiagnostic } from "./components/wp-sync-diagnostic";
 import { SyncKillSwitch } from "../settings/components/sync-kill-switch";
 import { prisma } from "@/lib/prisma";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function ImportPage() {
+    const { t } = await getTranslations();
     const killSwitchStatus = await getKillSwitchStatus();
     const clients = await prisma.client.findMany({
         orderBy: { name: 'asc' },
@@ -19,9 +21,9 @@ export default async function ImportPage() {
         <div className="space-y-8 max-w-6xl mx-auto">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Importación / Exportación</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('import.title')}</h1>
                     <p className="text-muted-foreground">
-                        Gestión masiva de datos y control de sincronización.
+                        {t('import.subtitle')}
                     </p>
                 </div>
                 <div className="w-80">

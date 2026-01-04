@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Bell } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -14,11 +13,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getPendingReviewRequests } from "@/app/actions/review-requests";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enGB } from "date-fns/locale";
+import { useTranslations } from "@/lib/use-translations";
 
 export function AdminNotifications() {
+    const { t, locale } = useTranslations();
     const [requests, setRequests] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+
+    const dateLocale = locale === 'es' ? es : enGB;
 
     const fetchRequests = async () => {
         try {
@@ -52,10 +55,10 @@ export function AdminNotifications() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 p-0">
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h4 className="font-semibold text-sm">Nuevas Reclamaciones</h4>
+                    <h4 className="font-semibold text-sm">{t('admin.notifications.title')}</h4>
                     <Link href="/admin/review-requests" onClick={() => setIsOpen(false)}>
                         <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent">
-                            Ver todas
+                            {t('admin.notifications.viewAll')}
                         </Button>
                     </Link>
                 </div>
@@ -63,7 +66,7 @@ export function AdminNotifications() {
                     {requests.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                             <MessageSquare className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-                            <p className="text-sm text-muted-foreground">No hay reclamaciones pendientes</p>
+                            <p className="text-sm text-muted-foreground">{t('admin.notifications.empty')}</p>
                         </div>
                     ) : (
                         <div className="flex flex-col">
@@ -82,10 +85,10 @@ export function AdminNotifications() {
                                     </p>
                                     <div className="flex justify-between items-center">
                                         <p className="text-[10px] text-muted-foreground">
-                                            De: {r.requestedByUser.name} {r.requestedByUser.surname}
+                                            {t('admin.notifications.from', { name: `${r.requestedByUser.name} ${r.requestedByUser.surname}` })}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground italic">
-                                            {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true, locale: es })}
+                                            {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true, locale: dateLocale })}
                                         </p>
                                     </div>
                                 </Link>

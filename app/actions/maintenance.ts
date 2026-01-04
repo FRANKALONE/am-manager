@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "@/lib/get-translations";
 
 /**
  * Limpia las regularizaciones de tipo MANUAL_CONSUMPTION que coinciden con tickets sincronizados.
@@ -24,7 +25,8 @@ export async function cleanupManualConsumptions(wpId?: string, dryRun: boolean =
         });
 
         if (manualRegs.length === 0) {
-            return { success: true, matchedCount: 0, message: "No se encontraron consumos manuales con ticket Id para limpiar." };
+            const { t } = await getTranslations();
+            return { success: true, matchedCount: 0, message: t('common.noData') };
         }
 
         let matchedCount = 0;
@@ -77,18 +79,20 @@ export async function cleanupManualConsumptions(wpId?: string, dryRun: boolean =
             revalidatePath('/admin/settings');
         }
 
+        const { t } = await getTranslations();
         return {
             success: true,
             matchedCount,
             deletedCount,
             dryRun,
             details,
-            message: `${actionDescription} ${dryRun ? matchedCount : deletedCount} consumos manuales que ya están cubiertos por la sincronización automática.`
+            message: t('admin.maintenance.cleanup.success')
         };
 
     } catch (error: any) {
         console.error("[MAINTENANCE] Error cleaning up manual consumos:", error);
-        return { success: false, error: error.message };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.generic') };
     }
 }
 
@@ -108,10 +112,11 @@ export async function applyReviewedForDuplicatesMigration() {
         `);
 
         if (checkResult.length > 0) {
+            const { t } = await getTranslations();
             return {
                 success: true,
                 alreadyExists: true,
-                message: "El campo 'reviewedForDuplicates' ya existe en la base de datos."
+                message: t('admin.maintenance.migration.exists')
             };
         }
 
@@ -129,17 +134,19 @@ export async function applyReviewedForDuplicatesMigration() {
 
         console.log('[MAINTENANCE] Migration applied successfully');
 
+        const { t } = await getTranslations();
         return {
             success: true,
             alreadyExists: false,
-            message: "Migración aplicada correctamente. El campo 'reviewedForDuplicates' ha sido agregado."
+            message: t('admin.maintenance.migration.success')
         };
 
     } catch (error: any) {
         console.error("[MAINTENANCE] Error applying migration:", error);
+        const { t } = await getTranslations();
         return {
             success: false,
-            error: error.message
+            error: t('errors.migrationError')
         };
     }
 }

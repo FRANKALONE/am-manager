@@ -8,8 +8,10 @@ import { exportRegularizations, importRegularizations } from "@/app/actions/regu
 import { useState } from "react";
 import { Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTranslations } from "@/lib/use-translations";
 
 export function ImportManager() {
+    const { t } = useTranslations();
     const [status, setStatus] = useState<string>("");
     const [errors, setErrors] = useState<string[]>([]);
     const [isImporting, setIsImporting] = useState(false);
@@ -34,7 +36,7 @@ export function ImportManager() {
 
     async function handleImport(formData: FormData) {
         setIsImporting(true);
-        setStatus("Importando datos...");
+        setStatus(t('import.manager.importing'));
         setErrors([]);
         setImportInfo(null);
 
@@ -45,7 +47,7 @@ export function ImportManager() {
                 setStatus("");
                 setErrors([result.error]);
             } else if (result.success) {
-                setStatus(`✓ Importación completada: ${result.count} de ${result.totalRows || result.count} registros procesados correctamente`);
+                setStatus(`${t('import.manager.toast.success')}: ${result.count} / ${result.totalRows || result.count}`);
                 setImportInfo({
                     totalRows: result.totalRows,
                     delimiter: result.delimiter
@@ -56,7 +58,7 @@ export function ImportManager() {
             }
         } catch (error) {
             setStatus("");
-            setErrors([`Error inesperado: ${error instanceof Error ? error.message : 'Error desconocido'}`]);
+            setErrors([`${t('import.manager.toast.unexpected')}: ${error instanceof Error ? error.message : 'Error'}`]);
         } finally {
             setIsImporting(false);
         }
@@ -76,7 +78,7 @@ export function ImportManager() {
 
     async function handleRegularizationsImport(formData: FormData) {
         setIsRegImporting(true);
-        setRegStatus("Importando regularizaciones...");
+        setRegStatus(t('import.manager.importing'));
         setRegErrors([]);
         setRegImportInfo(null);
 
@@ -87,7 +89,7 @@ export function ImportManager() {
                 setRegStatus("");
                 setRegErrors([result.error]);
             } else if (result.success) {
-                setRegStatus(`✓ Importación completada: ${result.count} de ${result.totalRows || result.count} regularizaciones procesadas correctamente`);
+                setRegStatus(`${t('import.manager.toast.success')}: ${result.count} / ${result.totalRows || result.count}`);
                 setRegImportInfo({
                     totalRows: result.totalRows,
                     delimiter: result.delimiter
@@ -98,7 +100,7 @@ export function ImportManager() {
             }
         } catch (error) {
             setRegStatus("");
-            setRegErrors([`Error inesperado: ${error instanceof Error ? error.message : 'Error desconocido'}`]);
+            setRegErrors([`${t('import.manager.toast.unexpected')}: ${error instanceof Error ? error.message : 'Error'}`]);
         } finally {
             setIsRegImporting(false);
         }
@@ -108,22 +110,22 @@ export function ImportManager() {
         <div className="space-y-8">
             {/* Work Packages Section */}
             <div>
-                <h2 className="text-xl font-semibold mb-4">Work Packages y Clientes</h2>
+                <h2 className="text-xl font-semibold mb-4">{t('import.manager.wpTitle')}</h2>
                 <div className="grid gap-8 md:grid-cols-2">
                     {/* Export Section */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Exportar Datos (Plantilla)</CardTitle>
+                            <CardTitle>{t('import.manager.exportTitle')}</CardTitle>
                             <CardDescription>
-                                Descarga un CSV con todos los datos actuales. Utiliza este archivo como plantilla para cargar nuevos datos.
+                                {t('import.manager.exportDesc')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm text-muted-foreground">
-                                El archivo incluye Clientes, Proyectos y Work Packages aplanados en una sola fila por WP.
+                                {t('import.manager.exportInfo')}
                             </p>
                             <Button onClick={handleExport} variant="outline" className="w-full">
-                                Descargar CSV / Plantilla
+                                {t('import.manager.exportButton')}
                             </Button>
                         </CardContent>
                     </Card>
@@ -131,9 +133,9 @@ export function ImportManager() {
                     {/* Import Section */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Importar Datos</CardTitle>
+                            <CardTitle>{t('import.manager.importTitle')}</CardTitle>
                             <CardDescription>
-                                Sube un archivo CSV para crear o actualizar registros masivamente.
+                                {t('import.manager.importDesc')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -147,7 +149,7 @@ export function ImportManager() {
                                         disabled={isImporting}
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Formato: CSV delimitado por <strong>coma (,)</strong> o <strong>punto y coma (;)</strong> - detección automática.
+                                        {t('import.manager.importFormat')}
                                     </p>
                                 </div>
                                 <Button
@@ -158,10 +160,10 @@ export function ImportManager() {
                                     {isImporting ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Importando...
+                                            {t('import.manager.importing')}
                                         </>
                                     ) : (
-                                        "Subir y Procesar"
+                                        t('import.manager.importButton')
                                     )}
                                 </Button>
                             </form>
@@ -169,13 +171,13 @@ export function ImportManager() {
                             {status && !isImporting && (
                                 <Alert className="mt-4 bg-green-50 border-green-200">
                                     <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                    <AlertTitle className="text-green-800">Éxito</AlertTitle>
+                                    <AlertTitle className="text-green-800">{t('common.success')}</AlertTitle>
                                     <AlertDescription className="text-green-700">
                                         {status}
                                         {importInfo && (
                                             <div className="mt-2 text-xs">
                                                 <Info className="inline h-3 w-3 mr-1" />
-                                                Delimitador detectado: <strong>{importInfo.delimiter}</strong>
+                                                {t('import.manager.delimiter')}: <strong>{importInfo.delimiter}</strong>
                                             </div>
                                         )}
                                     </AlertDescription>
@@ -185,9 +187,9 @@ export function ImportManager() {
                             {isImporting && (
                                 <Alert className="mt-4 bg-blue-50 border-blue-200">
                                     <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                                    <AlertTitle className="text-blue-800">Procesando</AlertTitle>
+                                    <AlertTitle className="text-blue-800">{t('import.manager.processingTitle')}</AlertTitle>
                                     <AlertDescription className="text-blue-700">
-                                        Importando datos, por favor espere...
+                                        {t('import.manager.processingDesc')}
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -196,12 +198,12 @@ export function ImportManager() {
                                 <Alert className="mt-4 bg-red-50 border-red-200">
                                     <AlertCircle className="h-4 w-4 text-red-600" />
                                     <AlertTitle className="text-red-800">
-                                        {status ? "Importación completada con errores" : "Error en la importación"}
+                                        {status ? t('import.manager.toast.partial') : t('import.manager.toast.error')}
                                     </AlertTitle>
                                     <AlertDescription className="text-red-700">
                                         <details className="mt-2">
                                             <summary className="cursor-pointer font-medium">
-                                                {errors.length} errores encontrados (click ver)
+                                                {t('import.manager.errorsFound', { count: errors.length })}
                                             </summary>
                                             <ul className="mt-2 list-disc pl-4 space-y-1 text-sm max-h-60 overflow-y-auto">
                                                 {errors.map((err, idx) => (
@@ -219,27 +221,27 @@ export function ImportManager() {
 
             {/* Regularizations Section */}
             <div>
-                <h2 className="text-xl font-semibold mb-4">Regularizaciones</h2>
+                <h2 className="text-xl font-semibold mb-4">{t('import.manager.regTitle')}</h2>
                 <div className="grid gap-8 md:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Exportar Regularizaciones</CardTitle>
+                            <CardTitle>{t('import.manager.regExportTitle')}</CardTitle>
                             <CardDescription>
-                                Descarga todas las regularizaciones en formato CSV.
+                                {t('import.manager.regExportDesc')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Button onClick={handleRegularizationsExport} variant="outline" className="w-full">
-                                Descargar Regularizaciones CSV
+                                {t('import.manager.regExportButton')}
                             </Button>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Importar Regularizaciones</CardTitle>
+                            <CardTitle>{t('import.manager.regImportTitle')}</CardTitle>
                             <CardDescription>
-                                Sube un CSV para crear o actualizar regularizaciones masivamente.
+                                {t('import.manager.regImportDesc')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -258,13 +260,13 @@ export function ImportManager() {
                                     className="w-full"
                                     disabled={isRegImporting}
                                 >
-                                    Subir y Procesar
+                                    {isRegImporting ? t('import.manager.importing') : t('import.manager.importButton')}
                                 </Button>
                             </form>
 
                             {regStatus && !isRegImporting && (
                                 <Alert className="mt-4 bg-green-50 border-green-200">
-                                    <AlertTitle className="text-green-800">Éxito</AlertTitle>
+                                    <AlertTitle className="text-green-800">{t('common.success')}</AlertTitle>
                                     <AlertDescription className="text-green-700">{regStatus}</AlertDescription>
                                 </Alert>
                             )}

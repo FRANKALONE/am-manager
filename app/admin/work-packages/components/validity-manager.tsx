@@ -14,8 +14,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Save, Undo, Pencil, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useTranslations } from "@/lib/use-translations";
+import { formatDate as formatTimezoneDate } from "@/lib/date-utils";
 
 export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizationTypes }: { wpId: string, periods: any[], scopeUnits?: any[], regularizationTypes?: any[] }) {
+    const { t, locale } = useTranslations();
     const [isPending, startTransition] = useTransition();
 
     // New period state
@@ -118,11 +121,15 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
     }
 
     function handleDelete(id: number) {
-        if (!confirm("¿Seguro que quieres eliminar este periodo?")) return;
+        if (!confirm(t('workPackages.validity.confirmDelete'))) return;
         startTransition(async () => {
             await deleteValidityPeriod(id);
         });
     }
+
+    const formatDate = (dateStr: string) => {
+        return formatTimezoneDate(dateStr, { year: 'numeric', month: '2-digit', day: '2-digit' });
+    };
 
     return (
         <div className="space-y-6">
@@ -131,14 +138,14 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <Plus className="w-4 h-4" />
-                        Añadir Nuevo Periodo
+                        {t('workPackages.validity.addTitle')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {/* Dates */}
                     <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                         <div className="space-y-2">
-                            <Label htmlFor="newStartDate">Fecha Inicio</Label>
+                            <Label htmlFor="newStartDate">{t('workPackages.validity.startDate')}</Label>
                             <Input
                                 type="date"
                                 id="newStartDate"
@@ -147,7 +154,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="newEndDate">Fecha Fin</Label>
+                            <Label htmlFor="newEndDate">{t('workPackages.validity.endDate')}</Label>
                             <Input
                                 type="date"
                                 id="newEndDate"
@@ -160,7 +167,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 1: Cantidad y Unidad */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newTotalQuantity">Cantidad de Alcance (TOTAL)</Label>
+                            <Label htmlFor="newTotalQuantity">{t('workPackages.validity.scopeQuantity')}</Label>
                             <Input
                                 type="number"
                                 step="0.01"
@@ -170,7 +177,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="newScopeUnit">Unidad de la Cantidad de Alcance</Label>
+                            <Label htmlFor="newScopeUnit">{t('workPackages.validity.scopeUnit')}</Label>
                             <Select value={newPeriod.scopeUnit} onValueChange={(value) => setNewPeriod({ ...newPeriod, scopeUnit: value })}>
                                 <SelectTrigger id="newScopeUnit"><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -184,7 +191,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 2: Tarifa y Tipo Facturación */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newRate">Tarifa</Label>
+                            <Label htmlFor="newRate">{t('workPackages.validity.rate')}</Label>
                             <Input
                                 type="number"
                                 step="0.01"
@@ -194,14 +201,14 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="newRateEvolutivo">Tarifa de Evolutivos</Label>
+                            <Label htmlFor="newRateEvolutivo">{t('workPackages.validity.rateEvolutivo')}</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 id="newRateEvolutivo"
                                 value={newPeriod.rateEvolutivo || ""}
                                 onChange={(e) => setNewPeriod({ ...newPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })}
-                                placeholder="Opcional"
+                                placeholder={t('workPackages.validity.rateEvolutivoPlaceholder')}
                             />
                         </div>
                     </div>
@@ -209,13 +216,13 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 2.5: Tipo Facturación */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newBillingType">Tipo de Facturación</Label>
+                            <Label htmlFor="newBillingType">{t('workPackages.validity.billingType')}</Label>
                             <Select value={newPeriod.billingType || "MENSUAL"} onValueChange={(value) => setNewPeriod({ ...newPeriod, billingType: value })}>
                                 <SelectTrigger id="newBillingType"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="MENSUAL">Mensual</SelectItem>
-                                    <SelectItem value="TRIMESTRAL">Trimestral</SelectItem>
-                                    <SelectItem value="ANUAL">Anual</SelectItem>
+                                    <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
+                                    <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
+                                    <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -224,22 +231,22 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 3: Tarifa Regularización y Tipo Regularización */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newRegularizationRate">Tarifa de Regularización</Label>
+                            <Label htmlFor="newRegularizationRate">{t('workPackages.validity.regRate')}</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 id="newRegularizationRate"
                                 value={newPeriod.regularizationRate || ""}
                                 onChange={(e) => setNewPeriod({ ...newPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })}
-                                placeholder="Misma que tarifa normal"
+                                placeholder={t('workPackages.validity.regRatePlaceholder')}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="newRegularizationType">Tipo de Regularización</Label>
+                            <Label htmlFor="newRegularizationType">{t('workPackages.validity.regType')}</Label>
                             <Select value={newPeriod.regularizationType || "NONE"} onValueChange={(value) => setNewPeriod({ ...newPeriod, regularizationType: value === "NONE" ? null : value })}>
                                 <SelectTrigger id="newRegularizationType"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="NONE">No definido</SelectItem>
+                                    <SelectItem value="NONE">{t('workPackages.validity.notDefined')}</SelectItem>
                                     {regularizationTypes?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -249,22 +256,23 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 4: Premium y Tipo Renovación */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newIsPremium">Premium</Label>
+                            <Label htmlFor="newIsPremium">{t('workPackages.validity.premium')}</Label>
                             <Select value={newPeriod.isPremium ? "true" : "false"} onValueChange={(value) => setNewPeriod({ ...newPeriod, isPremium: value === "true" })}>
                                 <SelectTrigger id="newIsPremium"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="false">No</SelectItem>
-                                    <SelectItem value="true">Sí</SelectItem>
+                                    <SelectItem value="false">{t('common.no')}</SelectItem>
+                                    <SelectItem value="true">{t('common.yes')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="newRenewalType">Tipo de Renovación</Label>
+                            <Label htmlFor="newRenewalType">{t('workPackages.validity.renewalType')}</Label>
                             <Select value={newPeriod.renewalType || "NONE"} onValueChange={(value) => setNewPeriod({ ...newPeriod, renewalType: value === "NONE" ? null : value })}>
                                 <SelectTrigger id="newRenewalType"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="NONE">No definido</SelectItem>
-                                    {/* Note: renewalTypes would need to be passed as prop */}
+                                    <SelectItem value="NONE">{t('workPackages.validity.notDefined')}</SelectItem>
+                                    {/* Note: renewalTypes would need to be passed as prop if we wanted the full list here, 
+                                        but currently this component seems to handle a subset or just 'No definido' */}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -273,14 +281,14 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                     {/* Row 5: Tarifa Premium (conditional) */}
                     {newPeriod.isPremium && (
                         <div className="space-y-2">
-                            <Label htmlFor="newPremiumPrice">Tarifa de Premium</Label>
+                            <Label htmlFor="newPremiumPrice">{t('workPackages.validity.premiumPrice')}</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 id="newPremiumPrice"
                                 value={newPeriod.premiumPrice || ""}
                                 onChange={(e) => setNewPeriod({ ...newPeriod, premiumPrice: e.target.value ? parseFloat(e.target.value) : null })}
-                                placeholder="Opcional"
+                                placeholder={t('workPackages.validity.premiumPricePlaceholder')}
                             />
                         </div>
                     )}
@@ -291,7 +299,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                         type="button"
                         className="w-full"
                     >
-                        {isPending ? "Guardando..." : "Añadir Periodo"}
+                        {isPending ? t('workPackages.validity.saving') : t('workPackages.validity.saveButton')}
                     </Button>
                 </CardContent>
             </Card>
@@ -303,13 +311,13 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                         <table className="w-full text-sm">
                             <thead className="bg-muted">
                                 <tr>
-                                    <th className="px-3 py-2 text-left font-medium">Periodo</th>
-                                    <th className="px-3 py-2 text-left font-medium">Cantidad</th>
-                                    <th className="px-3 py-2 text-left font-medium">Tarifa</th>
-                                    <th className="px-3 py-2 text-left font-medium">Premium</th>
-                                    <th className="px-3 py-2 text-left font-medium">Regularización</th>
-                                    <th className="px-3 py-2 text-left font-medium">Excedente</th>
-                                    <th className="px-3 py-2 text-right font-medium">Acciones</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.period')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.quantity')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.rate')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.premium')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.regularization')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.surplus')}</th>
+                                    <th className="px-3 py-2 text-right font-medium">{t('workPackages.validity.tableHeader.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -327,8 +335,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
-                                                        <div>{new Date(data.startDate).toLocaleDateString('es-ES')}</div>
-                                                        <div className="text-muted-foreground">{new Date(data.endDate).toLocaleDateString('es-ES')}</div>
+                                                        <div>{formatDate(data.startDate)}</div>
+                                                        <div className="text-muted-foreground">{formatDate(data.endDate)}</div>
                                                     </div>
                                                 )}
                                             </td>
@@ -353,14 +361,14 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                             <td className="px-3 py-2">
                                                 {isEditing ? (
                                                     <div className="space-y-1">
-                                                        <Input type="number" step="0.01" value={data.rate} onChange={e => setEditPeriod({ ...editPeriod, rate: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Tarifa" />
-                                                        <Input type="number" step="0.01" value={data.rateEvolutivo || ""} onChange={e => setEditPeriod({ ...editPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Tarifa Evo" />
+                                                        <Input type="number" step="0.01" value={data.rate} onChange={e => setEditPeriod({ ...editPeriod, rate: parseFloat(e.target.value) })} className="text-xs h-7" placeholder={t('workPackages.validity.rate')} />
+                                                        <Input type="number" step="0.01" value={data.rateEvolutivo || ""} onChange={e => setEditPeriod({ ...editPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder={t('workPackages.validity.rateEvolutivo')} />
                                                         <Input type="number" step="0.01" value={data.correctionFactor} onChange={e => setEditPeriod({ ...editPeriod, correctionFactor: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Factor" />
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
-                                                        <div>Tarifa: {data.rate} €/h</div>
-                                                        {data.rateEvolutivo && <div className="text-green-600 font-medium">Evo: {data.rateEvolutivo} €/h</div>}
+                                                        <div>{t('workPackages.validity.rate')}: {data.rate} €/h</div>
+                                                        {data.rateEvolutivo && <div className="text-green-600 font-medium">{t('workPackages.validity.rateEvolutivo')}: {data.rateEvolutivo} €/h</div>}
                                                         <div className="text-muted-foreground">x{data.correctionFactor}</div>
                                                     </div>
                                                 )}
@@ -371,17 +379,17 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                         <Select value={data.isPremium ? "true" : "false"} onValueChange={(value) => setEditPeriod({ ...editPeriod, isPremium: value === "true" })}>
                                                             <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
                                                             <SelectContent>
-                                                                <SelectItem value="false">No</SelectItem>
-                                                                <SelectItem value="true">Sí</SelectItem>
+                                                                <SelectItem value="false">{t('common.no')}</SelectItem>
+                                                                <SelectItem value="true">{t('common.yes')}</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                         {data.isPremium && (
-                                                            <Input type="number" step="0.01" value={data.premiumPrice || ""} onChange={e => setEditPeriod({ ...editPeriod, premiumPrice: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Precio" />
+                                                            <Input type="number" step="0.01" value={data.premiumPrice || ""} onChange={e => setEditPeriod({ ...editPeriod, premiumPrice: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder={t('workPackages.validity.premiumPrice')} />
                                                         )}
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
-                                                        <div>{data.isPremium ? "Sí" : "No"}</div>
+                                                        <div>{data.isPremium ? t('common.yes') : t('common.no')}</div>
                                                         {data.isPremium && data.premiumPrice && <div className="text-muted-foreground">{data.premiumPrice} €</div>}
                                                     </div>
                                                 )}
@@ -396,7 +404,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                                 {regularizationTypes?.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
                                                             </SelectContent>
                                                         </Select>
-                                                        <Input type="number" step="0.01" value={data.regularizationRate || ""} onChange={e => setEditPeriod({ ...editPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder="Tarifa Reg." />
+                                                        <Input type="number" step="0.01" value={data.regularizationRate || ""} onChange={e => setEditPeriod({ ...editPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder={t('workPackages.validity.regRate')} />
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
@@ -411,12 +419,15 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                         <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="NONE">-</SelectItem>
-                                                            <SelectItem value="ACCUMULATE">Acumular</SelectItem>
-                                                            <SelectItem value="LOSE">Perder</SelectItem>
+                                                            <SelectItem value="ACCUMULATE">{t('workPackages.validity.surplusOptions.accumulate')}</SelectItem>
+                                                            <SelectItem value="LOSE">{t('workPackages.validity.surplusOptions.lose')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 ) : (
-                                                    <div className="text-xs">{data.surplusStrategy || "-"}</div>
+                                                    <div className="text-xs">
+                                                        {data.surplusStrategy === 'ACCUMULATE' ? t('workPackages.validity.surplusOptions.accumulate') :
+                                                            data.surplusStrategy === 'LOSE' ? t('workPackages.validity.surplusOptions.lose') : "-"}
+                                                    </div>
                                                 )}
                                             </td>
                                             <td className="px-3 py-2">
@@ -454,7 +465,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             {
                 periods.length === 0 && (
                     <div className="text-center text-muted-foreground py-8 border rounded-md">
-                        Sin periodos definidos. Añade el primer periodo arriba.
+                        {t('workPackages.validity.noPeriods')}
                     </div>
                 )
             }

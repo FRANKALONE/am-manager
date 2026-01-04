@@ -20,6 +20,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "@/lib/use-translations";
 
 interface WorkPackage {
     id: string;
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Props) {
+    const { t } = useTranslations();
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -64,20 +66,20 @@ export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Prop
         setIsDeleting(false);
 
         if (result.success) {
-            toast.success(`Eliminados ${result.count} Work Packages correctamente`);
+            toast.success(t('workPackages.table.toast.deletedBulk', { count: result.count }));
             setSelectedIds([]);
         } else {
-            toast.error(result.error || "Error al eliminar");
+            toast.error(result.error || t('workPackages.table.toast.error'));
         }
     };
 
     const handleDeleteSingle = async (id: string) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar este Work Package?")) return;
+        if (!confirm(t('workPackages.table.confirmSingle'))) return;
         const result = await deleteWorkPackage(id);
         if (result?.error) {
             toast.error(result.error);
         } else {
-            toast.success("Work Package eliminado");
+            toast.success(t('workPackages.table.toast.deletedSingle'));
         }
     };
 
@@ -87,27 +89,26 @@ export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Prop
                 <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
-                        {selectedIds.length} Work Packages seleccionados
+                        {t('workPackages.table.selected', { count: selectedIds.length })}
                     </div>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" size="sm" disabled={isDeleting}>
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar Selección
+                                {t('workPackages.table.deleteSelection')}
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>¿Confirmar eliminación masiva?</AlertDialogTitle>
+                                <AlertDialogTitle>{t('workPackages.table.confirmBulkTitle')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Estás a punto de eliminar {selectedIds.length} Work Packages de forma permanente.
-                                    Esta acción no se puede deshacer y eliminará todos los consumos y periodos asociados.
+                                    {t('workPackages.table.confirmBulkDesc', { count: selectedIds.length })}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogCancel>{t('workPackages.filter.clear') === 'Limpiar' ? 'Cancelar' : 'Cancel'}</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleDeleteBulk} className="bg-red-600 hover:bg-red-700">
-                                    Eliminar Definitivamente
+                                    {t('workPackages.table.confirmBulkAction')}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -126,14 +127,14 @@ export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Prop
                                         onCheckedChange={toggleSelectAll}
                                     />
                                 </TableHead>
-                                <TableHead className="sticky left-[50px] z-30 bg-white dark:bg-gray-900 w-[150px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">ID WP</TableHead>
-                                <TableHead className="sticky left-[200px] z-30 bg-white dark:bg-gray-900 w-[250px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nombre</TableHead>
-                                <TableHead className="min-w-[200px]">Cliente</TableHead>
-                                <TableHead className="min-w-[150px]">Tipo Contrato</TableHead>
-                                <TableHead className="min-w-[120px]">Facturación</TableHead>
-                                <TableHead className="min-w-[150px]">Renovación</TableHead>
-                                <TableHead className="min-w-[100px] text-center">Periodos</TableHead>
-                                <TableHead className="text-right min-w-[100px]">Acciones</TableHead>
+                                <TableHead className="sticky left-[50px] z-30 bg-white dark:bg-gray-900 w-[150px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{t('workPackages.table.id')}</TableHead>
+                                <TableHead className="sticky left-[200px] z-30 bg-white dark:bg-gray-900 w-[250px] border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{t('workPackages.table.name')}</TableHead>
+                                <TableHead className="min-w-[200px]">{t('workPackages.table.client')}</TableHead>
+                                <TableHead className="min-w-[150px]">{t('workPackages.table.contract')}</TableHead>
+                                <TableHead className="min-w-[120px]">{t('workPackages.table.billing')}</TableHead>
+                                <TableHead className="min-w-[150px]">{t('workPackages.table.renewal')}</TableHead>
+                                <TableHead className="min-w-[100px] text-center">{t('workPackages.table.periods')}</TableHead>
+                                <TableHead className="text-right min-w-[100px]">{t('workPackages.table.actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -187,7 +188,7 @@ export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Prop
                             {wps.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={9} className="text-center text-muted-foreground h-24">
-                                        No hay Work Packages que coincidan con los filtros.
+                                        {t('workPackages.table.noResults')}
                                     </TableCell>
                                 </TableRow>
                             )}

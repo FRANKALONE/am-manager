@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "./notifications";
 import { revalidatePath } from "next/cache";
+import { formatDate, getNow } from "@/lib/date-utils";
 
 /**
  * Checks for contracts ending in 45 days and sends notifications.
@@ -10,8 +11,8 @@ import { revalidatePath } from "next/cache";
  */
 export async function checkContractExpirations() {
     try {
-        const today = new Date();
-        const targetDate = new Date();
+        const today = getNow();
+        const targetDate = getNow();
         targetDate.setDate(today.getDate() + 45);
 
         // Define range for "45 days from now" (the whole day)
@@ -58,14 +59,14 @@ export async function checkContractExpirations() {
             }
 
             const title = `⚠️ Contrato por vencer: ${wp.client.name}`;
-            const message = `El Work Package "${wp.name}" finaliza el ${currentPeriod.endDate.toLocaleDateString('es-ES')}. Por favor, gestionad la renovación.`;
+            const message = `El Work Package "${wp.name}" finaliza el ${formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}. Por favor, gestionad la renovación.`;
 
             for (const user of recipients) {
                 await createNotification(user.id, "CONTRACT_ENDING", title, message, wp.id);
             }
 
             // 2. Notify Client Users
-            const clientMessage = `Tu periodo de contrato para "${wp.name}" finalizará el ${currentPeriod.endDate.toLocaleDateString('es-ES')}.`;
+            const clientMessage = `Tu periodo de contrato para "${wp.name}" finalizará el ${formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}.`;
             for (const user of wp.client.users) {
                 await createNotification(user.id, "CONTRACT_ENDING_CLIENT", "Fin de periodo de contrato", clientMessage, wp.id);
             }
@@ -136,13 +137,13 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
         }
 
         const staffTitle = `✅ Renovación Automática: ${wp.name}`;
-        const staffMsg = `Se ha renovado automáticamente el WP "${wp.name}" hasta el ${newEndDate.toLocaleDateString('es-ES')} con un incremento del ${ipcIncrement}% (Tarifa: ${newRate.toFixed(2)}€).`;
+        const staffMsg = `Se ha renovado automáticamente el WP "${wp.name}" hasta el ${formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' })} con un incremento del ${ipcIncrement}% (Tarifa: ${newRate.toFixed(2)}€).`;
 
         for (const user of staffRecipients) {
             await createNotification(user.id, "CONTRACT_RENEWED", staffTitle, staffMsg, wp.id);
         }
 
-        const clientMsg = `Se ha renovado el periodo de servicio para "${wp.name}" hasta el ${newEndDate.toLocaleDateString('es-ES')}.`;
+        const clientMsg = `Se ha renovado el periodo de servicio para "${wp.name}" hasta el ${formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}.`;
         for (const user of wp.client.users) {
             await createNotification(user.id, "CONTRACT_RENEWED_CLIENT", "Contrato Renovado", clientMsg, wp.id);
         }

@@ -12,10 +12,11 @@ import { Button } from "@/components/ui/button";
 import { ExpandableMonthlyRow } from "./expandable-monthly-row";
 import { TicketConsumptionReport } from "./ticket-consumption-report";
 import { ReviewRequestModal } from "./review-request-modal";
+import { useTranslations } from "@/lib/use-translations";
+import { toast } from "sonner";
+import { formatDate } from "@/lib/date-utils";
 
-// Simple Progress Component since Shadcn Progress wasn't installed explicitly in previous steps?
-// I'll assume standard HTML progress or install it. 
-// Actually I'll use a custom div bar to be safe and dependency-free for now.
+// Simple Progress Component
 function ProgressBar({ value, max = 100, className }: { value: number, max?: number, className?: string }) {
     const p = Math.min(100, Math.max(0, (value / max) * 100));
     return (
@@ -42,6 +43,7 @@ export function DashboardView({
     readOnly?: boolean,
     isAdmin?: boolean
 }) {
+    const { t, locale } = useTranslations();
     const [selectedClient, setSelectedClient] = useState<string>(initialClientId);
     const [wps, setWps] = useState<any[]>([]);
     const [selectedWp, setSelectedWp] = useState<string>(initialWpId);
@@ -68,6 +70,11 @@ export function DashboardView({
     const [ticketReport, setTicketReport] = useState<any>(null);
     const [loadingTicketReport, setLoadingTicketReport] = useState(false);
     const isInitialMount = useRef(true);
+
+    // Month names for filter dropdown
+    const monthNamesShort = locale === 'es'
+        ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     // Clear selection when WP or Period changes
     useEffect(() => {
@@ -98,23 +105,20 @@ export function DashboardView({
         });
     }, [selectedClient, initialWpId]);
 
-    // Load Metrics when WP changes - NO AUTO SYNC
+    // Load Metrics when WP changes
     useEffect(() => {
         if (!selectedWp) return;
         setLoading(true);
-        setUseCustomRange(false); // Reset custom range when WP changes
-        setActiveView('monthly'); // Reset to monthly view when WP changes
-        isInitialMount.current = true; // Reset flag when WP changes
+        setUseCustomRange(false);
+        setActiveView('monthly');
+        isInitialMount.current = true;
 
         getDashboardMetrics(selectedWp).then(data => {
             setMetrics(data);
             setLoading(false);
 
-            // Initialize selectedPeriodId and date range from current validity period
             if (data?.validityPeriods && data.validityPeriods.length > 0) {
                 const currentPeriod = data.validityPeriods.find((p: any) => p.isCurrent) || data.validityPeriods[0];
-
-                // Always set the selected period ID when WP changes
                 setSelectedPeriodId(currentPeriod.id);
 
                 const start = new Date(currentPeriod.startDate);
@@ -130,36 +134,20 @@ export function DashboardView({
         });
     }, [selectedWp]);
 
-    // Handle Manual Sync
     const handleSync = async () => {
         if (!selectedWp) return;
         setSyncing(true);
         try {
-            console.log(`Manual sync requested for WP: ${selectedWp}`);
-            const syncResult = await syncWorkPackage(selectedWp, true); // Enable debug mode
+            const syncResult = await syncWorkPackage(selectedWp, true);
 
             if (syncResult && syncResult.error) {
-                alert(`Error: ${syncResult.error}`);
-                console.error("Sync error:", syncResult.error);
+                toast.error(`Error: ${syncResult.error}`);
             } else {
-                const totalHours = syncResult?.totalHours || 0;
-                const processed = syncResult?.processed || 0;
-                const logs = syncResult?.logs || [];
-
-                // Show detailed logs in console
-                console.log('=== SYNC LOGS ===');
-                logs.forEach(log => console.log(log));
-
-                alert(`Sincronización completada.\nProcesados: ${processed} worklogs.\nTotal Horas: ${totalHours.toFixed(1)}h\n\nRevisa la consola del navegador (F12) para ver los logs detallados.`);
-                console.log(`Manual sync complete: ${totalHours}h`);
-
-                // Check for duplicate consumptions
+                toast.success(t('common.success'));
                 if (syncResult?.duplicateConsumptions && syncResult.duplicateConsumptions.length > 0) {
                     setDuplicates(syncResult.duplicateConsumptions);
                     setShowDuplicatesModal(true);
                 }
-
-                // Reload metrics after sync
                 const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
                 setMetrics(data);
             }
@@ -170,18 +158,16 @@ export function DashboardView({
         }
     };
 
-    // Handle period change
     const handlePeriodChange = async (newPeriodId: number) => {
         setSelectedPeriodId(newPeriodId);
         setLoading(true);
         setUseCustomRange(false);
-        setTicketReport(null); // Clear ticket report when period changes
+        setTicketReport(null);
 
         try {
             const data = await getDashboardMetrics(selectedWp, newPeriodId);
             setMetrics(data);
 
-            // Update date range
             if (data?.validityPeriods && data.validityPeriods.length > 0) {
                 const selectedPeriod = data.validityPeriods.find((p: any) => p.id === newPeriodId);
                 if (selectedPeriod) {
@@ -200,7 +186,6 @@ export function DashboardView({
         }
     };
 
-    // Load ticket report when switching to tickets view
     useEffect(() => {
         if (activeView === 'tickets' && selectedWp && !ticketReport) {
             (async () => {
@@ -212,17 +197,14 @@ export function DashboardView({
         }
     }, [activeView, selectedWp, selectedPeriodId]);
 
-    // Reset ticket report when WP or period changes
     useEffect(() => {
         setTicketReport(null);
     }, [selectedWp, selectedPeriodId]);
 
-    // Handlers for duplicate consumptions modal
     const handleDeleteDuplicates = async (ids: number[]) => {
         setLoading(true);
         const result = await deleteSelectedRegularizations(ids);
         if (result.success) {
-            // Reload metrics locally (without full sync)
             if (selectedWp) {
                 const data = await getDashboardMetrics(selectedWp, selectedPeriodId);
                 setMetrics(data);
@@ -240,17 +222,23 @@ export function DashboardView({
         setDuplicates([]);
     };
 
+    const formatNumber = (num: number, tickets: boolean = false) => {
+        return new Intl.NumberFormat(locale, {
+            minimumFractionDigits: tickets ? 0 : 2,
+            maximumFractionDigits: tickets ? 0 : 2
+        }).format(num);
+    };
+
     return (
         <div className="space-y-8">
-            {/* 1. Header & Selectors */}
             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end justify-between bg-card p-6 rounded-xl border shadow-sm">
                 {!readOnly ? (
                     <div className="flex flex-col md:flex-row gap-4 flex-grow">
                         <div className="space-y-2 w-full md:w-1/3">
-                            <label className="text-sm font-medium">Cliente</label>
+                            <label className="text-sm font-medium">{t('dashboard.client')}</label>
                             <Select onValueChange={setSelectedClient} value={selectedClient}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar Cliente" />
+                                    <SelectValue placeholder={t('dashboard.selectClient')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -259,10 +247,10 @@ export function DashboardView({
                         </div>
 
                         <div className="space-y-2 w-full md:w-1/3">
-                            <label className="text-sm font-medium">Contrato / Work Package</label>
+                            <label className="text-sm font-medium">{t('dashboard.wpLabel')}</label>
                             <Select onValueChange={setSelectedWp} value={selectedWp} disabled={!selectedClient || wps.length === 0}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar WP" />
+                                    <SelectValue placeholder={t('dashboard.selectWp')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {wps.map(wp => <SelectItem key={wp.id} value={wp.id}>{wp.name}</SelectItem>)}
@@ -278,13 +266,7 @@ export function DashboardView({
                     <div className="flex flex-col items-end gap-2">
                         {metrics?.lastSyncedAt && (
                             <span className="text-[10px] text-muted-foreground italic">
-                                Última sincronización: {new Date(metrics.lastSyncedAt).toLocaleString('es-ES', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
+                                {t('dashboard.lastSync')}: {formatDate(metrics.lastSyncedAt)}
                             </span>
                         )}
                         <Button
@@ -295,7 +277,7 @@ export function DashboardView({
                             className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-semibold"
                         >
                             <RefreshCcw className={`w-3.5 h-3.5 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                            {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
+                            {syncing ? t('dashboard.syncing') : t('dashboard.syncNow')}
                         </Button>
                     </div>
                 )}
@@ -306,79 +288,64 @@ export function DashboardView({
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-muted-foreground font-medium text-center">
                         {syncing
-                            ? `Sincronizando con ${wps.find(wp => wp.id === selectedWp)?.contractType?.toUpperCase() === 'EVENTOS' ? 'JIRA' : 'Tempo'}...`
-                            : 'Cargando indicadores...'
+                            ? `${t('dashboard.syncing')} ${wps.find(wp => wp.id === selectedWp)?.contractType?.toUpperCase() === 'EVENTOS' ? 'JIRA' : 'Tempo'}...`
+                            : t('dashboard.loadingMetrics')
                         }
                     </p>
                 </div>
             )}
 
-            {/* 2. KPI Grid */}
             {metrics && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-
-                    {/* Top Stats */}
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Contratado</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('dashboard.contracted')}</CardTitle>
                                 <PieChart className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {metrics.billedAmount?.toLocaleString('es-ES', {
-                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
-                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
-                                    })} / {metrics.totalScope.toLocaleString('es-ES', {
-                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
-                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
-                                    })}
+                                    {formatNumber(metrics.billedAmount, metrics.scopeUnit === 'TICKETS')} / {formatNumber(metrics.totalScope, metrics.scopeUnit === 'TICKETS')}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {metrics.billedPercentage.toFixed(1)}% facturado de <span className="font-semibold">{metrics.totalScope.toLocaleString('es-ES', { maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2 })} {metrics.scopeUnit}</span>
+                                    {metrics.billedPercentage.toFixed(1)}% {t('dashboard.billedOf')} <span className="font-semibold">{formatNumber(metrics.totalScope, metrics.scopeUnit === 'TICKETS')} {metrics.scopeUnit}</span>
                                 </p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Consumido</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('dashboard.consumed')}</CardTitle>
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {metrics.totalConsumed.toLocaleString('es-ES', {
-                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
-                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
-                                    })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                    {formatNumber(metrics.totalConsumed, metrics.scopeUnit === 'TICKETS')} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {(Math.floor(metrics.percentage * 10) / 10).toFixed(1)}% del total
+                                    {(Math.floor(metrics.percentage * 10) / 10).toFixed(1)}% {t('dashboard.total')}
                                 </p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Disponible</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('dashboard.available')}</CardTitle>
                                 <Activity className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className={`text-2xl font-bold ${metrics.remaining < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                    {metrics.remaining.toLocaleString('es-ES', {
-                                        minimumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2,
-                                        maximumFractionDigits: metrics.scopeUnit === 'TICKETS' ? 0 : 2
-                                    })} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                    {formatNumber(metrics.remaining, metrics.scopeUnit === 'TICKETS')} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
                                 </div>
                             </CardContent>
                         </Card>
                         {!metrics.isEventos && metrics.nextRegularization && (
                             <Card className="border-orange-200 bg-orange-50/50">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium text-orange-900">Próxima Regularización</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-orange-900">{t('dashboard.nextRegularization')}</CardTitle>
                                     <AlertCircle className="h-4 w-4 text-orange-600" />
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold text-orange-900">
-                                        {metrics.nextRegularization.hours.toFixed(1)} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
+                                        {formatNumber(metrics.nextRegularization.hours)} <span className="text-xs font-normal text-muted-foreground">{metrics.scopeUnit}</span>
                                     </div>
                                     {permissions.view_costs && (
                                         <p className="text-xs text-orange-700 font-medium">
@@ -386,7 +353,7 @@ export function DashboardView({
                                         </p>
                                     )}
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {new Date(metrics.nextRegularization.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        {formatDate(metrics.nextRegularization.date, { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                         ({metrics.nextRegularization.type})
@@ -396,11 +363,10 @@ export function DashboardView({
                         )}
                     </div>
 
-                    {/* Progress Bar - Hidden for Events */}
                     {!metrics.isEventos && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Progreso de Consumo</CardTitle>
+                                <CardTitle className="text-lg">{t('dashboard.consumptionProgress')}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ProgressBar value={metrics.percentage} className="h-6" />
@@ -413,7 +379,6 @@ export function DashboardView({
                         </Card>
                     )}
 
-                    {/* Tab Navigation */}
                     <div className="flex gap-2 border-b">
                         <button
                             onClick={() => setActiveView('monthly')}
@@ -422,7 +387,7 @@ export function DashboardView({
                                 : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
-                            Evolución Mensual
+                            {t('dashboard.monthlyEvolution')}
                         </button>
                         {!metrics.isEventos && (
                             <button
@@ -432,22 +397,21 @@ export function DashboardView({
                                     : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
-                                Consumo por Ticket
+                                {t('dashboard.consumptionByTicket')}
                             </button>
                         )}
                     </div>
 
-                    {/* Monthly Evolution Table */}
                     {activeView === 'monthly' && (
                         <div className="grid gap-4 md:grid-cols-1">
                             <Card className="col-span-1 border-t-4 border-t-primary">
                                 <CardHeader>
                                     <div className="flex items-center justify-between flex-wrap gap-4">
-                                        <CardTitle>Detalle Mensual y Evolución</CardTitle>
+                                        <CardTitle>{t('dashboard.detalleMensual')}</CardTitle>
                                         <div className="flex items-center gap-3 flex-wrap">
                                             {metrics.validityPeriods && metrics.validityPeriods.length > 1 && (
                                                 <div className="flex items-center gap-2">
-                                                    <label className="text-xs font-medium text-muted-foreground">Periodo:</label>
+                                                    <label className="text-xs font-medium text-muted-foreground">{t('dashboard.period')}:</label>
                                                     <Select
                                                         value={selectedPeriodId?.toString() || metrics.selectedPeriodId?.toString()}
                                                         onValueChange={(value) => handlePeriodChange(parseInt(value))}
@@ -458,7 +422,7 @@ export function DashboardView({
                                                         <SelectContent>
                                                             {metrics.validityPeriods.map((period: any) => (
                                                                 <SelectItem key={period.id} value={period.id.toString()}>
-                                                                    {period.label} {period.isCurrent && '(Actual)'}
+                                                                    {period.label} {period.isCurrent && `(${t('dashboard.current')})`}
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>
@@ -466,7 +430,6 @@ export function DashboardView({
                                                 </div>
                                             )}
 
-                                            {/* Custom Date Range Filter */}
                                             <div className="flex items-center gap-3 border-l pl-3">
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
@@ -475,19 +438,19 @@ export function DashboardView({
                                                         onChange={(e) => setUseCustomRange(e.target.checked)}
                                                         className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                                     />
-                                                    <span className="text-xs font-medium text-muted-foreground">Filtrar por fechas</span>
+                                                    <span className="text-xs font-medium text-muted-foreground">{t('dashboard.filterByDates')}</span>
                                                 </label>
 
                                                 {useCustomRange && (
                                                     <>
                                                         <div className="flex items-center gap-2">
-                                                            <label className="text-xs font-medium text-muted-foreground">Desde:</label>
+                                                            <label className="text-xs font-medium text-muted-foreground">{t('dashboard.from')}:</label>
                                                             <select
                                                                 value={startMonth}
                                                                 onChange={(e) => setStartMonth(parseInt(e.target.value))}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
-                                                                {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
+                                                                {monthNamesShort.map((m, i) => (
                                                                     <option key={i} value={i}>{m}</option>
                                                                 ))}
                                                             </select>
@@ -503,13 +466,13 @@ export function DashboardView({
                                                         </div>
 
                                                         <div className="flex items-center gap-2">
-                                                            <label className="text-xs font-medium text-muted-foreground">Hasta:</label>
+                                                            <label className="text-xs font-medium text-muted-foreground">{t('dashboard.to')}:</label>
                                                             <select
                                                                 value={endMonth}
                                                                 onChange={(e) => setEndMonth(parseInt(e.target.value))}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
-                                                                {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
+                                                                {monthNamesShort.map((m, i) => (
                                                                     <option key={i} value={i}>{m}</option>
                                                                 ))}
                                                             </select>
@@ -528,7 +491,7 @@ export function DashboardView({
                                             </div>
 
                                             <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
-                                                Calculado sobre vigencia contrato
+                                                {t('dashboard.calculatedOnContract')}
                                             </span>
                                         </div>
                                     </div>
@@ -538,27 +501,26 @@ export function DashboardView({
                                         <table className="w-full text-sm">
                                             <thead className="bg-muted/50">
                                                 <tr className="border-b">
-                                                    <th className="h-10 px-4 text-left font-medium">Mes</th>
-                                                    <th className="h-10 px-4 text-right font-medium text-muted-foreground">Contratado</th>
-                                                    <th className="h-10 px-4 text-right font-medium">Consumido</th>
-                                                    <th className="h-10 px-4 text-right font-medium">Diferencia Mensual</th>
+                                                    <th className="h-10 px-4 text-left font-medium">{t('dashboard.month')}</th>
+                                                    <th className="h-10 px-4 text-right font-medium text-muted-foreground">{t('dashboard.contracted')}</th>
+                                                    <th className="h-10 px-4 text-right font-medium">{t('dashboard.consumed')}</th>
+                                                    <th className="h-10 px-4 text-right font-medium">{t('dashboard.difference')}</th>
                                                     {permissions.view_costs && (
-                                                        <th className="h-10 px-4 text-right font-medium text-blue-600">Regularización</th>
+                                                        <th className="h-10 px-4 text-right font-medium text-blue-600">{t('dashboard.regularization')}</th>
                                                     )}
                                                     {!metrics.isEventos && (
-                                                        <th className="h-10 px-4 text-right font-medium">Acumulado</th>
+                                                        <th className="h-10 px-4 text-right font-medium">{t('dashboard.accumulated')}</th>
                                                     )}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {(() => {
-                                                    // Filter monthly evolution based on custom date range
                                                     let filteredMonths = metrics.monthlyEvolution;
 
                                                     if (useCustomRange) {
                                                         filteredMonths = metrics.monthlyEvolution.filter((m: any) => {
                                                             const [monthName, year] = m.month.split(' ');
-                                                            const monthIndex = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].indexOf(monthName);
+                                                            const monthIndex = monthNamesShort.indexOf(monthName);
                                                             const monthYear = parseInt(year);
 
                                                             const monthDate = new Date(monthYear, monthIndex, 1);
@@ -592,7 +554,6 @@ export function DashboardView({
                         </div>
                     )}
 
-                    {/* Review Request Modal */}
                     <ReviewRequestModal
                         isOpen={isReviewModalOpen}
                         onClose={() => setIsReviewModalOpen(false)}
@@ -601,17 +562,15 @@ export function DashboardView({
                         userId={userId}
                         onSuccess={() => {
                             setSelectedWorklogs([]);
-                            // We could also reload metrics if needed
                         }}
                     />
 
-                    {/* Ticket Consumption Report */}
                     {activeView === 'tickets' && !metrics.isEventos && (
                         <div className="mt-4">
                             {loadingTicketReport ? (
                                 <Card>
                                     <CardContent className="p-12 text-center">
-                                        <p className="text-muted-foreground">Cargando reporte de consumo por ticket...</p>
+                                        <p className="text-muted-foreground">{t('dashboard.loadingTicketReport')}</p>
                                     </CardContent>
                                 </Card>
                             ) : (
@@ -631,11 +590,10 @@ export function DashboardView({
             {!metrics && selectedClient && !selectedWp && (
                 <div className="text-center p-12 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
                     <AlertCircle className="h-10 w-10 mx-auto mb-4 opacity-20" />
-                    <p>Selecciona un Work Package para ver los indicadores.</p>
+                    <p>{t('dashboard.selectWpMessage')}</p>
                 </div>
             )}
 
-            {/* Duplicate Consumptions Modal */}
             <DuplicateConsumptionsModal
                 open={showDuplicatesModal}
                 duplicates={duplicates}

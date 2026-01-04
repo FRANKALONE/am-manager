@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Pencil, Trash2, Search, X } from "lucide-react";
+import { useTranslations } from "@/lib/use-translations";
 
 interface ClientsTableProps {
     clients: any[]; // Using any to accept Prisma client type
@@ -15,6 +16,7 @@ interface ClientsTableProps {
 }
 
 export function ClientsTable({ clients, managerMap, deleteClientAction }: ClientsTableProps) {
+    const { t } = useTranslations();
     const [searchTerm, setSearchTerm] = useState("");
     const [managerFilter, setManagerFilter] = useState<string>("all");
 
@@ -58,11 +60,11 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
             {/* Filters */}
             <div className="flex gap-4 items-end">
                 <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">Buscar por ID o Nombre</label>
+                    <label className="text-sm font-medium mb-2 block">{t('clients.filter.searchLabel')}</label>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <Input
-                            placeholder="Buscar cliente..."
+                            placeholder={t('clients.filter.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
@@ -71,14 +73,14 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                 </div>
 
                 <div className="w-64">
-                    <label className="text-sm font-medium mb-2 block">Filtrar por Gerente</label>
+                    <label className="text-sm font-medium mb-2 block">{t('clients.filter.managerLabel')}</label>
                     <select
                         value={managerFilter}
                         onChange={(e) => setManagerFilter(e.target.value)}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
-                        <option value="all">Todos los gerentes</option>
-                        <option value="unassigned">Sin asignar</option>
+                        <option value="all">{t('clients.filter.allManagers')}</option>
+                        <option value="unassigned">{t('clients.filter.unassigned')}</option>
                         {uniqueManagers.map(manager => (
                             <option key={manager} value={manager}>
                                 {managerMap[manager] || manager}
@@ -94,7 +96,7 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                         className="gap-2"
                     >
                         <X className="w-4 h-4" />
-                        Limpiar
+                        {t('clients.filter.clear')}
                     </Button>
                 )}
             </div>
@@ -102,7 +104,7 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
             {/* Results count */}
             {hasActiveFilters && (
                 <div className="text-sm text-muted-foreground">
-                    Mostrando {filteredClients.length} de {clients.length} clientes
+                    {t('clients.filter.results', { count: filteredClients.length, total: clients.length })}
                 </div>
             )}
 
@@ -111,11 +113,11 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID Cliente</TableHead>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Gerente</TableHead>
-                            <TableHead>Portal Cliente</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                            <TableHead>{t('clients.table.id')}</TableHead>
+                            <TableHead>{t('clients.table.name')}</TableHead>
+                            <TableHead>{t('clients.table.manager')}</TableHead>
+                            <TableHead>{t('clients.table.portal')}</TableHead>
+                            <TableHead className="text-right">{t('clients.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -129,7 +131,7 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                                             {managerMap[client.manager] || client.manager}
                                         </Badge>
                                     ) : (
-                                        <span className="text-muted-foreground italic text-xs">Sin asignar</span>
+                                        <span className="text-muted-foreground italic text-xs">{t('clients.filter.unassigned')}</span>
                                     )}
                                 </TableCell>
                                 <TableCell>
@@ -140,7 +142,7 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:text-blue-800 text-sm underline"
                                         >
-                                            Ver Portal
+                                            {t('clients.table.viewPortal')}
                                         </a>
                                     ) : (
                                         <span className="text-muted-foreground italic text-xs">-</span>
@@ -166,8 +168,8 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
                                     {hasActiveFilters
-                                        ? "No se encontraron clientes con los filtros aplicados."
-                                        : "No hay clientes registrados."}
+                                        ? t('clients.table.noResults')
+                                        : t('clients.table.noClients')}
                                 </TableCell>
                             </TableRow>
                         )}

@@ -22,7 +22,10 @@ type Model = {
     isDefault: boolean;
 };
 
+import { useTranslations } from "@/lib/use-translations";
+
 export function CorrectionModelsManager({ models }: { models: Model[] }) {
+    const { t } = useTranslations();
     const [isOpen, setIsOpen] = useState(false);
     const [editingModel, setEditingModel] = useState<Model | null>(null);
 
@@ -40,20 +43,20 @@ export function CorrectionModelsManager({ models }: { models: Model[] }) {
         <Card className="col-span-full">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle>Modelos de Corrección</CardTitle>
-                    <CardDescription>Algoritmos de transformación de horas (Tempo → Facturable)</CardDescription>
+                    <CardTitle>{t('admin.settings.models.title')}</CardTitle>
+                    <CardDescription>{t('admin.settings.models.subtitle')}</CardDescription>
                 </div>
-                <Button onClick={handleCreate} size="sm"><Plus className="w-4 h-4 mr-2" /> Nuevo Modelo</Button>
+                <Button onClick={handleCreate} size="sm"><Plus className="w-4 h-4 mr-2" /> {t('admin.settings.models.new')}</Button>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Código</TableHead>
-                            <TableHead>Descripción</TableHead>
-                            <TableHead>Valores Default</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                            <TableHead>{t('admin.settings.models.table.name')}</TableHead>
+                            <TableHead>{t('admin.settings.models.table.code')}</TableHead>
+                            <TableHead>{t('admin.settings.models.table.description')}</TableHead>
+                            <TableHead>{t('admin.settings.models.table.config')}</TableHead>
+                            <TableHead className="text-right">{t('admin.settings.models.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -91,6 +94,7 @@ export function CorrectionModelsManager({ models }: { models: Model[] }) {
 }
 
 function ModelDialog({ isOpen, setIsOpen, model }: { isOpen: boolean, setIsOpen: (v: boolean) => void, model: Model | null }) {
+    const { t } = useTranslations();
 
     // Default template for new models
     const defaultTemplate = JSON.stringify({
@@ -105,7 +109,7 @@ function ModelDialog({ isOpen, setIsOpen, model }: { isOpen: boolean, setIsOpen:
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{model ? "Editar Modelo" : "Crear Nuevo Modelo"}</DialogTitle>
+                    <DialogTitle>{model ? t('admin.settings.models.edit') : t('admin.settings.models.create')}</DialogTitle>
                 </DialogHeader>
 
                 <form
@@ -124,38 +128,38 @@ function ModelDialog({ isOpen, setIsOpen, model }: { isOpen: boolean, setIsOpen:
                 >
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Nombre</Label>
+                            <Label>{t('admin.settings.models.form.name')}</Label>
                             <Input name="name" defaultValue={model?.name || ""} required />
                         </div>
                         <div className="space-y-2">
-                            <Label>Código (Único)</Label>
+                            <Label>{t('admin.settings.models.form.code')}</Label>
                             <Input name="code" defaultValue={model?.code || ""} readOnly={!!model} placeholder="ej: TIERED_V2" required />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Descripción</Label>
+                        <Label>{t('admin.settings.models.form.description')}</Label>
                         <Input name="description" defaultValue={model?.description || ""} />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Configuración (JSON Logic)</Label>
+                        <Label>{t('admin.settings.models.form.config')}</Label>
                         <Textarea
                             name="config"
                             className="font-mono text-xs min-h-[150px]"
                             defaultValue={model?.config || defaultTemplate}
                             required
                         />
-                        <p className="text-xs text-muted-foreground">Estructura válida para lógica TIERED, FIXED o RATE_DIFF.</p>
+                        <p className="text-xs text-muted-foreground">{t('admin.settings.models.form.configHelp')}</p>
                     </div>
 
                     <div className="flex items-center space-x-2">
                         <input type="checkbox" name="isDefault" id="isDefault" defaultChecked={model?.isDefault} className="h-4 w-4" />
-                        <Label htmlFor="isDefault">Marcar como Default</Label>
+                        <Label htmlFor="isDefault">{t('admin.settings.models.form.isDefault')}</Label>
                     </div>
 
                     <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>{t('common.cancel')}</Button>
                         <SubmitButton />
                     </div>
                 </form>
@@ -165,6 +169,7 @@ function ModelDialog({ isOpen, setIsOpen, model }: { isOpen: boolean, setIsOpen:
 }
 
 function SubmitButton() {
+    const { t } = useTranslations();
     const { pending } = useFormStatus();
-    return <Button type="submit" disabled={pending}>{pending ? "Guardando..." : "Guardar"}</Button>;
+    return <Button type="submit" disabled={pending}>{pending ? t('common.save') + "..." : t('common.save')}</Button>;
 }

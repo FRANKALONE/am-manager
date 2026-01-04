@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useTranslations } from "@/lib/use-translations";
 
 type Props = {
     clients: { id: string; name: string }[];
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Props) {
+    const { t } = useTranslations();
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -58,7 +60,7 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
     return (
         <div className="bg-muted/50 p-4 rounded-md space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Filtros</h3>
+                <h3 className="text-sm font-semibold">{t('workPackages.filter.title')}</h3>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -72,20 +74,20 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
                         setYear("");
                     }}
                 >
-                    Limpiar
+                    {t('workPackages.filter.clear')}
                 </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-5">
 
                 {/* Client Filter */}
                 <div className="space-y-1">
-                    <Label className="text-xs">Cliente</Label>
+                    <Label className="text-xs">{t('workPackages.filter.client')}</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                         value={clientId}
                         onChange={(e) => setClientId(e.target.value)}
                     >
-                        <option value="">Todos</option>
+                        <option value="">{t('workPackages.filter.all')}</option>
                         {clients.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
@@ -94,13 +96,13 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
 
                 {/* Contract Type Filter */}
                 <div className="space-y-1">
-                    <Label className="text-xs">Tipo Contrato</Label>
+                    <Label className="text-xs">{t('workPackages.filter.contractType')}</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                         value={contractType}
                         onChange={(e) => setContractType(e.target.value)}
                     >
-                        <option value="">Todos</option>
+                        <option value="">{t('workPackages.filter.all')}</option>
                         {contractTypes.map(c => (
                             <option key={c.value} value={c.value}>{c.label}</option>
                         ))}
@@ -109,13 +111,13 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
 
                 {/* Renewal Type Filter */}
                 <div className="space-y-1">
-                    <Label className="text-xs">Renovación</Label>
+                    <Label className="text-xs">{t('workPackages.filter.renewal')}</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                         value={renewalType}
                         onChange={(e) => setRenewalType(e.target.value)}
                     >
-                        <option value="">Todos</option>
+                        <option value="">{t('workPackages.filter.all')}</option>
                         {renewalTypes.map(c => (
                             <option key={c.value} value={c.value}>{c.label}</option>
                         ))}
@@ -124,58 +126,58 @@ export function WorkPackageFilters({ clients, contractTypes, renewalTypes }: Pro
 
                 {/* Premium Filter */}
                 <div className="space-y-1">
-                    <Label className="text-xs">Premium</Label>
+                    <Label className="text-xs">{t('workPackages.filter.premium')}</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                         value={isPremium}
                         onChange={(e) => setIsPremium(e.target.value)}
                     >
-                        <option value="all">Todos</option>
-                        <option value="true">Sí</option>
-                        <option value="false">No</option>
+                        <option value="all">{t('workPackages.filter.all')}</option>
+                        <option value="true">{t('workPackages.filter.yes')}</option>
+                        <option value="false">{t('workPackages.filter.no')}</option>
                     </select>
                 </div>
 
                 {/* Status Filter */}
                 <div className="space-y-1">
-                    <Label className="text-xs">Estado Vigencia</Label>
+                    <Label className="text-xs">{t('workPackages.filter.status')}</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                     >
-                        <option value="active">Activos</option>
-                        <option value="inactive">Inactivos</option>
-                        <option value="all">Todos</option>
+                        <option value="active">{t('workPackages.filter.active')}</option>
+                        <option value="inactive">{t('workPackages.filter.inactive')}</option>
+                        <option value="all">{t('workPackages.filter.all')}</option>
                     </select>
                 </div>
 
                 {/* Expiration Filter (Month/Year) */}
                 <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                        <Label className="text-xs">Mes Vencimiento</Label>
+                        <Label className="text-xs">{t('workPackages.filter.expMonth')}</Label>
                         <select
                             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                             value={month}
                             onChange={(e) => setMonth(e.target.value)}
                         >
                             <option value="">--</option>
-                            <option value="0">Enero</option>
-                            <option value="1">Febrero</option>
-                            <option value="2">Marzo</option>
-                            <option value="3">Abril</option>
-                            <option value="4">Mayo</option>
-                            <option value="5">Junio</option>
-                            <option value="6">Julio</option>
-                            <option value="7">Agosto</option>
-                            <option value="8">Septiembre</option>
-                            <option value="9">Octubre</option>
-                            <option value="10">Noviembre</option>
-                            <option value="11">Diciembre</option>
+                            <option value="0">{t('months.january')}</option>
+                            <option value="1">{t('months.february')}</option>
+                            <option value="2">{t('months.march')}</option>
+                            <option value="3">{t('months.april')}</option>
+                            <option value="4">{t('months.may')}</option>
+                            <option value="5">{t('months.june')}</option>
+                            <option value="6">{t('months.july')}</option>
+                            <option value="7">{t('months.august')}</option>
+                            <option value="8">{t('months.september')}</option>
+                            <option value="9">{t('months.october')}</option>
+                            <option value="10">{t('months.november')}</option>
+                            <option value="11">{t('months.december')}</option>
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <Label className="text-xs">Año Vencimiento</Label>
+                        <Label className="text-xs">{t('workPackages.filter.expYear')}</Label>
                         <select
                             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
                             value={year}

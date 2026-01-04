@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "@/app/actions/sync";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "./notifications";
+import { formatDate, getNow } from "@/lib/date-utils";
 
 export interface CierreCandidate {
     wpId: string;
@@ -87,7 +88,7 @@ export async function getPendingCierres(month: number, year: number) {
         const candidates: CierreCandidate[] = [];
         const processed: CierreCandidate[] = [];
         const eventosMonitor: EventosStatus[] = [];
-        const now = new Date();
+        const now = getNow();
         const targetYYYYMM = year * 100 + month;
 
         for (const wp of wps) {
@@ -449,11 +450,11 @@ export async function markReportAsSent(wpId: string, month: number, year: number
                 workPackageId: wpId,
                 year,
                 month,
-                reportSentAt: new Date(),
+                reportSentAt: getNow(),
                 reportSentBy: sentBy
             },
             update: {
-                reportSentAt: new Date(),
+                reportSentAt: getNow(),
                 reportSentBy: sentBy
             }
         });
@@ -656,7 +657,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
         return {
             wpName: wp.name,
             clientName: wp.client.name,
-            period: `${new Date(period.startDate).toLocaleDateString('es-ES')} - ${new Date(period.endDate).toLocaleDateString('es-ES')}`,
+            period: `${formatDate(period.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })} - ${formatDate(period.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}`,
             unit: period.scopeUnit || "HORAS",
             summary: summary,
             totalAccumulated: accumulatedBalance

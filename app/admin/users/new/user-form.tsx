@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useState } from "react";
+import { useTranslations } from "@/lib/use-translations";
 
 const initialState = {
     error: "",
@@ -22,6 +22,7 @@ type Props = {
 };
 
 export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
+    const { t } = useTranslations();
     const isEdit = !!initialUser;
 
     // Bind the updateUser action with the user ID if editing
@@ -31,12 +32,12 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
     return (
         <div className="max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight mb-6">
-                {isEdit ? "Editar Usuario" : "Nuevo Usuario"}
+                {isEdit ? t('users.form.editTitle') : t('users.form.newTitle')}
             </h1>
 
             <Card className="shadow-lg border-t-4 border-t-malachite">
                 <CardHeader>
-                    <CardTitle>Datos del Usuario</CardTitle>
+                    <CardTitle>{t('users.form.cardTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form action={formAction} className="space-y-4">
@@ -48,30 +49,30 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name">Nombre *</Label>
+                                <Label htmlFor="name">{t('users.form.name')} *</Label>
                                 <Input id="name" name="name" defaultValue={initialUser?.name} required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="surname">Apellidos</Label>
+                                <Label htmlFor="surname">{t('users.form.surname')}</Label>
                                 <Input id="surname" name="surname" defaultValue={initialUser?.surname} />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email *</Label>
+                            <Label htmlFor="email">{t('users.form.email')} *</Label>
                             <Input id="email" name="email" type="email" defaultValue={initialUser?.email} required />
                         </div>
 
                         {!isEdit && (
                             <div className="space-y-2">
-                                <Label htmlFor="password">Contraseña *</Label>
-                                <Input id="password" name="password" type="text" required placeholder="Contraseña inicial" />
+                                <Label htmlFor="password">{t('users.form.password')} *</Label>
+                                <Input id="password" name="password" type="text" required placeholder={t('users.form.passwordPlaceholder')} />
                             </div>
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="role">Rol *</Label>
+                                <Label htmlFor="role">{t('users.form.role')} *</Label>
                                 <select
                                     id="role"
                                     name="role"
@@ -79,22 +80,24 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
                                     defaultValue={initialUser?.role}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
-                                    <option value="">-- Seleccionar --</option>
+                                    <option value="">{t('users.form.select')}</option>
                                     {roles.map(r => (
-                                        <option key={r.id} value={r.name}>{r.name}</option>
+                                        <option key={r.id} value={r.name}>
+                                            {t(`users.roles.${r.name}`, { defaultValue: r.name })}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="clientId">Cliente</Label>
+                                <Label htmlFor="clientId">{t('users.form.client')}</Label>
                                 <select
                                     id="clientId"
                                     name="clientId"
                                     defaultValue={initialUser?.clientId || ""}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
-                                    <option value="">-- Ninguno --</option>
+                                    <option value="">{t('users.form.none')}</option>
                                     {clients.map(c => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
                                     ))}
@@ -103,28 +106,28 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="workPackageIds">Work Packages (opcional)</Label>
+                            <Label htmlFor="workPackageIds">{t('users.form.wps')}</Label>
                             <p className="text-sm text-muted-foreground mb-2">
-                                Si no seleccionas ninguno, tendrá acceso a todos los WPs del cliente.
+                                {t('users.form.wpsHelp')}
                             </p>
                             <textarea
                                 id="workPackageIds"
                                 name="workPackageIds"
                                 defaultValue={initialUser?.workPackageIds}
-                                placeholder='Ejemplo: ["WP001", "WP002"]'
+                                placeholder={t('users.form.wpsPlaceholder')}
                                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                             <p className="text-sm text-muted-foreground">
-                                Formato JSON array de IDs de WP. Ejemplo: ["AMA00253MANT0001.1.1"]
+                                {t('users.form.wpsFormat')}
                             </p>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4">
                             <Link href="/admin/users">
-                                <Button variant="outline" type="button">Cancelar</Button>
+                                <Button variant="outline" type="button">{t('users.form.cancel')}</Button>
                             </Link>
                             <Button type="submit" className="bg-malachite hover:bg-jade transition-colors">
-                                {isEdit ? "Actualizar Usuario" : "Guardar Usuario"}
+                                {isEdit ? t('users.form.update') : t('users.form.save')}
                             </Button>
                         </div>
                     </form>

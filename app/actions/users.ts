@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { getTranslations } from "@/lib/get-translations";
 
 export async function getUsers() {
     try {
@@ -74,10 +75,11 @@ export async function createUser(prevState: any, formData: FormData) {
     const clientId = formData.get("clientId") as string;
     const workPackageIds = formData.get("workPackageIds") as string; // JSON string
 
-    if (!name) return { error: "Nombre obligatorio" };
-    if (!email) return { error: "Email obligatorio" };
-    if (!password) return { error: "Contraseña obligatoria" };
-    if (!role) return { error: "Rol obligatorio" };
+    const { t } = await getTranslations();
+    if (!name) return { error: t('errors.required', { field: t('common.name') }) };
+    if (!email) return { error: t('errors.required', { field: t('auth.email') }) };
+    if (!password) return { error: t('errors.required', { field: t('auth.password') }) };
+    if (!role) return { error: t('errors.required', { field: t('user.role') }) };
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -94,10 +96,11 @@ export async function createUser(prevState: any, formData: FormData) {
         });
     } catch (error: any) {
         console.error(error);
+        const { t } = await getTranslations();
         if (error.code === 'P2002') {
-            return { error: "El email ya está en uso" };
+            return { error: t('errors.alreadyExists', { item: t('auth.email') }) };
         }
-        return { error: "Error al crear usuario" };
+        return { error: t('errors.createError', { item: t('user.profile') }) };
     }
 
     revalidatePath("/admin/users");
@@ -112,9 +115,10 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
     const clientId = formData.get("clientId") as string;
     const workPackageIds = formData.get("workPackageIds") as string;
 
-    if (!name) return { error: "Nombre obligatorio" };
-    if (!email) return { error: "Email obligatorio" };
-    if (!role) return { error: "Rol obligatorio" };
+    const { t } = await getTranslations();
+    if (!name) return { error: t('errors.required', { field: t('common.name') }) };
+    if (!email) return { error: t('errors.required', { field: t('auth.email') }) };
+    if (!role) return { error: t('errors.required', { field: t('user.role') }) };
 
     try {
         await prisma.user.update({
@@ -130,10 +134,11 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
         });
     } catch (error: any) {
         console.error(error);
+        const { t } = await getTranslations();
         if (error.code === 'P2002') {
-            return { error: "El email ya está en uso" };
+            return { error: t('errors.alreadyExists', { item: t('auth.email') }) };
         }
-        return { error: "Error al actualizar usuario" };
+        return { error: t('errors.updateError', { item: t('user.profile') }) };
     }
 
     revalidatePath("/admin/users");
@@ -146,7 +151,8 @@ export async function deleteUser(id: string) {
         revalidatePath("/admin/users");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar usuario" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('user.profile') }) };
     }
 }
 
@@ -160,7 +166,8 @@ export async function resetUserPassword(id: string, newPassword: string) {
         revalidatePath("/admin/users");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al resetear contraseña" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.updateError', { item: t('auth.password') }) };
     }
 }
 
@@ -168,8 +175,10 @@ export async function authenticate(prevState: any, formData: FormData) {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
+    const { t } = await getTranslations();
+
     if (!email || !password) {
-        return { error: "Email y contraseña requeridos" };
+        return { error: t('errors.required', { field: t('auth.email') + ' & ' + t('auth.password') }) };
     }
 
     try {
@@ -229,7 +238,8 @@ export async function authenticate(prevState: any, formData: FormData) {
 
     } catch (error) {
         console.error(error);
-        return { error: "Error en el servidor" };
+        const { t } = await getTranslations();
+        return { error: t('errors.generic') };
     }
 }
 

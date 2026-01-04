@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createReviewRequest } from "@/app/actions/review-requests";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/use-translations";
+import { formatDate } from "@/lib/date-utils";
 
 interface ReviewRequestModalProps {
     isOpen: boolean;
@@ -24,12 +26,13 @@ export function ReviewRequestModal({
     userId,
     onSuccess
 }: ReviewRequestModalProps) {
+    const { t, locale } = useTranslations();
     const [reason, setReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async () => {
         if (reason.length < 10) {
-            toast.error("Por favor, introduce un motivo más detallado (mín. 10 caracteres)");
+            toast.error(t('dashboard.reviewModal.toast.tooShort'));
             return;
         }
 
@@ -38,29 +41,35 @@ export function ReviewRequestModal({
             const result = await createReviewRequest(wpId, userId, selectedWorklogs, reason);
 
             if (result.success) {
-                toast.success("Reclamación enviada correctamente");
+                toast.success(t('dashboard.reviewModal.toast.success'));
                 onSuccess();
                 onClose();
                 setReason("");
             } else {
-                toast.error(result.error || "Error al enviar la reclamación");
+                toast.error(result.error || t('dashboard.reviewModal.toast.error'));
             }
         } catch (error) {
             console.error("Error submitting review request:", error);
-            toast.error("Error de conexión al enviar la reclamación");
+            toast.error(t('dashboard.reviewModal.toast.connectionError'));
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const formatRate = (num: number, digits: number = 2) => {
+        return num.toLocaleString(locale || 'es', {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits
+        });
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Solicitar Revisión de Imputaciones</DialogTitle>
+                    <DialogTitle>{t('dashboard.reviewModal.title')}</DialogTitle>
                     <DialogDescription>
-                        Has seleccionado {selectedWorklogs.length} imputaciones para revisar.
-                        Por favor, indica el motivo de tu reclamación.
+                        {t('dashboard.reviewModal.description', { count: selectedWorklogs.length })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -69,17 +78,17 @@ export function ReviewRequestModal({
                         <table className="w-full text-xs">
                             <thead className="bg-muted">
                                 <tr>
-                                    <th className="p-1 text-left">Fecha</th>
-                                    <th className="p-1 text-left">Ticket</th>
-                                    <th className="p-1 text-right">Horas</th>
+                                    <th className="p-1 text-left">{t('dashboard.reviewModal.date')}</th>
+                                    <th className="p-1 text-left">{t('dashboard.reviewModal.ticket')}</th>
+                                    <th className="p-1 text-right">{t('dashboard.reviewModal.hours')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {selectedWorklogs.map((w, i) => (
                                     <tr key={i} className="border-b last:border-0">
-                                        <td className="p-1">{new Date(w.startDate).toLocaleDateString('es-ES')}</td>
+                                        <td className="p-1">{formatDate(w.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}</td>
                                         <td className="p-1 font-medium">{w.issueKey}</td>
-                                        <td className="p-1 text-right">{w.timeSpentHours.toFixed(2)}h</td>
+                                        <td className="p-1 text-right">{formatRate(w.timeSpentHours, 2)}h</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -87,9 +96,9 @@ export function ReviewRequestModal({
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Motivo de la reclamación</label>
+                        <label className="text-sm font-medium">{t('dashboard.reviewModal.reasonLabel')}</label>
                         <Textarea
-                            placeholder="Ej: Estas horas corresponden a un proyecto diferente o el tiempo imputado es excesivo..."
+                            placeholder={t('dashboard.reviewModal.reasonPlaceholder')}
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             className="min-h-[100px]"
@@ -99,10 +108,10 @@ export function ReviewRequestModal({
 
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose} disabled={submitting}>
-                        Cancelar
+                        {t('dashboard.reviewModal.cancel')}
                     </Button>
                     <Button onClick={handleSubmit} disabled={submitting || !reason}>
-                        {submitting ? "Enviando..." : "Enviar Reclamación"}
+                        {submitting ? t('dashboard.reviewModal.submitting') : t('dashboard.reviewModal.submit')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDate } from "@/lib/date-utils";
 import { getMe } from "@/app/actions/users";
 import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations } from "@/app/actions/contract-actions";
 import { Button } from "@/components/ui/button";
@@ -125,7 +126,7 @@ function RenewalRow({ wp, isAuto }: { wp: any, isAuto: boolean }) {
                 <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        Vence: {lastPeriod ? new Date(lastPeriod.endDate).toLocaleDateString('es-ES') : 'N/A'}
+                        Vence: {lastPeriod ? formatDate(lastPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A'}
                     </div>
                     <Badge className={badgeColor} variant="secondary">
                         {badgeText}

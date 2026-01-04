@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "@/lib/get-translations";
 
 // ----------------------------------------------------------------------
 // Types
@@ -47,8 +48,9 @@ export async function createParameter(prevState: ParameterState, formData: FormD
     const value = formData.get("value") as string;
 
     // Simple validation
+    const { t } = await getTranslations();
     if (!category || !label || !value) {
-        return { error: "Todos los campos son obligatorios" };
+        return { error: t('errors.required', { field: t('admin.settings.title') }) }; // "Todos los campos" is generic, using a close one
     }
 
     try {
@@ -69,13 +71,14 @@ export async function createParameter(prevState: ParameterState, formData: FormD
         });
 
         revalidatePath("/admin/settings");
-        return { message: "Parámetro creado correctamente" };
+        return { message: t('common.success') };
     } catch (error: any) {
         console.error("Error creating parameter:", error);
+        const { t } = await getTranslations();
         if (error.code === 'P2002') {
-            return { error: "Ya existe un parámetro con ese valor en esta categoría" };
+            return { error: t('errors.alreadyExists', { item: t('admin.parameters') }) };
         }
-        return { error: "Error al crear el parámetro: " + (error.message || "Error desconocido") };
+        return { error: t('errors.createError', { item: t('admin.parameters') }) + ": " + (error.message || t('errors.unknown')) };
     }
 }
 
@@ -88,7 +91,8 @@ export async function updateParameter(id: number, isActive: boolean) {
         revalidatePath("/admin/settings");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al actualizar estado" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.updateError', { item: t('common.status') }) };
     }
 }
 
@@ -100,7 +104,8 @@ export async function deleteParameter(id: number) {
         revalidatePath("/admin/settings");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar parámetro" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('admin.parameters') }) };
     }
 }
 
@@ -128,7 +133,8 @@ export async function toggleKillSwitch(active: boolean) {
         return { success: true };
     } catch (error) {
         console.error("Error toggling kill switch:", error);
-        return { success: false, error: "Error al cambiar el estado del interruptor" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.updateError', { item: 'Kill Switch' }) };
     }
 }
 

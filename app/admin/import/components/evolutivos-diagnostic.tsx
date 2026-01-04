@@ -9,19 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { diagnoseEvolutivosSync } from "@/app/actions/diagnose";
 import { Loader2, Search, AlertTriangle, CheckCircle2, XCircle, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/use-translations";
+import { formatDate } from "@/lib/date-utils";
 
 interface Props {
     clients: any[];
 }
 
 export function EvolutivosDiagnostic({ clients }: Props) {
+    const { t, locale } = useTranslations();
     const [selectedClientId, setSelectedClientId] = useState("");
     const [isRunning, setIsRunning] = useState(false);
     const [results, setResults] = useState<any>(null);
 
     const runDiagnostic = async () => {
         if (!selectedClientId) {
-            toast.error("Selecciona un cliente");
+            toast.error(t('import.diagnostics.evolutivos.toast.select'));
             return;
         }
 
@@ -33,12 +36,12 @@ export function EvolutivosDiagnostic({ clients }: Props) {
 
             if (res.success) {
                 setResults(res.data);
-                toast.success("Diagnóstico completado");
+                toast.success(t('import.diagnostics.evolutivos.toast.success'));
             } else {
-                toast.error(res.error || "Error en el diagnóstico");
+                toast.error(res.error || t('import.diagnostics.evolutivos.toast.error'));
             }
         } catch (error: any) {
-            toast.error("Error al ejecutar diagnóstico");
+            toast.error(t('import.diagnostics.evolutivos.toast.critical'));
         } finally {
             setIsRunning(false);
         }
@@ -49,19 +52,19 @@ export function EvolutivosDiagnostic({ clients }: Props) {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Search className="h-5 w-5 text-orange-500" />
-                    Diagnóstico de Evolutivos
+                    {t('import.diagnostics.evolutivos.title')}
                 </CardTitle>
                 <CardDescription>
-                    Compara los Evolutivos en Jira con los sincronizados en la base de datos para detectar discrepancias.
+                    {t('import.diagnostics.evolutivos.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="client-select">Cliente</Label>
+                        <Label htmlFor="client-select">{t('import.diagnostics.evolutivos.clientLabel')}</Label>
                         <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                             <SelectTrigger id="client-select">
-                                <SelectValue placeholder="Seleccionar cliente..." />
+                                <SelectValue placeholder={t('import.diagnostics.evolutivos.clientPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {clients.map((c: any) => (
@@ -79,12 +82,12 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                         {isRunning ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Ejecutando Diagnóstico...
+                                {t('import.diagnostics.evolutivos.running')}
                             </>
                         ) : (
                             <>
                                 <Search className="mr-2 h-4 w-4" />
-                                Ejecutar Diagnóstico
+                                {t('import.diagnostics.evolutivos.button')}
                             </>
                         )}
                     </Button>
@@ -93,9 +96,9 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                 {results && (
                     <div className="space-y-4 pt-4 border-t">
                         <div className="bg-white/50 p-4 rounded-lg border">
-                            <h3 className="font-semibold mb-2">Cliente: {results.client.name}</h3>
+                            <h3 className="font-semibold mb-2">{t('import.diagnostics.evolutivos.clientLabel')}: {results.client.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                                Proyectos: {results.client.projectKeys.join(', ')}
+                                {t('admin.workPackages')}: {results.client.projectKeys.join(', ')}
                             </p>
                         </div>
 
@@ -103,7 +106,7 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <p className="text-xs uppercase text-muted-foreground font-semibold mb-2">JIRA</p>
                                 <p className="text-2xl font-bold text-blue-600">{results.jira.evolutivos}</p>
-                                <p className="text-xs text-muted-foreground">Evolutivos</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.evolutivos')}</p>
                                 {results.jira.paginationWarning && (
                                     <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
                                         <AlertTriangle className="h-3 w-3" />
@@ -115,7 +118,7 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                                 <p className="text-xs uppercase text-muted-foreground font-semibold mb-2">BASE DE DATOS</p>
                                 <p className="text-2xl font-bold text-green-600">{results.database.evolutivos}</p>
-                                <p className="text-xs text-muted-foreground">Evolutivos</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.evolutivos')}</p>
                             </div>
                         </div>
 
@@ -124,7 +127,7 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                                 <div className="flex items-center gap-2 mb-3">
                                     <XCircle className="h-5 w-5 text-red-600" />
                                     <h4 className="font-semibold text-red-900">
-                                        Evolutivos en JIRA pero NO en BD ({results.discrepancies.missingInDb.length})
+                                        {t('import.diagnostics.evolutivos.discrepancyTitleMissing', { count: results.discrepancies.missingInDb.length })}
                                     </h4>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -141,7 +144,7 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <Calendar className="h-3 w-3" />
-                                                    {new Date(ticket.created).toLocaleDateString()}
+                                                    {formatDate(ticket.created, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                                                 </div>
                                             </div>
                                         </div>
@@ -155,7 +158,7 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                                 <div className="flex items-center gap-2 mb-3">
                                     <AlertTriangle className="h-5 w-5 text-amber-600" />
                                     <h4 className="font-semibold text-amber-900">
-                                        Evolutivos en BD pero NO en JIRA ({results.discrepancies.extraInDb.length})
+                                        {t('import.diagnostics.evolutivos.discrepancyTitleExtra', { count: results.discrepancies.extraInDb.length })}
                                     </h4>
                                 </div>
                                 <div className="space-y-2">
@@ -172,15 +175,15 @@ export function EvolutivosDiagnostic({ clients }: Props) {
                         {results.discrepancies.missingInDb.length === 0 && results.discrepancies.extraInDb.length === 0 && (
                             <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
                                 <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                                <p className="font-semibold text-green-900">¡Todo sincronizado correctamente!</p>
+                                <p className="font-semibold text-green-900">{t('import.diagnostics.evolutivos.synced')}</p>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    No se encontraron discrepancias entre JIRA y la base de datos.
+                                    {t('import.diagnostics.evolutivos.syncedDesc')}
                                 </p>
                             </div>
                         )}
 
                         <details className="bg-slate-50 p-3 rounded border text-xs">
-                            <summary className="cursor-pointer font-medium">Ver JQL utilizado</summary>
+                            <summary className="cursor-pointer font-medium">{t('import.diagnostics.evolutivos.jqlLabel')}</summary>
                             <pre className="mt-2 p-2 bg-slate-900 text-slate-100 rounded overflow-x-auto">
                                 {results.jql}
                             </pre>

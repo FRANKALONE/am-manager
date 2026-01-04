@@ -13,6 +13,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDate } from "@/lib/date-utils";
 
 const MONTHS_LABELS = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -128,7 +129,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
             doc.setFontSize(10);
             doc.setTextColor(100);
             doc.text(`Periodo: ${MONTHS_LABELS[month - 1]} ${year}`, 14, 38);
-            doc.text(`Fecha de emisión: ${new Date().toLocaleDateString('es-ES')}`, 14, 43);
+            doc.text(`Fecha de emisión: ${formatDate(new Date(), { year: 'numeric', month: '2-digit', day: '2-digit' })}`, 14, 43);
 
             // Table Data
             const tableData = filteredEvolutivos.map(evo => [

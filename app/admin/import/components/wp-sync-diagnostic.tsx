@@ -8,8 +8,10 @@ import { syncWorkPackage } from "@/app/actions/sync";
 import { getWorkPackages } from "@/app/actions/work-packages";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Terminal, AlertCircle, CheckCircle2, Search } from "lucide-react";
+import { useTranslations } from "@/lib/use-translations";
 
 export function WpSyncDiagnostic() {
+    const { t } = useTranslations();
     const [wps, setWps] = useState<any[]>([]);
     const [selectedWp, setSelectedWp] = useState<string>("");
     const [loading, setLoading] = useState(false);
@@ -42,19 +44,19 @@ export function WpSyncDiagnostic() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Search className="h-5 w-5 text-amber-500" />
-                    Diagnóstico de Sincronización WP
+                    {t('import.diagnostics.wp.title')}
                 </CardTitle>
                 <CardDescription>
-                    Compara los datos de JIRA/Tempo con la base de datos para un Work Package concreto.
+                    {t('import.diagnostics.wp.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="flex items-end gap-4 bg-white/50 p-4 rounded-lg border border-amber-100">
                     <div className="flex-1 space-y-2">
-                        <label className="text-sm font-medium">Seleccionar Work Package</label>
+                        <label className="text-sm font-medium">{t('import.diagnostics.wp.selectLabel')}</label>
                         <Select onValueChange={setSelectedWp} value={selectedWp}>
                             <SelectTrigger className="bg-white">
-                                <SelectValue placeholder="Busca un WP..." />
+                                <SelectValue placeholder={t('import.diagnostics.wp.selectPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {wps.map((wp) => (
@@ -70,7 +72,7 @@ export function WpSyncDiagnostic() {
                         disabled={loading || !selectedWp}
                         className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ejecutar Diagnóstico"}
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : t('import.diagnostics.evolutivos.button')}
                     </Button>
                 </div>
 
@@ -79,13 +81,13 @@ export function WpSyncDiagnostic() {
                         {result.error ? (
                             <>
                                 <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-                                <span className="font-semibold text-sm">Error: {result.error}</span>
+                                <span className="font-semibold text-sm">{t('import.manager.toast.error')}: {result.error}</span>
                             </>
                         ) : (
                             <>
                                 <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
                                 <span className="font-semibold text-sm">
-                                    Éxito: {result.processed} worklogs procesados, {result.totalHours?.toFixed(2)}h totales.
+                                    {t('import.diagnostics.wp.success', { processed: result.processed, hours: result.totalHours?.toFixed(2) })}
                                 </span>
                             </>
                         )}
@@ -95,12 +97,12 @@ export function WpSyncDiagnostic() {
                 <div className="bg-slate-900 border-slate-700 rounded-lg overflow-hidden shadow-inner">
                     <div className="bg-slate-800 px-4 py-2 border-b border-slate-700 flex items-center gap-2">
                         <Terminal className="h-4 w-4 text-slate-400" />
-                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">Salida de Logs</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">{t('import.diagnostics.wp.logsTitle')}</span>
                     </div>
                     <ScrollArea className="h-[300px] w-full p-4">
                         <div className="font-mono text-xs space-y-1">
                             {logs.length === 0 && !loading && (
-                                <p className="text-slate-500 italic">No hay logs para mostrar. Selecciona un WP y pulsa "Ejecutar Diagnóstico".</p>
+                                <p className="text-slate-500 italic">{t('import.diagnostics.wp.noLogs')}</p>
                             )}
                             {logs.map((log, i) => {
                                 const isError = log.includes("[ERROR]");
@@ -123,7 +125,7 @@ export function WpSyncDiagnostic() {
                             {loading && (
                                 <div className="text-blue-400 animate-pulse flex items-center gap-2 py-2">
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Sincronizando y recolectando logs...
+                                    {t('import.diagnostics.wp.loadingLogs')}
                                 </div>
                             )}
                         </div>

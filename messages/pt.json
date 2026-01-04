@@ -26,7 +26,11 @@
         "status": "Estado",
         "date": "Data",
         "name": "Nome",
-        "description": "Descrição"
+        "description": "Descrição",
+        "home": "Início",
+        "noPermissions": "Você não tem permissão para acessar nenhum módulo. Entre em contato com o administrador.",
+        "months": "Meses",
+        "allRightsReserved": "Todos os direitos reservados"
     },
     "auth": {
         "login": "Entrar",
@@ -44,15 +48,112 @@
     },
     "dashboard": {
         "title": "Painel",
+        "clientTitle": "Painel de Clientes AM",
+        "subtitle": "Visualização de consumo e métricas-chave por cliente.",
+        "backHome": "Voltar ao Início",
+        "client": "Cliente",
+        "selectClient": "Selecionar Cliente",
+        "wpLabel": "Contrato / Work Package",
+        "selectWp": "Selecionar WP",
+        "lastSync": "Última sincronização",
+        "syncNow": "Sincronizar agora",
+        "syncing": "Sincronizando...",
+        "loadingMetrics": "Carregando indicadores...",
+        "contracted": "Contratado",
+        "consumed": "Consumido",
+        "available": "Disponível",
+        "nextRegularization": "Próxima Regularização",
+        "consumptionProgress": "Progresso de Consumo",
+        "monthlyEvolution": "Evolução Mensal",
+        "consumptionByTicket": "Consumo por Ticket",
+        "detalleMensual": "Detalhe Mensal e Evolução",
+        "period": "Período",
+        "current": "Atual",
+        "filterByDates": "Filtrar por datas",
+        "from": "De",
+        "to": "Até",
+        "calculatedOnContract": "Calculado sobre vigência contrato",
+        "month": "Mês",
+        "difference": "Diferença Mensal",
+        "regularization": "Regularização",
+        "accumulated": "Acumulado",
+        "selectWpMessage": "Selecione um Pacote de Trabalho para ver os indicadores.",
+        "loadingTicketReport": "Carregando relatório de consumo por ticket...",
+        "total": "do total",
+        "billedOf": "faturado de",
         "metrics": "Métricas",
         "workPackages": "Pacotes de Trabalho",
-        "lastSync": "Última sincronização",
-        "consumed": "Consumido",
         "remaining": "Restante",
         "billed": "Faturado",
         "notifications": "Notificações",
         "welcome": "Bem-vindo ao Controle de Gestão AM",
-        "selectArea": "Selecione uma área de trabalho para começar"
+        "selectArea": "Selecione uma área de trabalho para começar",
+        "details": {
+            "loading": "Carregando detalhes...",
+            "noData": "Sem logs de trabalho ou regularizações para este mês",
+            "breakdownByType": "Divisão por Tipo de Ticket:",
+            "tickets": "tickets",
+            "otherMonths": "Consumo em outros meses",
+            "requestReview": "Solicitar Revisão",
+            "date": "Data",
+            "author": "Autor",
+            "imputationType": "Tipo de Imputação",
+            "origin": "Origem (WP)",
+            "hours": "Horas",
+            "inClaim": "EM RECLAMAÇÃO",
+            "returned": "DEVOLVIDO",
+            "regularizationsTitle": "Regularizações e Ajustes",
+            "type": "Tipo",
+            "description": "Descrição",
+            "quantity": "Quantidade"
+        },
+        "ticketsReport": {
+            "title": "Consumo por Ticket",
+            "noData": "Sem dados de consumo por ticket",
+            "totalTickets": "tickets",
+            "totalHours": "totais",
+            "filterPlaceholder": "Filtrar por ID do ticket...",
+            "allTypes": "Todos os tipos",
+            "type": "Tipo",
+            "issueId": "ID do Ticket",
+            "description": "Descrição",
+            "priority": "Prioridade",
+            "slaResponse": "SLA Resp.",
+            "slaResolution": "SLA Resol.",
+            "status": "Estado",
+            "total": "Total de Horas",
+            "monthlyBreakdown": "Divisão Mensal:"
+        },
+        "reviewModal": {
+            "title": "Solicitar Revisão de Imputações",
+            "description": "Você selecionou {count} imputações para revisar.",
+            "date": "Data",
+            "ticket": "Ticket",
+            "hours": "Horas",
+            "reasonLabel": "Motivo da reclamação",
+            "reasonPlaceholder": "Ex: Estas horas correspondem a um projeto diferente...",
+            "cancel": "Cancelar",
+            "submit": "Enviar Reclamação",
+            "submitting": "Enviando...",
+            "toast": {
+                "success": "Reclamação enviada com sucesso",
+                "error": "Erro ao enviar a reclamação",
+                "connectionError": "Erro de conexão",
+                "tooShort": "Insira um motivo mais detalhado (mín. 10 caracteres)"
+            }
+        },
+        "ticketsDetail": {
+            "loading": "Carregando tickets...",
+            "noData": "Não há tickets para este mês",
+            "summaryTitle": "Resumo por Tipo",
+            "listTitle": "Detalhe de Tickets ({count})",
+            "type": "Tipo",
+            "issueId": "ID do Ticket",
+            "summary": "Resumo",
+            "created": "Data de Criação",
+            "reporter": "Relator",
+            "status": "Estado"
+        }
     },
     "admin": {
         "title": "Administração",
@@ -63,7 +164,152 @@
         "import": "Importar / Exportar",
         "maintenance": "Manutenção",
         "preferences": "Preferências",
-        "settings": "Configurações"
+        "settings": "Configurações",
+        "closures": "Gestão de Fechamentos",
+        "closuresDesc": "Identifica e fatura excessos de consumo.",
+        "evolutivos": "Gestão de Evolutivos",
+        "evolutivosDesc": "Acompanhamento detalhado de marcos e planejamento.",
+        "notifications": {
+            "title": "Novas Reclamações",
+            "viewAll": "Ver todas",
+            "empty": "Nenhuma reclamação pendente",
+            "from": "De: {name}"
+        }
+    },
+    "help": {
+        "title": "Documentação e Ajuda",
+        "subtitle": "Guia do usuário e manuais do sistema"
+    },
+    "import": {
+        "title": "Importação / Exportação",
+        "subtitle": "Gestão massiva de dados e controle de sincronização.",
+        "historyTitle": "Histórico de Importações",
+        "historySubtitle": "Registro dos últimos processos.",
+        "noLogs": "Ainda não há registros de importação.",
+        "clearHistory": "Limpar histórico",
+        "clearConfirm": "Tem certeza que deseja limpar o histórico?",
+        "refresh": "Atualizar",
+        "clear": "Limpar",
+        "table": {
+            "date": "Data",
+            "file": "Arquivo",
+            "type": "Tipo",
+            "result": "Resultado",
+            "progress": "Progresso"
+        },
+        "types": {
+            "bulk": "Carga Massiva",
+            "auto": "Sincro Auto",
+            "manual": "Sincro Manual",
+            "regularizations": "Regularizações"
+        },
+        "sync": {
+            "title": "Sincronização Manual Massiva",
+            "description": "Atualiza todos os Pacotes de Trabalho com os dados do JIRA e Tempo.",
+            "warning": "Este processo substitui a sincronização noturna.",
+            "button": "Executar Sincronização Total",
+            "confirm": "Deseja iniciar a sincronização?",
+            "inProgress": "Sincronização em curso...",
+            "finished": "Sincronização Finalizada",
+            "processing": "Processando {current} de {total} pacotes",
+            "eta": "Tempo restante est.: {time}",
+            "summary": "Resumo da Sincronização:",
+            "success": "Sucessos",
+            "errors": "Erros",
+            "total": "Total",
+            "close": "Fechar e Limpar",
+            "toast": {
+                "success": "Sincronização massiva finalizada",
+                "error": "Erro ao obter lista",
+                "empty": "Nenhum Pacote de Trabalho elegível.",
+                "critical": "Erro crítico na sincronização de {name}"
+            }
+        },
+        "evolutivos": {
+            "title": "Sincronização Total de Evolutivos",
+            "description": "Atualiza todos os tickets de tipo Evolutivo e Marco.",
+            "warning": "Este processo busca tickets no JIRA para todos os projetos associados.",
+            "confirm": "Deseja iniciar a sincronização de TODOS os Evolutivos?",
+            "syncing": "Sincronizando...",
+            "button": "Sincronizar Evolutivos",
+            "toast": {
+                "success": "Sincronização finalizada",
+                "error": "Erro na sincronização",
+                "critical": "Erro crítico na sincronização"
+            }
+        },
+        "manager": {
+            "wpTitle": "Pacotes de Trabalho e Clientes",
+            "regTitle": "Regularizações",
+            "exportTitle": "Exportar Dados (Modelo)",
+            "exportDesc": "Baixe um CSV com todos os dados atuais.",
+            "exportInfo": "O arquivo inclui Clientes, Projetos e Pacotes de Trabalho.",
+            "exportButton": "Baixar CSV / Modelo",
+            "importTitle": "Importar Dados",
+            "importDesc": "Suba um arquivo CSV para criar ou atualizar registros.",
+            "importFormat": "Formato: CSV delimitado por vírgula (,) ou ponto e vírgula (;).",
+            "importButton": "Subir e Processar",
+            "importing": "Importando...",
+            "toast": {
+                "success": "Importação concluída",
+                "partial": "Importação concluída com erros",
+                "error": "Erro na importação",
+                "unexpected": "Erro inesperado"
+            },
+            "delimiter": "Delimitador detectado",
+            "processingTitle": "Processando",
+            "processingDesc": "Importando dados, aguarde...",
+            "errorsFound": "{count} erros encontrados",
+            "regExportTitle": "Exportar Regularizações",
+            "regExportDesc": "Baixe todas as regularizações em formato CSV.",
+            "regExportButton": "Baixar CSV de Regularizações",
+            "regImportTitle": "Importar Regularizações",
+            "regImportDesc": "Suba um CSV para criar ou atualizar regularizações."
+        },
+        "diagnostics": {
+            "evolutivos": {
+                "title": "Diagnóstico de Evolutivos",
+                "description": "Compara os Evolutivos no Jira com os sincronizados no banco de dados.",
+                "clientLabel": "Cliente",
+                "clientPlaceholder": "Selecionar cliente...",
+                "button": "Executar Diagnóstico",
+                "running": "Executando Diagnóstico...",
+                "discrepancyTitleMissing": "Evolutivos no JIRA mas NÃO no BD ({count})",
+                "discrepancyTitleExtra": "Evolutivos no BD mas NÃO no JIRA ({count})",
+                "synced": "Tudo sincronizado corretamente!",
+                "syncedDesc": "Nenhuma discrepância encontrada.",
+                "jqlLabel": "Ver JQL utilizado",
+                "toast": {
+                    "select": "Selecione um cliente",
+                    "success": "Diagnóstico concluído",
+                    "error": "Erro no diagnóstico",
+                    "critical": "Erro ao executar diagnóstico"
+                }
+            },
+            "wp": {
+                "title": "Diagnóstico de Sincronização WP",
+                "description": "Compara os dados do JIRA/Tempo com o banco de dados.",
+                "selectLabel": "Selecionar Pacote de Trabalho",
+                "selectPlaceholder": "Buscar um WP...",
+                "logsTitle": "Saída de Logs",
+                "noLogs": "Sem logs para mostrar.",
+                "loadingLogs": "Sincronizando e coletando logs...",
+                "success": "Sucesso: {processed} logs processados."
+            }
+        }
+    },
+    "adminHome": {
+        "title": "Bem-vindo ao Controle de Gestão AM",
+        "subtitle": "Selecione uma área de trabalho para começar",
+        "dashboardConsumptions": "Painel de Consumos",
+        "dashboardConsumptionsDesc": "Visualize e analise o consumo dos Pacotes de Trabalho",
+        "closuresManagement": "Gestão de Fechamentos",
+        "closuresManagementDesc": "Administre os fechamentos mensais",
+        "evolutivosManagement": "Gestão de Evolutivos",
+        "evolutivosManagementDesc": "Acompanhamento de marcos e planejamento",
+        "administration": "Administração",
+        "administrationDesc": "Gestão de usuários e clientes",
+        "accessModule": "Acessar módulo"
     },
     "user": {
         "name": "Nome",
@@ -76,7 +322,8 @@
         "language": "Idioma",
         "timezone": "Fuso horário",
         "preferences": "Preferências do usuário",
-        "profile": "Perfil"
+        "profile": "Perfil",
+        "manual": "Meu Manual do Usuário"
     },
     "preferences": {
         "title": "Preferências do Usuário",
@@ -89,5 +336,335 @@
         "saving": "Salvando...",
         "successMessage": "Preferências atualizadas com sucesso",
         "errorMessage": "Erro ao atualizar preferências"
+    },
+    "clients": {
+        "title": "Clientes",
+        "subtitle": "Gestão da carteira de clientes.",
+        "newButton": "Novo Cliente",
+        "filter": {
+            "searchLabel": "Buscar por ID ou Nome",
+            "searchPlaceholder": "Buscar cliente...",
+            "managerLabel": "Filtrar por Gerente",
+            "allManagers": "Todos os gerentes",
+            "unassigned": "Sem atribuir",
+            "clear": "Limpar",
+            "results": "Mostrando {count} de {total} clientes"
+        },
+        "table": {
+            "id": "ID Cliente",
+            "name": "Nome",
+            "manager": "Gerente",
+            "portal": "Portal do Cliente",
+            "viewPortal": "Ver Portal",
+            "actions": "Ações",
+            "noResults": "Nenhum cliente encontrado.",
+            "noClients": "Nenhum cliente registrado."
+        },
+        "form": {
+            "editTitle": "Editar Cliente",
+            "newTitle": "Novo Cliente",
+            "editSubtitle": "Altere os dados do cliente.",
+            "newSubtitle": "Registre um novo cliente no sistema.",
+            "cardTitle": "Dados Gerais",
+            "cardDescription": "Informação básica do cliente.",
+            "labels": {
+                "id": "ID Cliente (Máx 10)",
+                "name": "Nome do Cliente",
+                "manager": "Gerente Responsável",
+                "portal": "URL do Portal do Cliente",
+                "portalHelp": "URL do portal web do cliente (opcional)",
+                "reportEmailsTitle": "Emails para Relatórios Mensais",
+                "noUsers": "Não há usuários associados.",
+                "saveFirst": "Salve o cliente primeiro.",
+                "additionalEmails": "Emails Adicionais",
+                "additionalEmailsHelp": "Emails separados por vírgula.",
+                "customFields": "Campos Adicionais",
+                "selectManager": "Selecione um gerente..."
+            },
+            "placeholders": {
+                "id": "C-001",
+                "name": "Empresa S.A.",
+                "portal": "https://portal.cliente.com",
+                "emails": "email@cliente.com"
+            },
+            "buttons": {
+                "cancel": "Cancelar",
+                "update": "Salvar Alterações",
+                "save": "Criar Cliente"
+            }
+        }
+    },
+    "users": {
+        "title": "Usuários",
+        "subtitle": "Gestão de usuários e permissões.",
+        "newButton": "Novo Usuário",
+        "table": {
+            "name": "Nome",
+            "email": "Email",
+            "role": "Função",
+            "client": "Cliente Associado",
+            "lastLogin": "Última Conexão",
+            "actions": "Ações"
+        },
+        "never": "Nunca",
+        "roles": {
+            "ADMIN": "Administrador",
+            "MANAGER": "Gestor",
+            "VIEWER": "Consultor",
+            "CLIENT": "Cliente"
+        },
+        "form": {
+            "editTitle": "Editar Usuário",
+            "newTitle": "Novo Usuário",
+            "cardTitle": "Dados do Usuário",
+            "name": "Nome",
+            "surname": "Sobrenome",
+            "email": "Email",
+            "password": "Senha",
+            "passwordPlaceholder": "Senha inicial",
+            "role": "Função",
+            "select": "-- Selecionar --",
+            "client": "Cliente",
+            "none": "-- Nenhum --",
+            "wps": "Pacotes de Trabalho (opcional)",
+            "wpsHelp": "Se não selecionar nenhum, terá acesso a todos.",
+            "wpsPlaceholder": "Exemplo: [\"WP001\"]",
+            "wpsFormat": "Formato JSON array.",
+            "cancel": "Cancelar",
+            "update": "Atualizar Usuário",
+            "save": "Salvar Usuário"
+        }
+    },
+    "workPackages": {
+        "title": "Pacotes de Trabalho",
+        "subtitle": "Gestão de condições e detalhes dos serviços (WPs).",
+        "newButton": "Novo WP",
+        "filter": {
+            "title": "Filtros",
+            "clear": "Limpar",
+            "client": "Cliente",
+            "contractType": "Tipo de Contrato",
+            "renewal": "Renovação",
+            "premium": "Premium",
+            "status": "Estado de Vigência",
+            "expMonth": "Mês de Vencimento",
+            "expYear": "Ano de Vencimento",
+            "all": "Todos",
+            "yes": "Sim",
+            "no": "Não",
+            "active": "Ativos",
+            "inactive": "Inativos"
+        },
+        "table": {
+            "selected": "{count} Pacotes de Trabalho selecionados",
+            "deleteSelection": "Excluir Seleção",
+            "confirmBulkTitle": "Confirmar exclusão em massa?",
+            "confirmBulkDesc": "Você está prestes a excluir {count} WPs.",
+            "confirmBulkAction": "Excluir Definitivamente",
+            "toast": {
+                "deletedBulk": "Excluídos {count} WPs com sucesso",
+                "deletedSingle": "WP excluído",
+                "error": "Erro ao excluir"
+            },
+            "id": "ID WP",
+            "name": "Nome",
+            "client": "Cliente",
+            "contract": "Tipo de Contrato",
+            "billing": "Faturamento",
+            "renewal": "Renovação",
+            "periods": "Períodos",
+            "actions": "Ações",
+            "noResults": "Nenhum WP encontrado.",
+            "confirmSingle": "Tem certeza que deseja excluir?"
+        },
+        "form": {
+            "title": "Novo Pacote de Trabalho",
+            "editTitle": "Editar WP",
+            "subtitle": "Configuração do contrato v2.0",
+            "cardIdentification": "Identificação",
+            "cardGeneralData": "Dados Gerais",
+            "cardCurrentPeriod": "Dados do Período Vigente",
+            "cardCurrentPeriodDesc": "Condições econômicas atuais",
+            "cardInitialPeriod": "Primeiro Período de Validade",
+            "cardInitialPeriodDesc": "Datas e condições iniciais",
+            "cardValidityPeriods": "Períodos de Validade",
+            "cardValidityPeriodsDesc": "Gestão de períodos",
+            "cardCorrectionFactors": "Fatores de Correção",
+            "cardCorrectionFactorsDesc": "Gestão de modelos",
+            "cardRegularizations": "Regularizações Pontuais",
+            "cardRegularizationsDesc": "Ajustes e devoluções.",
+            "cardCustomFields": "Campos Adicionais",
+            "labels": {
+                "client": "Cliente",
+                "selectClient": "Selecionar Cliente...",
+                "id": "ID WP (20 chars)",
+                "name": "Nome WP",
+                "contractType": "Tipo de Contrato",
+                "jiraKeys": "Chave do Projeto no JIRA",
+                "jiraKeysHelp": "Chaves JIRA (separadas por vírgula)",
+                "jiraKeysPlaceholder": "Ex: PROJ1, PROJ2",
+                "scopeQuantity": "Quantidade de Alcance (TOTAL)",
+                "scopeUnit": "Unidade da Quantidade",
+                "rate": "Tarifa",
+                "billingType": "Tipo de Faturamento",
+                "regType": "Tipo de Regularização",
+                "regRate": "Tarifa de Regularização",
+                "renewalType": "Tipo de Renovação",
+                "premium": "Premium",
+                "premiumPrice": "Tarifa de Premium",
+                "editPeriodInfo": "Para alterar estes valores, edite o período correspondente.",
+                "startDate": "Data de Início",
+                "endDate": "Data de Fim",
+                "initialPeriodEcon": "Condições Econômicas",
+                "initialPeriodMgmt": "Gestão do Período",
+                "surplusStrategy": "Estratégia de Excedente",
+                "correctionDashInfo": "Fatores de correção são geridos no painel.",
+                "correctionAfterInfo": "Fatores configurados após a criação.",
+                "select": "Selecionar...",
+                "none": "--"
+            },
+            "buttons": {
+                "cancel": "Cancelar",
+                "save": "Criar Pacote de Trabalho",
+                "update": "Salvar Alterações"
+            }
+        },
+        "validity": {
+            "addTitle": "Adicionar Novo Período",
+            "startDate": "Data de Início",
+            "endDate": "Data de Fim",
+            "scopeQuantity": "Quantidade de Alcance",
+            "scopeUnit": "Unidade",
+            "rate": "Tarifa",
+            "rateEvolutivo": "Tarifa de Evolutivo",
+            "rateEvolutivoPlaceholder": "Opcional",
+            "billingType": "Tipo de Faturamento",
+            "regRate": "Tarifa de Regularização",
+            "regRatePlaceholder": "Mesma que tarifa normal",
+            "regType": "Tipo de Regularização",
+            "premium": "Premium",
+            "renewalType": "Tipo de Renovação",
+            "premiumPrice": "Tarifa de Premium",
+            "premiumPricePlaceholder": "Opcional",
+            "saveButton": "Adicionar Período",
+            "saving": "Guardando...",
+            "tableHeader": {
+                "period": "Período",
+                "quantity": "Quantidade",
+                "rate": "Tarifa",
+                "premium": "Premium",
+                "regularization": "Regularização",
+                "surplus": "Excedente",
+                "actions": "Ações"
+            },
+            "noPeriods": "Sem períodos definidos.",
+            "confirmDelete": "Deseja excluir este período?",
+            "billingOptions": {
+                "monthly": "Mensal",
+                "quarterly": "Trimestral",
+                "annual": "Anual"
+            },
+            "surplusOptions": {
+                "accumulate": "Acumular",
+                "lose": "Perder"
+            },
+            "notDefined": "Não definido"
+        },
+        "regularization": {
+            "tableHeader": {
+                "date": "Data",
+                "type": "Tipo",
+                "quantity": "Quantidade (h)",
+                "description": "Descrição",
+                "actions": "Ações"
+            },
+            "noResults": "Sem regularizações",
+            "types": {
+                "excess": "Excesso de Consumo",
+                "return": "Devolução / Anulação"
+            },
+            "date": "Data",
+            "type": "Tipo",
+            "quantity": "Quantidade (h)",
+            "description": "Descrição",
+            "descriptionPlaceholder": "Motivo...",
+            "addButton": "Adicionar Reg.",
+            "confirmDelete": "Excluir regularização?"
+        }
+    },
+    "months": {
+        "january": "Janeiro",
+        "february": "Fevereiro",
+        "march": "Março",
+        "april": "Abril",
+        "may": "Maio",
+        "june": "Junho",
+        "july": "Julho",
+        "august": "Agosto",
+        "september": "Setembro",
+        "october": "Outubro",
+        "november": "Novembro",
+        "december": "Dezembro"
+    },
+    "sidebar": {
+        "dashboard": "Painel",
+        "closures": "Fechamentos",
+        "evolutivos": "Evolutivos",
+        "users": "Usuários",
+        "clients": "Clientes",
+        "workPackages": "Pacotes de Trabalho",
+        "parameters": "Parâmetros",
+        "importExport": "Importar / Exportar",
+        "maintenance": "Manutenção",
+        "regularizations": "Regularizações",
+        "renewals": "Renovações",
+        "roles": "Funções",
+        "settings": "Configurações",
+        "documentation": "Documentação",
+        "claims": "Reclamações"
+    },
+    "errors": {
+        "required": "{field} é obrigatório",
+        "maxLength": "{field} não pode exceder {count} caracteres",
+        "notFound": "{item} não encontrado",
+        "alreadyExists": "{item} já existe",
+        "unknown": "Erro desconhecido",
+        "generic": "Ocorreu un erro ao processar a solicitação",
+        "unauthorized": "Você não tem permissão para realizar esta ação",
+        "emergencyStop": "Sincronização abortada por parada de emergência",
+        "noPeriods": "Nenhum período de validade definido",
+        "notApplicable": "Sincronização não aplicável para este tipo de contrato",
+        "invalidFile": "O arquivo é inválido ou está vazio",
+        "noFile": "Nenhum arquivo enviado",
+        "deleteError": "Erro ao excluir {item}",
+        "updateError": "Erro ao atualizar {item}",
+        "createError": "Erro ao criar {item}",
+        "syncError": "Erro ao sincronizar {item}",
+        "claimError": "Erro ao processar a reclamação",
+        "migrationError": "Erro ao aplicar a migração",
+        "wrongFormat": "Formato de arquivo incorreto"
+    },
+    "notifications": {
+        "titles": {
+            "reviewCreated": "Nova reclamação de horas",
+            "reviewCreatedAssigned": "Nova reclamação de horas (Atribuída)",
+            "reviewApproved": "Reclamação Aprovada",
+            "reviewRejected": "Reclamação Rejeitada",
+            "reviewDecidedApproved": "Reclamação Resolvida (Aprovada)",
+            "reviewDecidedRejected": "Reclamação Resolvida (Rejeitada)"
+        },
+        "messages": {
+            "reviewCreated": "O usuário solicitou a revisão de {count} lançamentos no WP {wp}.",
+            "reviewCreatedAssigned": "Foi solicitada uma revisão de {count} lançamentos no WP {wp} do seu cliente.",
+            "reviewApproved": "Sua reclamação de horas foi aprovada. {count} lançamentos foram devolvidos. Notas: {notes}",
+            "reviewRejected": "Sua reclamação de horas foi rejeitada. Notas: {notes}",
+            "reviewDecidedApproved": "Uma reclamação foi aprovada no WP {wp}. Notas: {notes}",
+            "reviewDecidedRejected": "Uma reclamação foi rejeitada no WP {wp}. Notas: {notes}"
+        }
+    },
+    "regularizations": {
+        "types": {
+            "return": "Devolução de horas"
+        }
     }
 }

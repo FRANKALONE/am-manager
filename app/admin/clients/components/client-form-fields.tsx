@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { LogoUpload } from "./logo-upload";
+import { useTranslations } from "@/lib/use-translations";
 
 interface ClientFormFieldsProps {
     client: any;
@@ -25,17 +26,18 @@ export function ClientFormFields({
     isEdit,
     action
 }: ClientFormFieldsProps) {
+    const { t } = useTranslations();
     const [logoUrl, setLogoUrl] = useState(client?.clientLogo || "");
 
     return (
         <form action={action} className="space-y-6">
             <div className="space-y-2">
-                <Label htmlFor="id">ID Cliente (Máx 10)</Label>
+                <Label htmlFor="id">{t('clients.form.labels.id')}</Label>
                 <Input
                     id="id"
                     name="id"
                     maxLength={10}
-                    placeholder="C-001"
+                    placeholder={t('clients.form.placeholders.id')}
                     defaultValue={client?.id}
                     readOnly={isEdit}
                     className={isEdit ? "bg-muted" : ""}
@@ -44,25 +46,25 @@ export function ClientFormFields({
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="name">Nombre Cliente</Label>
+                <Label htmlFor="name">{t('clients.form.labels.name')}</Label>
                 <Input
                     id="name"
                     name="name"
-                    placeholder="Empresa S.L."
+                    placeholder={t('clients.form.placeholders.name')}
                     defaultValue={client?.name}
                     required
                 />
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="manager">Gerente Responsable</Label>
+                <Label htmlFor="manager">{t('clients.form.labels.manager')}</Label>
                 <select
                     id="manager"
                     name="manager"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     defaultValue={client?.manager || ""}
                 >
-                    <option value="">Selecciona un gerente...</option>
+                    <option value="">{t('clients.form.labels.selectManager')}</option>
                     {managers.map((m: any) => (
                         <option key={m.id} value={m.value}>
                             {m.label}
@@ -72,19 +74,19 @@ export function ClientFormFields({
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="clientPortalUrl">URL del Portal de Cliente</Label>
+                <Label htmlFor="clientPortalUrl">{t('clients.form.labels.portal')}</Label>
                 <Input
                     id="clientPortalUrl"
                     name="clientPortalUrl"
                     type="url"
-                    placeholder="https://portal.cliente.com"
+                    placeholder={t('clients.form.placeholders.portal')}
                     defaultValue={client?.clientPortalUrl || ""}
                 />
-                <p className="text-xs text-muted-foreground">URL del portal web del cliente (opcional)</p>
+                <p className="text-xs text-muted-foreground">{t('clients.form.labels.portalHelp')}</p>
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-                <Label className="text-base font-bold">Emails para Reportes Mensuales</Label>
+                <Label className="text-base font-bold">{t('clients.form.labels.reportEmailsTitle')}</Label>
 
                 {isEdit && client?.users && client.users.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 bg-slate-50 p-4 rounded-lg border border-slate-100">
@@ -109,21 +111,21 @@ export function ClientFormFields({
                 ) : (
                     <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-dashed text-center">
                         {isEdit
-                            ? "No hay usuarios registrados asociados a este cliente para seleccionar."
-                            : "Guarda el cliente primero para poder asociar usuarios y seleccionarlos para los reportes."
+                            ? t('clients.form.labels.noUsers')
+                            : t('clients.form.labels.saveFirst')
                         }
                     </div>
                 )}
 
                 <div className="space-y-2">
-                    <Label htmlFor="reportEmails" className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Emails Adicionales / Otros</Label>
+                    <Label htmlFor="reportEmails" className="text-xs text-muted-foreground uppercase tracking-wider font-bold">{t('clients.form.labels.additionalEmails')}</Label>
                     <Input
                         id="reportEmails"
                         name="reportEmails"
-                        placeholder="email-externo@cliente.com, otro-email@test.com"
+                        placeholder={t('clients.form.placeholders.emails')}
                         defaultValue={client?.reportEmails && isEdit ? client.reportEmails.split(',').filter((e: string) => !client.users?.some((u: any) => u.email === e.trim())).join(', ') : (client?.reportEmails || "")}
                     />
-                    <p className="text-[10px] text-muted-foreground">Emails adicionales separados por coma. Los usuarios seleccionados arriba se añadirán automáticamente.</p>
+                    <p className="text-[10px] text-muted-foreground">{t('clients.form.labels.additionalEmailsHelp')}</p>
                 </div>
             </div>
 
@@ -135,7 +137,7 @@ export function ClientFormFields({
             {/* Dynamic Custom Fields */}
             {customFieldsDef.length > 0 && (
                 <div className="pt-4 border-t space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground">Campos Adicionales</h3>
+                    <h3 className="font-medium text-sm text-muted-foreground">{t('clients.form.labels.customFields')}</h3>
                     {customFieldsDef.map((field) => (
                         <div key={field.id} className="space-y-2">
                             <Label htmlFor={`custom_${field.value}`}>{field.label}</Label>
@@ -152,9 +154,9 @@ export function ClientFormFields({
 
             <div className="flex justify-end gap-4 pt-4">
                 <Link href="/admin/clients">
-                    <Button variant="outline" type="button">Cancelar</Button>
+                    <Button variant="outline" type="button">{t('clients.form.buttons.cancel')}</Button>
                 </Link>
-                <Button type="submit">{isEdit ? "Guardar Cambios" : "Crear Cliente"}</Button>
+                <Button type="submit">{isEdit ? t('clients.form.buttons.update') : t('clients.form.buttons.save')}</Button>
             </div>
         </form>
     );

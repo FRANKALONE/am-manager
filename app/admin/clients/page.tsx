@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ClientsTable } from "./components/clients-table";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function ClientsPage() {
     const clients = await getClients();
     const managers = await getParametersByCategory("MANAGER");
     const eligibleUsers = await getEligibleManagers();
+    const { t } = await getTranslations();
 
     // Map for quick lookup: Value -> Label
     const managerMap = managers.reduce((acc, curr) => {
@@ -31,14 +33,14 @@ export default async function ClientsPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('clients.title')}</h1>
                     <p className="text-muted-foreground">
-                        Gestión de la cartera de clientes.
+                        {t('clients.subtitle')}
                     </p>
                 </div>
                 <Link href="/admin/clients/new">
                     <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Nuevo Cliente
+                        <Plus className="mr-2 h-4 w-4" /> {t('clients.newButton')}
                     </Button>
                 </Link>
             </div>

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "@/lib/get-translations";
 
 export async function getRoles() {
     try {
@@ -40,7 +41,8 @@ export async function createRole(prevState: any, formData: FormData) {
         }
     });
 
-    if (!name) return { error: "Nombre obligatorio" };
+    const { t } = await getTranslations();
+    if (!name) return { error: t('errors.required', { field: t('common.name') }) };
 
     try {
         await prisma.role.create({
@@ -53,10 +55,11 @@ export async function createRole(prevState: any, formData: FormData) {
         });
     } catch (error: any) {
         console.error(error);
+        const { t } = await getTranslations();
         if (error.code === 'P2002') {
-            return { error: "El nombre de rol ya existe" };
+            return { error: t('errors.alreadyExists', { item: t('roles.title') }) };
         }
-        return { error: "Error al crear rol" };
+        return { error: t('errors.createError', { item: t('roles.title') }) };
     }
 
     revalidatePath("/admin/roles");
@@ -77,7 +80,8 @@ export async function updateRole(id: string, prevState: any, formData: FormData)
         }
     });
 
-    if (!name) return { error: "Nombre obligatorio" };
+    const { t } = await getTranslations();
+    if (!name) return { error: t('errors.required', { field: t('common.name') }) };
 
     try {
         await prisma.role.update({
@@ -91,10 +95,11 @@ export async function updateRole(id: string, prevState: any, formData: FormData)
         });
     } catch (error: any) {
         console.error(error);
+        const { t } = await getTranslations();
         if (error.code === 'P2002') {
-            return { error: "El nombre de rol ya existe" };
+            return { error: t('errors.alreadyExists', { item: t('roles.title') }) };
         }
-        return { error: "Error al actualizar rol" };
+        return { error: t('errors.updateError', { item: t('roles.title') }) };
     }
 
     revalidatePath("/admin/roles");
@@ -107,6 +112,7 @@ export async function deleteRole(id: string) {
         revalidatePath("/admin/roles");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar rol" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('roles.title') }) };
     }
 }

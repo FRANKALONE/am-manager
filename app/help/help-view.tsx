@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MANUAL_CONTENT, HelpSection } from "./content";
 import * as Icons from "lucide-react";
 import { Printer, Download } from "lucide-react";
+import { formatDate } from "@/lib/date-utils";
 
 interface HelpViewProps {
     permissions: Record<string, boolean>;
@@ -40,7 +41,7 @@ export function HelpView({ permissions, userName }: HelpViewProps) {
             <div className="hidden print:block mb-8 border-b pb-4">
                 <h1 className="text-4xl font-bold text-slate-900 mb-2">Manual de Usuario - AM Manager</h1>
                 <p className="text-slate-600">Documento generado para: {userName}</p>
-                <p className="text-slate-600">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
+                <p className="text-slate-600">Fecha: {formatDate(new Date(), { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
             </div>
 
             <div className="space-y-8">

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { type Locale } from '@/lib/i18n-config';
-import { setLocaleCookie } from '@/lib/get-locale';
+import { setLocaleCookie, setTimezoneCookie } from '@/lib/preferences-actions';
 import { revalidatePath } from 'next/cache';
 
 export async function updateUserPreferences(
@@ -20,6 +20,8 @@ export async function updateUserPreferences(
 
         if (preferences.timezone) {
             updateData.timezone = preferences.timezone;
+            // Also update the cookie
+            await setTimezoneCookie(preferences.timezone);
         }
 
         await prisma.user.update({

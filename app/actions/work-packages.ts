@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchTempoAccountId } from "@/lib/tempo-helper";
-import { getNowSpain, getStartOfTodaySpain } from "@/lib/utils";
+import { getNow, getStartOfToday } from "@/lib/date-utils";
+import { getTranslations } from "@/lib/get-translations";
 // import { syncWorkPackage } from "./sync";
 
 export type WorkPackageFilters = {
@@ -37,8 +38,8 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
         const status = filters?.status || "active";
 
         if (status === "active") {
-            const now = getNowSpain();
-            const startOfToday = getStartOfTodaySpain();
+            const now = getNow();
+            const startOfToday = getStartOfToday();
             where.validityPeriods = {
                 some: {
                     startDate: { lte: now },
@@ -46,8 +47,8 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
                 }
             };
         } else if (status === "inactive") {
-            const now = getNowSpain();
-            const startOfToday = getStartOfTodaySpain();
+            const now = getNow();
+            const startOfToday = getStartOfToday();
             where.validityPeriods = {
                 none: {
                     startDate: { lte: now },
@@ -157,12 +158,14 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
         }
     });
 
-    if (!id || id.length > 20) return { error: "ID obligatorio y máx 20 caracteres" };
-    if (!name) return { error: "Nombre obligatorio" };
-    if (!clientId) return { error: "Cliente obligatorio" };
+    const { t } = await getTranslations();
+
+    if (!id || id.length > 20) return { error: t('errors.maxLength', { field: 'ID', count: 20 }) };
+    if (!name) return { error: t('errors.required', { field: t('common.name') }) };
+    if (!clientId) return { error: t('errors.required', { field: t('dashboard.client') }) };
 
     const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!client) return { error: "Cliente no encontrado" };
+    if (!client) return { error: t('errors.notFound', { item: t('dashboard.client') }) };
 
     // Fetch Tempo Account ID automatically
     let tempoAccountId: string | null = null;
@@ -218,7 +221,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
         });
     } catch (error) {
         console.error(error);
-        return { error: "Error al crear WP. El ID puede que ya exista." };
+        const { t } = await getTranslations();
+        return { error: t('errors.createError', { item: 'WP' }) + ". " + t('errors.alreadyExists', { item: 'ID' }) };
     }
 
     revalidatePath("/admin/work-packages");
@@ -287,7 +291,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         }
     });
 
-    if (!existingWP) return { error: "Work Package no encontrado" };
+    const { t } = await getTranslations();
+
+    if (!existingWP) return { error: t('errors.notFound', { item: 'Work Package' }) };
 
     // Handle Tempo Account ID update
     let tempoAccountId: string | null | undefined = undefined;
@@ -362,7 +368,8 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         console.log("WP Update Success");
     } catch (error) {
         console.error("WP Update Error:", error);
-        return { error: "Error al actualizar WP" };
+        const { t } = await getTranslations();
+        return { error: t('errors.updateError', { item: 'WP' }) };
     }
 
     revalidatePath("/admin/work-packages");
@@ -377,7 +384,8 @@ export async function deleteWorkPackage(id: string) {
         revalidatePath("/admin/work-packages");
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: '' }) };
     }
 }
 
@@ -416,7 +424,8 @@ export async function addValidityPeriod(
         revalidatePath(`/admin/work-packages/${wpId}/edit`);
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al añadir periodo" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.createError', { item: t('workPackages.validity.addTitle') }) };
     }
 }
 
@@ -454,7 +463,8 @@ export async function updateValidityPeriod(
         revalidatePath(`/admin/work-packages/${vp.workPackageId}/edit`);
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al actualizar periodo" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.updateError', { item: t('workPackages.validity.addTitle') }) };
     }
 }
 
@@ -464,6 +474,7 @@ export async function deleteValidityPeriod(id: number) {
         revalidatePath(`/admin/work-packages/${vp.workPackageId}/edit`);
         return { success: true };
     } catch (error) {
-        return { success: false, error: "Error al eliminar periodo" };
+        const { t } = await getTranslations();
+        return { success: false, error: t('errors.deleteError', { item: t('workPackages.validity.addTitle') }) };
     }
 }

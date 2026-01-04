@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { getMonthlyTicketDetails } from "@/app/actions/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTranslations } from "@/lib/use-translations";
+import { formatDate } from "@/lib/date-utils";
 
 interface TicketDetailViewProps {
     wpId: string;
@@ -12,6 +14,7 @@ interface TicketDetailViewProps {
 }
 
 export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
+    const { t, locale } = useTranslations();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -26,11 +29,11 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
     }, [wpId, year, month]);
 
     if (loading) {
-        return <div className="p-4 text-center text-muted-foreground">Cargando tickets...</div>;
+        return <div className="p-4 text-center text-muted-foreground">{t('dashboard.ticketsDetail.loading')}</div>;
     }
 
     if (!data || data.totalTickets === 0) {
-        return <div className="p-4 text-center text-muted-foreground">No hay tickets para este mes</div>;
+        return <div className="p-4 text-center text-muted-foreground">{t('dashboard.ticketsDetail.noData')}</div>;
     }
 
     return (
@@ -38,7 +41,7 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
             {/* Summary by Type */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm">Resumen por Tipo</CardTitle>
+                    <CardTitle className="text-sm">{t('dashboard.ticketsDetail.summaryTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -55,18 +58,20 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
             {/* Detailed Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm">Detalle de Tickets ({data.totalTickets})</CardTitle>
+                    <CardTitle className="text-sm">
+                        {t('dashboard.ticketsDetail.listTitle', { count: data.totalTickets })}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>ID Ticket</TableHead>
-                                <TableHead>Resumen</TableHead>
-                                <TableHead>Fecha Creación</TableHead>
-                                <TableHead>Informador</TableHead>
-                                <TableHead>Estado</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.type')}</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.issueId')}</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.summary')}</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.created')}</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.reporter')}</TableHead>
+                                <TableHead>{t('dashboard.ticketsDetail.status')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -84,7 +89,7 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
                                         {ticket.issueSummary}
                                     </TableCell>
                                     <TableCell>
-                                        {new Date(ticket.createdDate).toLocaleDateString('es-ES')}
+                                        {formatDate(ticket.createdDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                                     </TableCell>
                                     <TableCell className="text-sm">{ticket.reporter}</TableCell>
                                     <TableCell>

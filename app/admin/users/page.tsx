@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { getTranslations } from "@/lib/get-translations";
+import { formatDate } from "@/lib/date-utils";
 
 export default async function UsersPage() {
     const users = await getUsers();
+    const { t, locale } = await getTranslations();
 
     async function deleteAction(id: string) {
         "use server";
@@ -16,14 +19,14 @@ export default async function UsersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Usuarios</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('users.title')}</h1>
                     <p className="text-muted-foreground">
-                        Gestión de usuarios y permisos de acceso.
+                        {t('users.subtitle')}
                     </p>
                 </div>
                 <Link href="/admin/users/new">
                     <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Nuevo Usuario
+                        <Plus className="mr-2 h-4 w-4" /> {t('users.newButton')}
                     </Button>
                 </Link>
             </div>
@@ -32,12 +35,12 @@ export default async function UsersPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Rol</TableHead>
-                            <TableHead>Cliente Asociado</TableHead>
-                            <TableHead>Última Conexión</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                            <TableHead>{t('users.table.name')}</TableHead>
+                            <TableHead>{t('users.table.email')}</TableHead>
+                            <TableHead>{t('users.table.role')}</TableHead>
+                            <TableHead>{t('users.table.client')}</TableHead>
+                            <TableHead>{t('users.table.lastLogin')}</TableHead>
+                            <TableHead className="text-right">{t('users.table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -49,20 +52,14 @@ export default async function UsersPage() {
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
                                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                                        {user.role}
+                                        {t(`users.roles.${user.role}`)}
                                     </span>
                                 </TableCell>
                                 <TableCell>
                                     {user.client?.name || "-"}
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
-                                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('es-ES', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    }) : "Nunca"}
+                                    {user.lastLoginAt ? formatDate(user.lastLoginAt) : t('users.never')}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">

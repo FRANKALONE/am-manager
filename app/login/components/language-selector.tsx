@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { localeNames, localeFlags, type Locale } from "@/lib/i18n-config";
 import { Globe } from "lucide-react";
+import { setLocaleCookie } from "@/lib/preferences-actions";
 
 export function LanguageSelector() {
     const [locale, setLocale] = useState<Locale>("es");
@@ -28,6 +29,8 @@ export function LanguageSelector() {
         // Save to localStorage
         try {
             localStorage.setItem('NEXT_LOCALE', newLocale);
+            // Also set as cookie for server-side awareness
+            setLocaleCookie(newLocale as Locale);
         } catch (e) {
             console.error('Error saving locale:', e);
         }

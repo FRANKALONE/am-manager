@@ -18,13 +18,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import * as locales from "date-fns/locale";
+import { useTranslations } from "@/lib/use-translations";
+import { formatDate } from "@/lib/date-utils";
 
 interface NotificationPanelProps {
     userId: string;
 }
 
 export function NotificationPanel({ userId }: NotificationPanelProps) {
+    const { locale } = useTranslations();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -113,7 +116,10 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
                                     </div>
                                     <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{n.message}</p>
                                     <p className="text-[10px] text-muted-foreground">
-                                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
+                                        {formatDistanceToNow(new Date(n.createdAt), {
+                                            addSuffix: true,
+                                            locale: (locales as any)[locale === 'en' ? 'enUS' : locale] || locales.es
+                                        })}
                                     </p>
                                 </div>
                             ))}

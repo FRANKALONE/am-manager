@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { WorkPackagesTable } from "./components/work-package-table";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function WorkPackagesPage({
     searchParams,
 }: {
     searchParams: { [key: string]: string | string[] | undefined };
 }) {
+    const { t } = await getTranslations();
+
     // Parse Filters
     const filters: WPFiltersType = {
         clientId: typeof searchParams.clientId === "string" ? searchParams.clientId : undefined,
@@ -30,12 +33,12 @@ export default async function WorkPackagesPage({
 
     // Map Value -> Label
     const contractTypeMap = contractTypes.reduce((acc, curr) => {
-        acc[curr.value] = curr.label;
+        acc[curr.value] = t(`parameters.CONTRACT_TYPE.${curr.value}`, { defaultValue: curr.label });
         return acc;
     }, {} as Record<string, string>);
 
     const renewalTypeMap = renewalTypes.reduce((acc, curr) => {
-        acc[curr.value] = curr.label;
+        acc[curr.value] = t(`parameters.RENEWAL_TYPE.${curr.value}`, { defaultValue: curr.label });
         return acc;
     }, {} as Record<string, string>);
 
@@ -43,23 +46,23 @@ export default async function WorkPackagesPage({
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Work Packages</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('workPackages.title')}</h1>
                     <p className="text-muted-foreground">
-                        Gestión de condiciones y detalles de los servicios (WPs).
+                        {t('workPackages.subtitle')}
                     </p>
                 </div>
             </div>
 
             <WorkPackageFilters
                 clients={clients.map(c => ({ id: c.id, name: c.name }))}
-                contractTypes={contractTypes}
-                renewalTypes={renewalTypes}
+                contractTypes={contractTypes.map(c => ({ ...c, label: t(`parameters.CONTRACT_TYPE.${c.value}`, { defaultValue: c.label }) }))}
+                renewalTypes={renewalTypes.map(r => ({ ...r, label: t(`parameters.RENEWAL_TYPE.${r.value}`, { defaultValue: r.label }) }))}
             />
 
             <div className="flex justify-start">
                 <Link href="/admin/work-packages/new">
                     <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Nuevo WP
+                        <Plus className="mr-2 h-4 w-4" /> {t('workPackages.newButton')}
                     </Button>
                 </Link>
             </div>

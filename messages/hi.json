@@ -26,7 +26,11 @@
         "status": "स्थिति",
         "date": "तारीख",
         "name": "नाम",
-        "description": "विवरण"
+        "description": "विवरण",
+        "home": "होम",
+        "noPermissions": "आपके पास एक्सेस अनुमतियां नहीं हैं।",
+        "months": "महीने",
+        "allRightsReserved": "सर्वाधिकार सुरक्षित"
     },
     "auth": {
         "login": "लॉगिन करें",
@@ -44,15 +48,112 @@
     },
     "dashboard": {
         "title": "डैशबोर्ड",
+        "clientTitle": "AM ग्राहक डैशबोर्ड",
+        "subtitle": "ग्राहक द्वारा खपत और प्रमुख मेट्रिक्स का दृश्य।",
+        "backHome": "घर वापस जाएँ",
+        "client": "ग्राहक",
+        "selectClient": "ग्राहक चुनें",
+        "wpLabel": "अनुबंध / कार्य पैकेज",
+        "selectWp": "डब्ल्यूपी चुनें",
+        "lastSync": "अंतिम सिंक",
+        "syncNow": "अब सिंक करें",
+        "syncing": "सिंक हो रहा है...",
+        "loadingMetrics": "संकेतक लोड हो रहे हैं...",
+        "contracted": "अनुबंधित",
+        "consumed": "उपभोग किया गया",
+        "available": "उपलब्ध",
+        "nextRegularization": "अगला नियमितीकरण",
+        "consumptionProgress": "खपत प्रगति",
+        "monthlyEvolution": "मासिक विकास",
+        "consumptionByTicket": "टिकट द्वारा खपत",
+        "detalleMensual": "मासिक विवरण और विकास",
+        "period": "अवधि",
+        "current": "वर्तमान",
+        "filterByDates": "तिथियों के अनुसार फ़िल्टर करें",
+        "from": "से",
+        "to": "तक",
+        "calculatedOnContract": "अनुबंध वैधता पर गणना",
+        "month": "महीना",
+        "difference": "मासिक अंतर",
+        "regularization": "नियमितीकरण",
+        "accumulated": "संचित",
+        "selectWpMessage": "संकेतकों को देखने के लिए एक कार्य पैकेज चुनें।",
+        "loadingTicketReport": "प्रति टिकट खपत रिपोर्ट लोड हो रही है...",
+        "total": "कुल का",
+        "billedOf": "बिल किया गया",
         "metrics": "मेट्रिक्स",
         "workPackages": "कार्य पैकेज",
-        "lastSync": "अंतिम सिंक",
-        "consumed": "उपभोग किया गया",
         "remaining": "शेष",
         "billed": "बिल किया गया",
         "notifications": "सूचनाएं",
         "welcome": "एएम प्रबंधन नियंत्रण में आपका स्वागत है",
-        "selectArea": "शुरू करने के लिए एक कार्य क्षेत्र चुनें"
+        "selectArea": "शुरू करने के लिए एक कार्य क्षेत्र चुनें",
+        "details": {
+            "loading": "विवरण लोड हो रहा है...",
+            "noData": "इस महीने के लिए कोई वर्क लॉग या नियमितीकरण नहीं है",
+            "breakdownByType": "टिकट प्रकार द्वारा विश्लेषण:",
+            "tickets": "टिकट",
+            "otherMonths": "अन्य महीनों में खपत",
+            "requestReview": "समीक्षा का अनुरोध करें",
+            "date": "तारीख",
+            "author": "लेखक",
+            "imputationType": "लगाया गया प्रकार",
+            "origin": "मूल (WP)",
+            "hours": "घंटे",
+            "inClaim": "दावे में",
+            "returned": "लौटाया गया",
+            "regularizationsTitle": "नियमितीकरण और समायोजन",
+            "type": "प्रकार",
+            "description": "विवरण",
+            "quantity": "मात्रा"
+        },
+        "ticketsReport": {
+            "title": "टिकट द्वारा खपत",
+            "noData": "टिकट द्वारा कोई खपत डेटा नहीं",
+            "totalTickets": "टिकट",
+            "totalHours": "कुल",
+            "filterPlaceholder": "टिकट आईडी द्वारा फ़िल्टर करें...",
+            "allTypes": "सभी प्रकार",
+            "type": "प्रकार",
+            "issueId": "टिकट आईडी",
+            "description": "विवरण",
+            "priority": "प्राथमिकता",
+            "slaResponse": "SLA प्रतिक्रिया",
+            "slaResolution": "SLA समाधान",
+            "status": "स्थिति",
+            "total": "कुल घंटे",
+            "monthlyBreakdown": "मासिक विश्लेषण:"
+        },
+        "reviewModal": {
+            "title": "आरोपों की समीक्षा का अनुरोध करें",
+            "description": "आपने समीक्षा के लिए {count} आरोप चुने हैं।",
+            "date": "तारीख",
+            "ticket": "टिकट",
+            "hours": "घंटे",
+            "reasonLabel": "दावे का कारण",
+            "reasonPlaceholder": "उदा: ये घंटे एक अलग परियोजना के अनुरूप हैं...",
+            "cancel": "रद्द करें",
+            "submit": "दावा भेजें",
+            "submitting": "भेजा जा रहा है...",
+            "toast": {
+                "success": "दावा सफलतापूर्वक भेजा गया",
+                "error": "दावा भेजते समय त्रुटि",
+                "connectionError": "कनेक्शन त्रुटि",
+                "tooShort": "कृपया अधिक विस्तृत कारण दर्ज करें (न्यूनतम 10 वर्ण)"
+            }
+        },
+        "ticketsDetail": {
+            "loading": "टिकट लोड हो रहे हैं...",
+            "noData": "इस महीने के लिए कोई टिकट नहीं है",
+            "summaryTitle": "प्रकार द्वारा सारांश",
+            "listTitle": "टिकट विवरण ({count})",
+            "type": "प्रकार",
+            "issueId": "टिकट आईडी",
+            "summary": "सारांश",
+            "created": "निर्माण तिथि",
+            "reporter": "रिपोर्टर",
+            "status": "स्थिति"
+        }
     },
     "admin": {
         "title": "प्रशासन",
@@ -63,7 +164,152 @@
         "import": "आयात / निर्यात",
         "maintenance": "रखरखाव",
         "preferences": "प्राथमिकताएं",
-        "settings": "सेटिंग्स"
+        "settings": "सेटिंग्स",
+        "closures": "समापन प्रबंधन",
+        "closuresDesc": "ग्राहकों की अधिक खपत की पहचान और बिल करें।",
+        "evolutivos": "विकासवादी प्रबंधन",
+        "evolutivosDesc": "मील के पत्थर और योजना का विस्तृत विवरण।",
+        "notifications": {
+            "title": "नए दावे",
+            "viewAll": "सभी देखें",
+            "empty": "कोई लंबित दावा नहीं",
+            "from": "{name} से"
+        }
+    },
+    "help": {
+        "title": "दस्तावेज़ और सहायता",
+        "subtitle": "उपयोगकर्ता मार्गदर्शिका और सिस्टम मैनुअल"
+    },
+    "import": {
+        "title": "आयात / निर्यात",
+        "subtitle": "बड़े पैमाने पर डेटा प्रबंधन और सिंक नियंत्रण।",
+        "historyTitle": "आयात इतिहास",
+        "historySubtitle": "अंतिम प्रक्रियाओं का लॉग।",
+        "noLogs": "अभी तक कोई आयात लॉग नहीं है।",
+        "clearHistory": "इतिहास साफ़ करें",
+        "clearConfirm": "क्या आप वाकई इतिहास साफ़ करना चाहते हैं?",
+        "refresh": "अपडेट करें",
+        "clear": "साफ़ करें",
+        "table": {
+            "date": "तारीख",
+            "file": "फ़ाइल",
+            "type": "प्रकार",
+            "result": "परिणाम",
+            "progress": "प्रगति"
+        },
+        "types": {
+            "bulk": "थोक लोड",
+            "auto": "ऑटो सिंक",
+            "manual": "मैनुअल सिंक",
+            "regularizations": "नियमितीकरण"
+        },
+        "sync": {
+            "title": "बड़े पैमाने पर मैनुअल सिंक",
+            "description": "नवीनतम JIRA और Tempo डेटा के साथ सभी कार्य पैकेजों को अपडेट करें।",
+            "warning": "यह प्रक्रिया रात के सिंक की जगह लेती है।",
+            "button": "कुल सिंक चलाएं",
+            "confirm": "क्या आप सभी कार्य पैकेजों का सिंक शुरू करना चाहते हैं?",
+            "inProgress": "सिंक प्रगति पर है...",
+            "finished": "सिंक समाप्त",
+            "processing": "{total} पैकेजों में से {current} को प्रोसेस किया जा रहा है",
+            "eta": "अनुमानित शेष समय: {time}",
+            "summary": "सिंक सारांश:",
+            "success": "सफलता",
+            "errors": "त्रुटियां",
+            "total": "कुल",
+            "close": "बंद करें और साफ़ करें",
+            "toast": {
+                "success": "सिंक समाप्त",
+                "error": "सूची प्राप्त करने में त्रुटि",
+                "empty": "सिंक के लिए कोई कार्य पैकेज नहीं है।",
+                "critical": "{name} के सिंक में गंभीर त्रुटि"
+            }
+        },
+        "evolutivos": {
+            "title": "विकासवादी कुल सिंक",
+            "description": "सभी ग्राहकों के लिए विकासवादी और मील का पत्थर अपडेट करें।",
+            "warning": "यह प्रक्रिया सभी परियोजनाओं के लिए JIRA में टिकट खोजती है।",
+            "confirm": "क्या आप सभी विकासवादी का सिंक शुरू करना चाहते हैं?",
+            "syncing": "सिंक हो रहा है...",
+            "button": "विकासवादी सिंक करें",
+            "toast": {
+                "success": "सिंक समाप्त",
+                "error": "सिंक में त्रुटि",
+                "critical": "विकासवादी सिंक में गंभीर त्रुटि"
+            }
+        },
+        "manager": {
+            "wpTitle": "कार्य पैकेज और ग्राहक",
+            "regTitle": "नियमितीकरण",
+            "exportTitle": "डेटा निर्यात करें (टेम्पलेट)",
+            "exportDesc": "वर्तमान डेटा के साथ एक CSV डाउनलोड करें।",
+            "exportInfo": "फ़ाइल में ग्राहक, परियोजनाएं और कार्य पैकेज शामिल हैं।",
+            "exportButton": "CSV / टेम्पलेट डाउनलोड करें",
+            "importTitle": "डेटा आयात करें",
+            "importDesc": "डेटा बनाने या अपडेट करने के लिए एक CSV फ़ाइल अपलोड करें।",
+            "importFormat": "फॉर्मूला: अल्पविराम (,) या अर्धविराम (;) द्वारा अलग किया गया CSV।",
+            "importButton": "अपलोड और प्रोसेस करें",
+            "importing": "आयात किया जा रहा है...",
+            "toast": {
+                "success": "आयात पूर्ण",
+                "partial": "त्रुटियों के साथ आयात पूर्ण",
+                "error": "आयात में त्रुटि",
+                "unexpected": "अपेक्षित त्रुटि"
+            },
+            "delimiter": "सीमांकक पाया गया",
+            "processingTitle": "प्रोसेसिंग",
+            "processingDesc": "डेटा आयात किया जा रहा है, कृपया प्रतीक्षा करें...",
+            "errorsFound": "{count} त्रुटियां पाई गईं",
+            "regExportTitle": "नियमितीकरण निर्यात करें",
+            "regExportDesc": "CSV प्रारूप में सभी नियमितीकरण डाउनलोड करें।",
+            "regExportButton": "नियमितीकरण CSV डाउनलोड करें",
+            "regImportTitle": "नियमितीकरण आयात करें",
+            "regImportDesc": "बड़े पैमाने पर नियमितीकरण के लिए एक CSV अपलोड करें।"
+        },
+        "diagnostics": {
+            "evolutivos": {
+                "title": "विकासवादी निदान",
+                "description": "विसंगतियों का पता लगाने के लिए Jira और डेटाबेस की तुलना करें।",
+                "clientLabel": "ग्राहक",
+                "clientPlaceholder": "ग्राहक चुनें...",
+                "button": "निदान चलाएं",
+                "running": "निदान चल रहा है...",
+                "discrepancyTitleMissing": "JIRA में है लेकिन BD में नहीं ({count})",
+                "discrepancyTitleExtra": "BD में है लेकिन JIRA में नहीं ({count})",
+                "synced": "सब कुछ ठीक से सिंक किया गया है!",
+                "syncedDesc": "कोई विसंगति नहीं मिली।",
+                "jqlLabel": "उपयोग किया गया JQL देखें",
+                "toast": {
+                    "select": "एक ग्राहक चुनें",
+                    "success": "निदान पूर्ण",
+                    "error": "निदान में त्रुटि",
+                    "critical": "निदान चलाने में त्रुटि"
+                }
+            },
+            "wp": {
+                "title": "डब्ल्यूपी सिंक निदान",
+                "description": "एक विशिष्ट कार्य पैकेज के लिए डेटा की तुलना करें।",
+                "selectLabel": "कार्य पैकेज चुनें",
+                "selectPlaceholder": "एक डब्ल्यूपी खोजें...",
+                "logsTitle": "लॉग आउटपुट",
+                "noLogs": "दिखाने के लिए कोई लॉग नहीं है।",
+                "loadingLogs": "सिंक करना और लॉग एकत्र करना...",
+                "success": "सफलता: {processed} वर्क लॉग प्रोसेस किए गए।"
+            }
+        }
+    },
+    "adminHome": {
+        "title": "एएम प्रबंधन नियंत्रण में आपका स्वागत है",
+        "subtitle": "शुरू करने के लिए एक कार्य क्षेत्र चुनें",
+        "dashboardConsumptions": "खपत डैशबोर्ड",
+        "dashboardConsumptionsDesc": "कार्य पैकेजों की खपत देखें और उसका विश्लेषण करें",
+        "closuresManagement": "समापन प्रबंधन",
+        "closuresManagementDesc": "मासिक समापन प्रबंधित करें",
+        "evolutivosManagement": "विकासवादी प्रबंधन",
+        "evolutivosManagementDesc": "मील के पत्थर, जिम्मेदार और योजना",
+        "administration": "प्रशासन",
+        "administrationDesc": "उपयोगकर्ता, ग्राहक और कॉन्फ़िगरेशन प्रबंधन",
+        "accessModule": "मॉड्यूल तक पहुंचें"
     },
     "user": {
         "name": "नाम",
@@ -71,12 +317,13 @@
         "email": "ईमेल",
         "role": "भूमिका",
         "client": "ग्राहक",
-        "lastLogin": "अंतिम लॉगिन",
+        "lastLogin": "अंतिम एक्सेस",
         "createdAt": "निर्माण तिथि",
         "language": "भाषा",
         "timezone": "समय क्षेत्र",
         "preferences": "उपयोगकर्ता प्राथमिकताएं",
-        "profile": "प्रोफ़ाइल"
+        "profile": "प्रोफ़ाइल",
+        "manual": "मेरा उपयोगकर्ता मैनुअल"
     },
     "preferences": {
         "title": "उपयोगकर्ता प्राथमिकताएं",
@@ -89,5 +336,335 @@
         "saving": "सहेजा जा रहा है...",
         "successMessage": "प्राथमिकताएं सफलतापूर्वक अपडेट की गईं",
         "errorMessage": "प्राथमिकताएं अपडेट करने में त्रुटि"
+    },
+    "clients": {
+        "title": "ग्राहक",
+        "subtitle": "ग्राहक पोर्टफोलियो प्रबंधन।",
+        "newButton": "नया ग्राहक",
+        "filter": {
+            "searchLabel": "ID या नाम से खोजें",
+            "searchPlaceholder": "ग्राहक खोजें...",
+            "managerLabel": "प्रबंधक द्वारा फ़िल्टर करें",
+            "allManagers": "सभी प्रबंधक",
+            "unassigned": "अनिर्धारित",
+            "clear": "साफ़ करें",
+            "results": "{total} में से {count} ग्राहक दिखाए जा रहे हैं"
+        },
+        "table": {
+            "id": "ग्राहक ID",
+            "name": "नाम",
+            "manager": "प्रबंधक",
+            "portal": "ग्राहक पोर्टल",
+            "viewPortal": "पोर्टल देखें",
+            "actions": "क्रियाएं",
+            "noResults": "कोई ग्राहक नहीं मिला।",
+            "noClients": "कोई ग्राहक पंजीकृत नहीं है।"
+        },
+        "form": {
+            "editTitle": "ग्राहक संपादित करें",
+            "newTitle": "नया ग्राहक",
+            "editSubtitle": "ग्राहक डेटा बदलें।",
+            "newSubtitle": "सिस्टम में एक नया ग्राहक पंजीकृत करें।",
+            "cardTitle": "सामान्य डेटा",
+            "cardDescription": "ग्राहक की बुनियादी जानकारी।",
+            "labels": {
+                "id": "ग्राहक ID (अधिकतम 10)",
+                "name": "ग्राहक का नाम",
+                "manager": "जिम्मेदार प्रबंधक",
+                "portal": "ग्राहक पोर्टल URL",
+                "portalHelp": "ग्राहक वेब पोर्टल URL (वैकल्पिक)",
+                "reportEmailsTitle": "मासिक रिपोर्ट के लिए ईमेल",
+                "noUsers": "कोई संबद्ध उपयोगकर्ता नहीं।",
+                "saveFirst": "पहले ग्राहक को सहेजें।",
+                "additionalEmails": "अतिरिक्त ईमेल",
+                "additionalEmailsHelp": "अल्पविराम से अलग किए गए ईमेल।",
+                "customFields": "अतिरिक्त फ़ील्ड",
+                "selectManager": "प्रबंधक चुनें..."
+            },
+            "placeholders": {
+                "id": "C-001",
+                "name": "कंपनी S.L.",
+                "portal": "https://portal.cliente.com",
+                "emails": "email@cliente.com"
+            },
+            "buttons": {
+                "cancel": "रद्द करें",
+                "update": "परिवर्तन सहेजें",
+                "save": "ग्राहक बनाएं"
+            }
+        }
+    },
+    "users": {
+        "title": "उपयोगकर्ता",
+        "subtitle": "उपयोगकर्ता और पहुंच अनुमतियों का प्रबंधन।",
+        "newButton": "नया उपयोगकर्ता",
+        "table": {
+            "name": "नाम",
+            "email": "ईमेल",
+            "role": "भूमिका",
+            "client": "संबद्ध ग्राहक",
+            "lastLogin": "अंतिम कनेक्शन",
+            "actions": "क्रियाएं"
+        },
+        "never": "कभी नहीं",
+        "roles": {
+            "ADMIN": "व्यवस्थापक",
+            "MANAGER": "प्रबंधक",
+            "VIEWER": "सलाहकार",
+            "CLIENT": "ग्राहक"
+        },
+        "form": {
+            "editTitle": "उपयोगकर्ता संपादित करें",
+            "newTitle": "नया उपयोगकर्ता",
+            "cardTitle": "उपयोगकर्ता डेटा",
+            "name": "नाम",
+            "surname": "उपनाम",
+            "email": "ईमेल",
+            "password": "पासवर्ड",
+            "passwordPlaceholder": "प्रारंभिक पासवर्ड",
+            "role": "भूमिका",
+            "select": "-- चुनें --",
+            "client": "ग्राहक",
+            "none": "-- कोई नहीं --",
+            "wps": "कार्य पैकेज (वैकल्पिक)",
+            "wpsHelp": "यदि आप कोई नहीं चुनते हैं, तो सभी तक पहुंच होगी।",
+            "wpsPlaceholder": "उदा: [\"WP001\"]",
+            "wpsFormat": "JSON सरणी प्रारूप।",
+            "cancel": "रद्द करें",
+            "update": "उपयोगकर्ता अपडेट करें",
+            "save": "उपयोगकर्ता सहेजें"
+        }
+    },
+    "workPackages": {
+        "title": "कार्य पैकेज",
+        "subtitle": "सेवाओं की स्थिति और विवरण (WPs)।",
+        "newButton": "नया डब्ल्यूपी",
+        "filter": {
+            "title": "फ़िल्टर",
+            "clear": "साफ़ करें",
+            "client": "ग्राहक",
+            "contractType": "अनुबंध प्रकार",
+            "renewal": "नवीनीकरण",
+            "premium": "प्रीमियम",
+            "status": "वैधता स्थिति",
+            "expMonth": "समाप्ति महीना",
+            "expYear": "समाप्ति वर्ष",
+            "all": "सभी",
+            "yes": "हाँ",
+            "no": "नहीं",
+            "active": "सक्रिय",
+            "inactive": "निष्क्रिय"
+        },
+        "table": {
+            "selected": "{count} कार्य पैकेज चुने गए",
+            "deleteSelection": "चयन हटाएँ",
+            "confirmBulkTitle": "थोक विलोपन की पुष्टि करें?",
+            "confirmBulkDesc": "आप {count} डब्ल्यूपी हटाने वाले हैं।",
+            "confirmBulkAction": "स्थायी रूप से हटाएँ",
+            "toast": {
+                "deletedBulk": "{count} डब्ल्यूपी हटा दिए गए",
+                "deletedSingle": "डब्ल्यूपी हटा दिया गया",
+                "error": "हटाने में त्रुटि"
+            },
+            "id": "डब्ल्यूपी ID",
+            "name": "नाम",
+            "client": "ग्राहक",
+            "contract": "अनुबंध प्रकार",
+            "billing": "बिलिंग",
+            "renewal": "नवीनीकरण",
+            "periods": "अवधि",
+            "actions": "क्रियाएं",
+            "noResults": "कोई डब्ल्यूपी नहीं मिला।",
+            "confirmSingle": "क्या आप वाकई हटाना चाहते हैं?"
+        },
+        "form": {
+            "title": "नया कार्य पैकेज",
+            "editTitle": "डब्ल्यूपी संपादित करें",
+            "subtitle": "अनुबंध कॉन्फ़िगरेशन v2.0",
+            "cardIdentification": "पहचान",
+            "cardGeneralData": "सामान्य डेटा",
+            "cardCurrentPeriod": "वर्तमान अवधि डेटा",
+            "cardCurrentPeriodDesc": "आर्थिक स्थिति",
+            "cardInitialPeriod": "पहली वैधता अवधि",
+            "cardInitialPeriodDesc": "तिथियाँ और शर्तें",
+            "cardValidityPeriods": "वैधता अवधि",
+            "cardValidityPeriodsDesc": "अवधि प्रबंधन",
+            "cardCorrectionFactors": "सुधार कारक",
+            "cardCorrectionFactorsDesc": "मॉडल प्रबंधन",
+            "cardRegularizations": "समय-समय पर नियमितीकरण",
+            "cardRegularizationsDesc": "समायोजन और वापसी।",
+            "cardCustomFields": "अतिरिक्त फ़ील्ड",
+            "labels": {
+                "client": "ग्राहक",
+                "selectClient": "ग्राहक चुनें...",
+                "id": "ID WP (20 वर्ण)",
+                "name": "डब्ल्यूपी नाम",
+                "contractType": "अनुबंध का प्रकार",
+                "jiraKeys": "JIRA परियोजना कुंजी",
+                "jiraKeysHelp": "JIRA कुंजियाँ (अल्पविराम से अलग)",
+                "jiraKeysPlaceholder": "उदा: PROJ1, PROJ2",
+                "scopeQuantity": "दायरा मात्रा (कुल)",
+                "scopeUnit": "मात्रा की इकाई",
+                "rate": "दर",
+                "billingType": "बिलिंग प्रकार",
+                "regType": "नियमितीकरण प्रकार",
+                "regRate": "नियमितीकरण दर",
+                "renewalType": "नवीनीकरण प्रकार",
+                "premium": "प्रीमियम",
+                "premiumPrice": "प्रीमियम दर",
+                "editPeriodInfo": "परिवर्तन के लिए संबंधित अवधि संपादित करें।",
+                "startDate": "प्रारंभ तिथि",
+                "endDate": "अंतिम तिथि",
+                "initialPeriodEcon": "आर्थिक स्थिति",
+                "initialPeriodMgmt": "अवधि प्रबंधन",
+                "surplusStrategy": "अधिशेष रणनीति",
+                "correctionDashInfo": "कारक डैशबोर्ड में प्रबंधित होते हैं।",
+                "correctionAfterInfo": "निर्माण के बाद कॉन्फ़िगर किया जाएगा।",
+                "select": "चुनें...",
+                "none": "--"
+            },
+            "buttons": {
+                "cancel": "रद्द करें",
+                "save": "कार्य पैकेज बनाएं",
+                "update": "परिवर्तन सहेजें"
+            }
+        },
+        "validity": {
+            "addTitle": "नई अवधि जोड़ें",
+            "startDate": "प्रारंभ तिथि",
+            "endDate": "अंतिम तिथि",
+            "scopeQuantity": "दायरा मात्रा",
+            "scopeUnit": "इकाई",
+            "rate": "दर",
+            "rateEvolutivo": "विकासवादी दर",
+            "rateEvolutivoPlaceholder": "वैकल्पिक",
+            "billingType": "बिलिंग प्रकार",
+            "regRate": "नियमितीकरण दर",
+            "regRatePlaceholder": "सामान्य दर के समान",
+            "regType": "नियमितीकरण प्रकार",
+            "premium": "प्रीमियम",
+            "renewalType": "नवीनीकरण प्रकार",
+            "premiumPrice": "प्रीमियम दर",
+            "premiumPricePlaceholder": "वैकल्पिक",
+            "saveButton": "अवधि जोड़ें",
+            "saving": "सहेजा जा रहा है...",
+            "tableHeader": {
+                "period": "अवधि",
+                "quantity": "मात्रा",
+                "rate": "दर",
+                "premium": "प्रीमियम",
+                "regularization": "नियमितीकरण",
+                "surplus": "अधिशेष",
+                "actions": "क्रियाएं"
+            },
+            "noPeriods": "कोई अवधि परिभाषित नहीं।",
+            "confirmDelete": "क्या आप हटाना चाहते हैं?",
+            "billingOptions": {
+                "monthly": "मासिक",
+                "quarterly": "तिमाही",
+                "annual": "वार्षिक"
+            },
+            "surplusOptions": {
+                "accumulate": "संचित करें",
+                "lose": "खोना"
+            },
+            "notDefined": "परिभाषित नहीं"
+        },
+        "regularization": {
+            "tableHeader": {
+                "date": "तारीख",
+                "type": "प्रकार",
+                "quantity": "मात्रा (घंटे)",
+                "description": "विवरण",
+                "actions": "क्रियाएं"
+            },
+            "noResults": "कोई नियमितीकरण नहीं",
+            "types": {
+                "excess": "अधिक खपत",
+                "return": "वापसी / रद्दीकरण"
+            },
+            "date": "तारीख",
+            "type": "प्रकार",
+            "quantity": "मात्रा (घंटे)",
+            "description": "विवरण",
+            "descriptionPlaceholder": "कारण...",
+            "addButton": "Reg जोड़ें",
+            "confirmDelete": "नियमितीकरण हटाएँ?"
+        }
+    },
+    "months": {
+        "january": "जनवरी",
+        "february": "फ़रवरी",
+        "march": "मार्च",
+        "april": "अप्रैल",
+        "may": "मई",
+        "june": "जून",
+        "july": "जुलाई",
+        "august": "अगस्त",
+        "september": "सितंबर",
+        "october": "अक्टूबर",
+        "november": "नवंबर",
+        "december": "दिसंबर"
+    },
+    "sidebar": {
+        "dashboard": "डैशबोर्ड",
+        "closures": "समापन",
+        "evolutivos": "विकासवादी",
+        "users": "उपयोगकर्ता",
+        "clients": "ग्राहक",
+        "workPackages": "कार्य पैकेज",
+        "parameters": "पैरामीटर",
+        "importExport": "आयात / निर्यात",
+        "maintenance": "रखरखाव",
+        "regularizations": "नियमितीकरण",
+        "renewals": "नवीनीकरण",
+        "roles": "भूमिकाएं",
+        "settings": "सेटिंग्स",
+        "documentation": "दस्तावेज़",
+        "claims": "दावे"
+    },
+    "errors": {
+        "required": "{field} अनिवार्य है",
+        "maxLength": "{field} {count} वर्णों से अधिक नहीं हो सकता",
+        "notFound": "{item} नहीं मिला",
+        "alreadyExists": "{item} पहले से मौजूद है",
+        "unknown": "अज्ञात त्रुटि",
+        "generic": "अनुरोध को संसाधित करते समय एक त्रुटि हुई",
+        "unauthorized": "आपके पास इस क्रिया को करने की अनुमति नहीं है",
+        "emergencyStop": "आपातकालीन रोक द्वारा सिंक निरस्त",
+        "noPeriods": "कोई वैधता अवधि परिभाषित नहीं",
+        "notApplicable": "इस अनुबंध प्रकार के लिए सिंक लागू नहीं है",
+        "invalidFile": "फ़ाइल अमान्य या खाली है",
+        "noFile": "कोई फ़ाइल अपलोड नहीं की गई",
+        "deleteError": "{item} को हटाने में त्रुटि",
+        "updateError": "{item} को अपडेट करने में त्रुटि",
+        "createError": "{item} बनाने में त्रुटि",
+        "syncError": "{item} को सिंक करने में त्रुटि",
+        "claimError": "दावे को संसाधित करने में त्रुटि",
+        "migrationError": "माइग्रेशन लागू करने में त्रुटि",
+        "wrongFormat": "गलत फ़ाइल प्रारूप"
+    },
+    "notifications": {
+        "titles": {
+            "reviewCreated": "नया घंटे दावा",
+            "reviewCreatedAssigned": "नया घंटे दावा (असाइन किया गया)",
+            "reviewApproved": "दावा स्वीकृत",
+            "reviewRejected": "दावा अस्वीकृत",
+            "reviewDecidedApproved": "दावा हल (स्वीकृत)",
+            "reviewDecidedRejected": "दावा हल (अस्वीकृत)"
+        },
+        "messages": {
+            "reviewCreated": "उपयोगकर्ता ने WP {wp} में {count} प्रविष्टियों की समीक्षा करने का अनुरोध किया है।",
+            "reviewCreatedAssigned": "आपके क्लाइंट के WP {wp} में {count} प्रविष्टियों की समीक्षा का अनुरोध किया गया है।",
+            "reviewApproved": "आपका घंटे दावा सफल रहा। {count} प्रविष्टियाँ लौटा दी गई हैं। नोट्स: {notes}",
+            "reviewRejected": "आपका घंटे दावा अस्वीकृत कर दिया गया है। नोट्स: {notes}",
+            "reviewDecidedApproved": "WP {wp} में एक दावा स्वीकृत हो गया है। नोट्स: {notes}",
+            "reviewDecidedRejected": "WP {wp} में एक दावा अस्वीकृत कर दिया गया है। नोट्स: {notes}"
+        }
+    },
+    "regularizations": {
+        "types": {
+            "return": "घंटे वापसी"
+        }
     }
 }

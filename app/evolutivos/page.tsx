@@ -3,9 +3,11 @@ import { EvolutivosTableView } from "./components/evolutivos-table-view";
 import { getMe } from "@/app/actions/users";
 import { getClientsWithEvolutivos, getEvolutivosByClient } from "@/app/actions/evolutivos";
 import { redirect } from "next/navigation";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function EvolutivosPage() {
     const user = await getMe();
+    const { t } = await getTranslations();
 
     if (!user) {
         redirect("/login");
@@ -26,12 +28,12 @@ export default async function EvolutivosPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-            <SharedHeader title="Gestión de Evolutivos" />
+            <SharedHeader title={t('admin.evolutivos')} />
 
             <div className="max-w-7xl mx-auto px-4 py-8 md:px-8">
                 <div className="mb-8">
-                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Gestión de Evolutivos</h2>
-                    <p className="text-slate-500 mt-1">Seguimiento detallado de hitos y planificación de evolutivos.</p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('admin.evolutivos')}</h2>
+                    <p className="text-slate-500 mt-1">{t('admin.evolutivosDesc')}</p>
                 </div>
 
                 <EvolutivosTableView
