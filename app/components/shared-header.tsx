@@ -7,6 +7,7 @@ import { getMe } from "@/app/actions/users";
 import { UserProfileDropdown } from "./user-profile-dropdown";
 import { AdminNotifications } from "@/app/admin/components/admin-notifications";
 import { NotificationPanel } from "@/app/dashboard/components/notification-panel";
+import { getTranslations } from "@/lib/get-translations";
 
 interface SharedHeaderProps {
     title: string;
@@ -16,6 +17,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
     const userRole = cookies().get("user_role")?.value || "";
     const user = await getMe();
     const canSeeDashboard = await hasPermission(userRole, "view_dashboard");
+    const { t } = await getTranslations();
 
     return (
         <header className="bg-white dark:bg-slate-900 border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
@@ -37,7 +39,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
             <div className="flex items-center gap-4">
                 {canSeeDashboard && (
                     <Link href={userRole === "ADMIN" ? "/admin-home" : "/client-dashboard"} className="text-sm font-semibold text-slate-600 hover:text-malachite flex items-center gap-2 transition-colors mr-2">
-                        <Home className="w-4 h-4" /> Inicio
+                        <Home className="w-4 h-4" /> {t('common.home')}
                     </Link>
                 )}
 

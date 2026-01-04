@@ -26,7 +26,8 @@
         "status": "Estado",
         "date": "Fecha",
         "name": "Nombre",
-        "description": "Descripción"
+        "description": "Descripción",
+        "home": "Inicio"
     },
     "auth": {
         "login": "Iniciar Sesión",
@@ -43,7 +44,9 @@
         "enterEmail": "Introduce tu email y te enviaremos un enlace para restablecer tu contraseña"
     },
     "dashboard": {
-        "title": "Dashboard",
+        "title": "Dashboard de Consumos",
+        "subtitle": "Visualización de consumo y métricas clave por cliente.",
+        "backHome": "Volver al Inicio",
         "metrics": "Métricas",
         "workPackages": "Work Packages",
         "lastSync": "Última sincronización",
@@ -63,7 +66,22 @@
         "import": "Importar / Exportar",
         "maintenance": "Mantenimiento",
         "preferences": "Preferencias",
-        "settings": "Configuración"
+        "settings": "Configuración",
+        "closures": "Gestión de Cierres",
+        "evolutivos": "Gestión de Evolutivos"
+    },
+    "adminHome": {
+        "title": "Bienvenido al Control de Gestión AM",
+        "subtitle": "Selecciona un área de trabajo para comenzar",
+        "dashboardConsumptions": "Dashboard Consumos",
+        "dashboardConsumptionsDesc": "Visualiza y analiza el consumo de Work Packages",
+        "closuresManagement": "Gestión de Cierres",
+        "closuresManagementDesc": "Administra los cierres mensuales de Work Packages",
+        "evolutivosManagement": "Gestión de Evolutivos",
+        "evolutivosManagementDesc": "Seguimiento de hitos, responsables y planificación",
+        "administration": "Administración",
+        "administrationDesc": "Gestión de usuarios, clientes y configuración del sistema",
+        "accessModule": "Acceder al módulo"
     },
     "user": {
         "name": "Nombre",
@@ -76,7 +94,8 @@
         "language": "Idioma",
         "timezone": "Zona horaria",
         "preferences": "Preferencias de usuario",
-        "profile": "Perfil"
+        "profile": "Perfil",
+        "manual": "Mi Manual de Usuario"
     },
     "preferences": {
         "title": "Preferencias de Usuario",
@@ -89,5 +108,22 @@
         "saving": "Guardando...",
         "successMessage": "Preferencias actualizadas correctamente",
         "errorMessage": "Error al actualizar preferencias"
+    },
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "closures": "Cierres",
+        "evolutivos": "Evolutivos",
+        "users": "Usuarios",
+        "clients": "Clientes",
+        "workPackages": "Work Packages",
+        "parameters": "Parámetros",
+        "importExport": "Importar / Exportar",
+        "maintenance": "Mantenimiento",
+        "regularizations": "Regularizaciones",
+        "renewals": "Renovaciones",
+        "roles": "Roles",
+        "settings": "Configuración",
+        "documentation": "Documentación",
+        "claims": "Reclamaciones"
     }
 }

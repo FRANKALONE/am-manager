@@ -4,41 +4,43 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart3, FileCheck, Settings, Calendar } from "lucide-react";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function AdminHomePage() {
     const userRole = cookies().get("user_role")?.value || "";
     const perms = await getPermissionsByRoleName(userRole);
+    const { t } = await getTranslations();
 
     const options = [
         {
-            title: "Dashboard Consumos",
-            description: "Visualiza y analiza el consumo de Work Packages",
+            title: t('adminHome.dashboardConsumptions'),
+            description: t('adminHome.dashboardConsumptionsDesc'),
             icon: BarChart3,
             href: "/dashboard",
             color: "from-blue-500 to-blue-600",
             visible: perms.view_dashboard
         },
         {
-            title: "Gestión de Cierres",
-            description: "Administra los cierres mensuales de Work Packages",
+            title: t('adminHome.closuresManagement'),
+            description: t('adminHome.closuresManagementDesc'),
             icon: FileCheck,
             href: "/cierres",
             color: "from-green-500 to-green-600",
             visible: perms.view_cierres
         },
         {
-            title: "Gestión de Evolutivos",
-            description: "Seguimiento de hitos, responsables y planificación",
+            title: t('adminHome.evolutivosManagement'),
+            description: t('adminHome.evolutivosManagementDesc'),
             icon: Calendar,
             href: "/evolutivos",
             color: "from-orange-500 to-orange-600",
             visible: perms.view_dashboard
         },
         {
-            title: "Panel de Administración",
-            description: "Gestiona usuarios, clientes, WPs y configuración",
+            title: t('adminHome.administration'),
+            description: t('adminHome.administrationDesc'),
             icon: Settings,
-            href: "/admin/clients", // Changed to /admin/clients as a better starting point
+            href: "/admin/clients",
             color: "from-purple-500 to-purple-600",
             visible: perms.manage_users || perms.manage_clients || perms.manage_wps || perms.manage_roles
         }
@@ -46,15 +48,15 @@ export default async function AdminHomePage() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <SharedHeader title="Inicio" />
+            <SharedHeader title={t('common.home')} />
 
             <div className="max-w-6xl mx-auto py-16 px-8">
                 <div className="mb-12 text-center">
                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-dark-green to-malachite mb-2">
-                        Bienvenido al Control de Gestión AM
+                        {t('adminHome.title')}
                     </h1>
                     <p className="text-xl text-gray-500">
-                        Selecciona un área de trabajo para comenzar
+                        {t('adminHome.subtitle')}
                     </p>
                 </div>
 
@@ -75,7 +77,7 @@ export default async function AdminHomePage() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="text-sm text-malachite font-bold flex items-center group-hover:translate-x-2 transition-transform">
-                                            Acceder al módulo <span className="ml-2">→</span>
+                                            {t('adminHome.accessModule')} <span className="ml-2">→</span>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -85,8 +87,7 @@ export default async function AdminHomePage() {
 
                     {options.length === 0 && (
                         <div className="col-span-full text-center p-12 bg-white rounded-xl shadow-inner border border-dashed border-gray-300">
-                            <p className="text-gray-500 text-lg">No tienes permisos asignados para acceder a ningún módulo.</p>
-                            <p className="text-gray-400 text-sm mt-2">Contacta con un administrador para revisar tu perfil.</p>
+                            <p className="text-gray-500 text-lg">{t('common.noPermissions')}</p>
                         </div>
                     )}
                 </div>

@@ -9,20 +9,21 @@ import { Button } from "@/components/ui/button";
 import { updateUserPreferences } from "@/app/actions/user-preferences";
 import { localeNames, localeFlags, type Locale } from "@/lib/i18n-config";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/use-translations";
 
 const timezones = [
-    { value: "Europe/Madrid", label: "Europa/Madrid (GMT+1)" },
-    { value: "Europe/London", label: "Europa/Londres (GMT+0)" },
-    { value: "Europe/Paris", label: "Europa/París (GMT+1)" },
-    { value: "Europe/Rome", label: "Europa/Roma (GMT+1)" },
-    { value: "Europe/Lisbon", label: "Europa/Lisboa (GMT+0)" },
-    { value: "America/New_York", label: "América/Nueva York (GMT-5)" },
-    { value: "America/Los_Angeles", label: "América/Los Ángeles (GMT-8)" },
-    { value: "America/Chicago", label: "América/Chicago (GMT-6)" },
-    { value: "America/Sao_Paulo", label: "América/São Paulo (GMT-3)" },
+    { value: "Europe/Madrid", label: "Europe/Madrid (GMT+1)" },
+    { value: "Europe/London", label: "Europe/London (GMT+0)" },
+    { value: "Europe/Paris", label: "Europe/Paris (GMT+1)" },
+    { value: "Europe/Rome", label: "Europe/Rome (GMT+1)" },
+    { value: "Europe/Lisbon", label: "Europe/Lisbon (GMT+0)" },
+    { value: "America/New_York", label: "America/New York (GMT-5)" },
+    { value: "America/Los_Angeles", label: "America/Los Angeles (GMT-8)" },
+    { value: "America/Chicago", label: "America/Chicago (GMT-6)" },
+    { value: "America/Sao_Paulo", label: "America/Sao Paulo (GMT-3)" },
     { value: "Asia/Kolkata", label: "Asia/Kolkata (GMT+5:30)" },
-    { value: "Asia/Tokyo", label: "Asia/Tokio (GMT+9)" },
-    { value: "Australia/Sydney", label: "Australia/Sídney (GMT+11)" },
+    { value: "Asia/Tokyo", label: "Asia/Tokyo (GMT+9)" },
+    { value: "Australia/Sydney", label: "Australia/Sydney (GMT+11)" },
 ];
 
 interface UserPreferencesFormProps {
@@ -32,6 +33,7 @@ interface UserPreferencesFormProps {
 }
 
 export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: UserPreferencesFormProps) {
+    const { t } = useTranslations();
     const router = useRouter();
     const [locale, setLocale] = useState(currentLocale);
     const [timezone, setTimezone] = useState(currentTimezone);
@@ -43,14 +45,24 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: 
             const result = await updateUserPreferences(userId, { locale: locale as Locale, timezone });
 
             if (result.success) {
-                toast.success("Preferencias actualizadas correctamente");
-                // Refresh to apply new locale
-                window.location.reload();
+                // Backup to localStorage for client-side persistence
+                try {
+                    localStorage.setItem('NEXT_LOCALE', locale);
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                }
+
+                toast.success(t('preferences.successMessage'));
+
+                // Small delay to ensure cookie is set
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             } else {
-                toast.error(result.error || "Error al actualizar preferencias");
+                toast.error(result.error || t('preferences.errorMessage'));
             }
         } catch (error) {
-            toast.error("Error al actualizar preferencias");
+            toast.error(t('preferences.errorMessage'));
         } finally {
             setSaving(false);
         }
@@ -59,17 +71,17 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Preferencias de Usuario</CardTitle>
+                <CardTitle>{t('preferences.title')}</CardTitle>
                 <CardDescription>
-                    Configura tu idioma y zona horaria preferidos
+                    {t('preferences.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="language">Idioma</Label>
+                    <Label htmlFor="language">{t('preferences.languageLabel')}</Label>
                     <Select value={locale} onValueChange={setLocale}>
                         <SelectTrigger id="language">
-                            <SelectValue placeholder="Selecciona un idioma" />
+                            <SelectValue placeholder={t('preferences.languagePlaceholder')} />
                         </SelectTrigger>
                         <SelectContent>
                             {Object.entries(localeNames).map(([code, name]) => (
@@ -82,10 +94,10 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="timezone">Zona Horaria</Label>
+                    <Label htmlFor="timezone">{t('preferences.timezoneLabel')}</Label>
                     <Select value={timezone} onValueChange={setTimezone}>
                         <SelectTrigger id="timezone">
-                            <SelectValue placeholder="Selecciona una zona horaria" />
+                            <SelectValue placeholder={t('preferences.timezonePlaceholder')} />
                         </SelectTrigger>
                         <SelectContent>
                             {timezones.map((tz) => (
@@ -98,7 +110,7 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: 
                 </div>
 
                 <Button onClick={handleSave} disabled={saving} className="w-full">
-                    {saving ? "Guardando..." : "Guardar Preferencias"}
+                    {saving ? t('preferences.saving') : t('preferences.saveButton')}
                 </Button>
             </CardContent>
         </Card>

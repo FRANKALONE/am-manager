@@ -26,7 +26,8 @@
         "status": "Status",
         "date": "Date",
         "name": "Name",
-        "description": "Description"
+        "description": "Description",
+        "home": "Home"
     },
     "auth": {
         "login": "Login",
@@ -43,7 +44,9 @@
         "enterEmail": "Enter your email and we'll send you a link to reset your password"
     },
     "dashboard": {
-        "title": "Dashboard",
+        "title": "Consumption Dashboard",
+        "subtitle": "Visualisation of consumption and key metrics by client.",
+        "backHome": "Back to Home",
         "metrics": "Metrics",
         "workPackages": "Work Packages",
         "lastSync": "Last sync",
@@ -63,7 +66,22 @@
         "import": "Import / Export",
         "maintenance": "Maintenance",
         "preferences": "Preferences",
-        "settings": "Settings"
+        "settings": "Settings",
+        "closures": "Closure Management",
+        "evolutivos": "Evolutivos Management"
+    },
+    "adminHome": {
+        "title": "Welcome to AM Management Control",
+        "subtitle": "Select a work area to begin",
+        "dashboardConsumptions": "Consumption Dashboard",
+        "dashboardConsumptionsDesc": "View and analyze Work Package consumption",
+        "closuresManagement": "Closure Management",
+        "closuresManagementDesc": "Manage monthly Work Package closures",
+        "evolutivosManagement": "Evolutivos Management",
+        "evolutivosManagementDesc": "Track milestones, owners and planning",
+        "administration": "Administration",
+        "administrationDesc": "Manage users, clients and system configuration",
+        "accessModule": "Access module"
     },
     "user": {
         "name": "Name",
@@ -76,7 +94,8 @@
         "language": "Language",
         "timezone": "Timezone",
         "preferences": "User preferences",
-        "profile": "Profile"
+        "profile": "Profile",
+        "manual": "My User Manual"
     },
     "preferences": {
         "title": "User Preferences",
@@ -89,5 +108,22 @@
         "saving": "Saving...",
         "successMessage": "Preferences updated successfully",
         "errorMessage": "Error updating preferences"
+    },
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "closures": "Closures",
+        "evolutivos": "Evolutivos",
+        "users": "Users",
+        "clients": "Clients",
+        "workPackages": "Work Packages",
+        "parameters": "Parameters",
+        "importExport": "Import / Export",
+        "maintenance": "Maintenance",
+        "regularizations": "Regularizations",
+        "renewals": "Renewals",
+        "roles": "Roles",
+        "settings": "Settings",
+        "documentation": "Documentation",
+        "claims": "Claims"
     }
 }

@@ -10,9 +10,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, LogOut, BookOpen, UserCircle } from "lucide-react";
+import { User, LogOut, BookOpen, UserCircle, Settings } from "lucide-react";
 import { logout } from "@/app/actions/users";
 import Link from "next/link";
+import { useTranslations } from "@/lib/use-translations";
 
 interface UserProfileDropdownProps {
     user: {
@@ -24,6 +25,7 @@ interface UserProfileDropdownProps {
 }
 
 export function UserProfileDropdown({ user }: UserProfileDropdownProps) {
+    const { t } = useTranslations();
     const initials = `${user.name.charAt(0)}${user.surname?.charAt(0) || ""}`.toUpperCase();
 
     const handleLogout = async () => {
@@ -55,15 +57,21 @@ export function UserProfileDropdown({ user }: UserProfileDropdownProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                    <Link href="/admin/users/preferences" className="cursor-pointer flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>{t('user.preferences')}</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                     <Link href="/help" className="cursor-pointer flex items-center">
                         <BookOpen className="mr-2 h-4 w-4" />
-                        <span>Mi Manual de Usuario</span>
+                        <span>{t('user.manual')}</span>
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Cerrar sesión</span>
+                    <span>{t('auth.logout')}</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
