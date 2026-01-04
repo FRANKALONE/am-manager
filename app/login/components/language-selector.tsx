@@ -5,81 +5,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { localeNames, localeFlags, type Locale } from "@/lib/i18n-config";
 import { Globe } from "lucide-react";
 
-function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-}
-
-function setCookie(name: string, value: string) {
-    // Set cookie with multiple strategies for maximum compatibility
-    const expires = new Date();
-    expires.setFullYear(expires.getFullYear() + 1);
-
-    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
-
-    // Also save to localStorage as backup
-    try {
-        localStorage.setItem(name, value);
-    } catch (e) {
-        console.error('Failed to save to localStorage:', e);
-    }
-}
-
-function getLocale(): Locale {
-    // Try cookie first
-    let saved = getCookie('NEXT_LOCALE');
-
-    // Fallback to localStorage
-    if (!saved && typeof window !== 'undefined') {
-        try {
-            saved = localStorage.getItem('NEXT_LOCALE');
-        } catch (e) {
-            console.error('Failed to read from localStorage:', e);
-        }
-    }
-
-    if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
-        return saved as Locale;
-    }
-
-    return 'es';
-}
-
 export function LanguageSelector() {
-    const [locale, setLocale] = useState<Locale>('es');
-    const [mounted, setMounted] = useState(false);
+    const [locale, setLocale] = useState<Locale>("es");
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
-        const currentLocale = getLocale();
-        setLocale(currentLocale);
+        setIsClient(true);
+        // Read from localStorage only
+        try {
+            const saved = localStorage.getItem('NEXT_LOCALE');
+            if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
+                setLocale(saved as Locale);
+            }
+        } catch (e) {
+            console.error('Error reading locale:', e);
+        }
     }, []);
 
     const handleChange = (newLocale: string) => {
-        console.log('Changing language to:', newLocale);
-        setLocale(newLocale as Locale);
-        setCookie('NEXT_LOCALE', newLocale);
+        console.log('Language selected:', newLocale);
 
-        // Small delay before reload to ensure cookie is set
-        setTimeout(() => {
-            window.location.reload();
-        }, 100);
+        // Save to localStorage
+        try {
+            localStorage.setItem('NEXT_LOCALE', newLocale);
+        } catch (e) {
+            console.error('Error saving locale:', e);
+        }
+
+        // Update state
+        setLocale(newLocale as Locale);
+
+        // Reload page ONCE
+        window.location.href = window.location.href;
     };
 
-    if (!mounted) {
-        return (
-            <div className="flex items-center justify-center gap-2 w-full">
-                <Globe className="h-4 w-4 text-muted-foreground" />
-                <Select disabled>
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Loading..." />
-                    </SelectTrigger>
-                </Select>
-            </div>
-        );
+    if (!isClient) {
+        return null; // Don't render on server
     }
 
     return (

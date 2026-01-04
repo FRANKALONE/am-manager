@@ -3,29 +3,16 @@
 import { useEffect, useState } from 'react';
 import type { Locale } from './i18n-config';
 
-function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-}
-
 function getLocale(): Locale {
-    // Try cookie first
-    let saved = getCookie('NEXT_LOCALE');
+    if (typeof window === 'undefined') return 'es';
 
-    // Fallback to localStorage
-    if (!saved && typeof window !== 'undefined') {
-        try {
-            saved = localStorage.getItem('NEXT_LOCALE');
-        } catch (e) {
-            // Ignore localStorage errors
+    try {
+        const saved = localStorage.getItem('NEXT_LOCALE');
+        if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
+            return saved as Locale;
         }
-    }
-
-    if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
-        return saved as Locale;
+    } catch (e) {
+        // Ignore errors
     }
 
     return 'es';
@@ -34,23 +21,22 @@ function getLocale(): Locale {
 export function useTranslations() {
     const [messages, setMessages] = useState<any>({});
     const [isLoading, setIsLoading] = useState(true);
-    const locale = getLocale(); // Get locale once, don't put in state
+    const [locale] = useState<Locale>(getLocale());
 
     useEffect(() => {
-        // Load messages for current locale - only runs once on mount
+        // Load messages only once
         import(`@/messages/${locale}.json`)
             .then((module) => {
                 setMessages(module.default);
                 setIsLoading(false);
             })
             .catch(() => {
-                // Fallback to Spanish if translation file not found
                 import('@/messages/es.json').then((module) => {
                     setMessages(module.default);
                     setIsLoading(false);
                 });
             });
-    }, []); // Empty dependency array - only run once
+    }, []); // CRITICAL: Empty array - only run once!
 
     const t = (key: string): string => {
         if (isLoading) return key;
