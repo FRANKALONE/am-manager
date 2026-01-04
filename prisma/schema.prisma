@@ -91,6 +91,8 @@ model User {
   password         String
   role             String
   clientId         String?
+  locale           String          @default("es")
+  timezone         String          @default("Europe/Madrid")
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   workPackageIds   String?
@@ -101,6 +103,8 @@ model User {
   reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
   requestedReviews ReviewRequest[] @relation("RequestedReviews")
   client           Client?         @relation(fields: [clientId], references: [id])
+
+  @@index([locale])
 }
 
 model Role {
