@@ -11,16 +11,36 @@ function getCookie(name: string): string | null {
     return null;
 }
 
+function getLocale(): Locale {
+    // Try cookie first
+    let saved = getCookie('NEXT_LOCALE');
+
+    // Fallback to localStorage
+    if (!saved && typeof window !== 'undefined') {
+        try {
+            saved = localStorage.getItem('NEXT_LOCALE');
+        } catch (e) {
+            // Ignore localStorage errors
+        }
+    }
+
+    if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
+        return saved as Locale;
+    }
+
+    return 'es';
+}
+
 export function useTranslations() {
     const [locale, setLocale] = useState<Locale>('es');
     const [messages, setMessages] = useState<any>({});
 
     useEffect(() => {
-        const savedLocale = getCookie('NEXT_LOCALE') as Locale || 'es';
-        setLocale(savedLocale);
+        const currentLocale = getLocale();
+        setLocale(currentLocale);
 
         // Load messages for current locale
-        import(`@/messages/${savedLocale}.json`)
+        import(`@/messages/${currentLocale}.json`)
             .then((module) => setMessages(module.default))
             .catch(() => {
                 // Fallback to Spanish if translation file not found
