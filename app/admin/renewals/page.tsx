@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, RefreshCcw, Bell } from "lucide-react";
 import { redirect } from "next/navigation";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function RenewalsPage() {
     const user = await getMe();
@@ -42,10 +43,10 @@ export default async function RenewalsPage() {
                         "use server";
                         await checkContractExpirations();
                     }}>
-                        <Button variant="outline">
+                        <SubmitButton variant="outline">
                             <Bell className="w-4 h-4 mr-2" />
                             Lanzar Alertas (45 días)
-                        </Button>
+                        </SubmitButton>
                     </form>
                 </div>
             </div>
@@ -152,10 +153,14 @@ function RenewalRow({ wp, isAuto }: { wp: any, isAuto: boolean }) {
                                     className="w-16 h-8 text-sm border rounded px-2 text-right"
                                 />
                             </div>
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                            <SubmitButton
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700"
+                                loadingText="Renovando..."
+                            >
                                 <RefreshCcw className="w-4 h-4 mr-2" />
                                 Renovar
-                            </Button>
+                            </SubmitButton>
                         </div>
                     </form>
                 ) : (
