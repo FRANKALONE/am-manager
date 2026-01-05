@@ -86,7 +86,7 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-8">
+        <div className="bg-gradient-to-br from-slate-50 to-blue-100 p-8">
             <div className="max-w-5xl mx-auto">
                 <div className="mb-8 flex justify-between items-end">
                     <div>

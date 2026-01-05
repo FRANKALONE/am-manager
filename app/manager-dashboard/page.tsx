@@ -3,6 +3,8 @@ import { getMe } from "@/app/actions/users";
 import { getPermissionsByRoleName } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { ManagerDashboardView } from "./manager-dashboard-view";
+import { SharedHeader } from "@/app/components/shared-header";
+import { Footer } from "@/app/components/footer";
 
 export default async function ManagerDashboardPage() {
     const user = await getMe();
@@ -19,10 +21,16 @@ export default async function ManagerDashboardPage() {
     const permissions = await getPermissionsByRoleName(user.role);
 
     return (
-        <ManagerDashboardView
-            user={user}
-            clients={clients}
-            permissions={permissions}
-        />
+        <div className="flex flex-col min-h-screen">
+            <SharedHeader title="Dashboard Gerentes" />
+            <main className="flex-grow">
+                <ManagerDashboardView
+                    user={user}
+                    clients={clients}
+                    permissions={permissions}
+                />
+            </main>
+            <Footer />
+        </div>
     );
 }
