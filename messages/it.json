@@ -162,13 +162,99 @@
         "workPackages": "Pacchetti di Lavoro",
         "parameters": "Parametri",
         "import": "Importa / Esporta",
-        "maintenance": "Manutenzione",
-        "preferences": "Preferencias",
-        "settings": "Impostazioni",
-        "closures": "Gestión de Cierres",
-        "closuresDesc": "Identifica y factura excesos de consumo de tus clientes.",
-        "evolutivos": "Gestión de Evolutivos",
-        "evolutivosDesc": "Seguimiento detallado de hitos y planificación de evolutivos.",
+        "maintenance": {
+            "title": "Manutenzione BD",
+            "subtitle": "Strumenti per la gestione tecnica e la pulizia dei dati.",
+            "db": {
+                "title": "Manutenzione del Database",
+                "subtitle": "Strumenti per correggere problemi di integrità e sincronizzazione."
+            },
+            "repair": {
+                "title": "Sincronizza Sequenze ID",
+                "desc": "Corregge l'errore 'Unique constraint failed' durante la creazione di record se sono state eseguite importazioni manuali in precedenza.",
+                "button": "Ripara Sequenze",
+                "confirm": "Questo sincronizzerà le sequenze ID del database per evitare errori di duplicazione. Continuare?",
+                "success": "Sequenze ID riparate correttamente."
+            },
+            "migration": {
+                "title": "Applica Migrazione: reviewedForDuplicates",
+                "desc": "Aggiunge il campo necessario per il sistema di pulizia selettiva dei duplicati. Eseguire solo una volta.",
+                "button": "Applica Migrazione",
+                "confirm": "Questo applicherà la migrazione per aggiungere il campo 'reviewedForDuplicates' al database. Continuare?",
+                "success": "Migrazione applicata correttamente. Ora puoi usare la funzione di pulizia dei duplicati.",
+                "exists": "Il campo esiste già nel database."
+            },
+            "cleanup": {
+                "title": "Pulizia Evolutivi T&M",
+                "desc": "Elimina i consumi manuali che corrispondono a ticket già sincronizzati automaticamente dalla nuova logica Issue Key.",
+                "simulate": "Simula",
+                "clean": "Pulisci Reali",
+                "confirm": "Sei sicuro di voler eliminare i consumi manuali duplicati? Questa azione è irreversibile.",
+                "success": "Pulizia completata.",
+                "details": "Dettagli consumi manuali duplicati ({count})"
+            },
+            "table": {
+                "ticket": "Ticket",
+                "wp": "WP",
+                "month": "Mese",
+                "manual": "Ore Manuali",
+                "sync": "Ore Sincronizzate",
+                "match": "Corrispondenza",
+                "exact": "Esatta",
+                "approx": "Approssimativa"
+            }
+        },
+        "preferences": "Preferenze",
+        "settings": {
+            "title": "Configurazione Parametri",
+            "subtitle": "Gestisci elenchi a discesa e parametri globali del sistema.",
+            "contractTypes": "Tipi di Contratto",
+            "billingTypes": "Tipi di Fatturazione",
+            "regTypes": "Tipi di Regolarizzazione",
+            "scopeUnits": "Unità di Ambito",
+            "renewalTypes": "Tipi di Rinnovo",
+            "customFieldsTitle": "Definizione Campi Personalizzati",
+            "customFieldsDesc": "Definisci nuovi campi che appariranno automaticamente nei moduli.",
+            "customFieldsClient": "Campi Extra: Clienti",
+            "customFieldsProject": "Campi Extra: Progetti",
+            "customFieldsWP": "Campi Extra: Pacchetti di Lavoro",
+            "models": {
+                "title": "Modelli di Correzione",
+                "subtitle": "Algoritmi di trasformazione ore (Tempo → Fatturabile)",
+                "new": "Nuovo Modello",
+                "edit": "Modifica Modello",
+                "create": "Crea Nuovo Modello",
+                "table": {
+                    "name": "Nome",
+                    "code": "Codice",
+                    "description": "Descrizione",
+                    "config": "Valori Predefiniti",
+                    "actions": "Azioni"
+                },
+                "form": {
+                    "name": "Nome",
+                    "code": "Codice (Unico)",
+                    "description": "Descrizione",
+                    "config": "Configurazione (JSON Logic)",
+                    "configHelp": "Struttura valida per logica TIERED, FIXED o RATE_DIFF.",
+                    "isDefault": "Segna come Predefinito"
+                }
+            },
+            "table": {
+                "label": "Etichetta",
+                "value": "Valore Interno",
+                "noData": "Nessun record",
+                "help": "Valori disponibili per {title}"
+            },
+            "form": {
+                "labelPlaceholder": "Nome (es: Pacchetto X)",
+                "valuePlaceholder": "VALORE_INTERNO"
+            }
+        },
+        "closures": "Gestione Chiusure",
+        "closuresDesc": "Identifica e fattura eccessi di consumo.",
+        "evolutivos": "Gestione Evolutivi",
+        "evolutivosDesc": "Seguimento dettagliato di milestone e pianificazione.",
         "notifications": {
             "title": "Nuovi Reclami",
             "viewAll": "Vedi tutti",
@@ -236,6 +322,19 @@
                 "success": "Sincronizzazione completata",
                 "error": "Errore nella sincronizzazione",
                 "critical": "Errore critico nella sincronizzazione degli evolutivi"
+            }
+        },
+        "proposals": {
+            "title": "Sincronizzazione Richieste Evolutivo",
+            "description": "Aggiorna i ticket di tipo 'Richiesta Evolutivo' da JIRA.",
+            "warning": "Questo processo sincronizza solo informazioni di base. Non vengono scaricati consumi o worklogs.",
+            "confirm": "Vuoi avviare la sincronizzazione delle Richieste Evolutivo?",
+            "syncing": "Sincronizzazione...",
+            "button": "Sincronizza Richieste",
+            "toast": {
+                "success": "Sincronizzazione completata",
+                "error": "Errore nella sincronizzazione",
+                "critical": "Errore critico nella sincronizzazione delle richieste"
             }
         },
         "manager": {

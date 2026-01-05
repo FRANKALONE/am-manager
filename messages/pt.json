@@ -162,9 +162,95 @@
         "workPackages": "Pacotes de Trabalho",
         "parameters": "Parâmetros",
         "import": "Importar / Exportar",
-        "maintenance": "Manutenção",
+        "maintenance": {
+            "title": "Manutenção de BD",
+            "subtitle": "Ferramentas para gestão técnica e limpeza de dados.",
+            "db": {
+                "title": "Manutenção da Base de Dados",
+                "subtitle": "Ferramentas para corrigir problemas de integridade e sincronização."
+            },
+            "repair": {
+                "title": "Sincronizar Sequências de IDs",
+                "desc": "Corrige o erro 'Unique constraint failed' ao criar registros se importações manuais foram realizadas anteriormente.",
+                "button": "Reparar Sequências",
+                "confirm": "Isto sincronizará as sequências de IDs da base de dados para evitar erros de duplicidade. Continuar?",
+                "success": "Sequências de IDs reparadas corretamente."
+            },
+            "migration": {
+                "title": "Aplicar Migração: reviewedForDuplicates",
+                "desc": "Adiciona o campo necessário para o sistema de limpeza seletiva de duplicados. Execute isto apenas uma vez.",
+                "button": "Aplicar Migração",
+                "confirm": "Isto aplicará a migração para adicionar o campo 'reviewedForDuplicates' à base de dados. Continuar?",
+                "success": "Migração aplicada corretamente. Agora pode usar a função de limpeza de duplicados.",
+                "exists": "O campo já existe na base de dados."
+            },
+            "cleanup": {
+                "title": "Limpeza de Evolutivos T&M",
+                "desc": "Elimina consumos manuais que coincidem com tickets já sincronizados automaticamente pela nova lógica de Issue Key.",
+                "simulate": "Simular",
+                "clean": "Limpar Reais",
+                "confirm": "Tem certeza que deseja eliminar os consumos manuais duplicados? Esta ação é irreversível.",
+                "success": "Limpeza concluída.",
+                "details": "Detalhes de consumos manuais duplicados ({count})"
+            },
+            "table": {
+                "ticket": "Ticket",
+                "wp": "WP",
+                "month": "Mês",
+                "manual": "Horas Manuais",
+                "sync": "Horas Sincronizadas",
+                "match": "Coincidência",
+                "exact": "Exata",
+                "approx": "Aproximada"
+            }
+        },
         "preferences": "Preferências",
-        "settings": "Configurações",
+        "settings": {
+            "title": "Configuração de Parâmetros",
+            "subtitle": "Gere listas suspensas e parâmetros globais do sistema.",
+            "contractTypes": "Tipos de Contrato",
+            "billingTypes": "Tipos de Faturamento",
+            "regTypes": "Tipos de Regularização",
+            "scopeUnits": "Unidades de Alcance",
+            "renewalTypes": "Tipos de Renovação",
+            "customFieldsTitle": "Definição de Campos Personalizados",
+            "customFieldsDesc": "Defina novos campos que aparecerão automaticamente nos formulários.",
+            "customFieldsClient": "Campos Extra: Clientes",
+            "customFieldsProject": "Campos Extra: Projetos",
+            "customFieldsWP": "Campos Extra: Pacotes de Trabalho",
+            "models": {
+                "title": "Modelos de Correção",
+                "subtitle": "Algoritmos de transformação de horas (Tempo → Faturável)",
+                "new": "Novo Modelo",
+                "edit": "Editar Modelo",
+                "create": "Criar Novo Modelo",
+                "table": {
+                    "name": "Nome",
+                    "code": "Código",
+                    "description": "Descrição",
+                    "config": "Valores Padrão",
+                    "actions": "Ações"
+                },
+                "form": {
+                    "name": "Nome",
+                    "code": "Código (Único)",
+                    "description": "Descrição",
+                    "config": "Configuração (JSON Logic)",
+                    "configHelp": "Estrutura válida para lógica TIERED, FIXED ou RATE_DIFF.",
+                    "isDefault": "Marcar como Padrão"
+                }
+            },
+            "table": {
+                "label": "Etiqueta",
+                "value": "Valor Interno",
+                "noData": "Sem registros",
+                "help": "Valores disponíveis para {title}"
+            },
+            "form": {
+                "labelPlaceholder": "Nome (ex: Bolsa X)",
+                "valuePlaceholder": "VALOR_INTERNO"
+            }
+        },
         "closures": "Gestão de Fechamentos",
         "closuresDesc": "Identifica e fatura excessos de consumo.",
         "evolutivos": "Gestão de Evolutivos",
@@ -236,6 +322,19 @@
                 "success": "Sincronização finalizada",
                 "error": "Erro na sincronização",
                 "critical": "Erro crítico na sincronização"
+            }
+        },
+        "proposals": {
+            "title": "Sincronização de Pedidos de Evolutivo",
+            "description": "Atualiza os tickets de tipo 'Pedido de Evolutivo' do JIRA.",
+            "warning": "Este processo sincroniza apenas informações básicas. Não são baixados consumos nem imputações.",
+            "confirm": "Deseja iniciar a sincronização dos Pedidos de Evolutivo?",
+            "syncing": "Sincronizando...",
+            "button": "Sincronizar Pedidos",
+            "toast": {
+                "success": "Sincronização finalizada",
+                "error": "Erro na sincronização",
+                "critical": "Erro crítico na sincronização de pedidos"
             }
         },
         "manager": {
@@ -621,7 +720,8 @@
         "roles": "Funções",
         "settings": "Configurações",
         "documentation": "Documentação",
-        "claims": "Reclamações"
+        "claims": "Reclamações",
+        "notifications": "Notificações"
     },
     "errors": {
         "required": "{field} é obrigatório",

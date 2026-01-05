@@ -324,6 +324,19 @@
                 "critical": "Critical error in evolutivos synchronization"
             }
         },
+        "proposals": {
+            "title": "Evolutivo Request Synchronization",
+            "description": "Updates 'Evolutivo Request' type tickets from JIRA.",
+            "warning": "This process only syncs basic information. No consumption or worklogs are downloaded.",
+            "confirm": "Do you want to start syncing Evolutivo Requests?",
+            "syncing": "Synchronizing...",
+            "button": "Sync Requests",
+            "toast": {
+                "success": "Synchronization finished",
+                "error": "Error during synchronization",
+                "critical": "Critical error syncing requests"
+            }
+        },
         "manager": {
             "wpTitle": "Work Packages and Clients",
             "regTitle": "Regularizations",
@@ -707,7 +720,8 @@
         "roles": "Roles",
         "settings": "Settings",
         "documentation": "Documentation",
-        "claims": "Claims"
+        "claims": "Claims",
+        "notifications": "Notifications"
     },
     "errors": {
         "required": "{field} is required",

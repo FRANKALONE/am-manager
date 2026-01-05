@@ -162,13 +162,99 @@
         "workPackages": "Forfaits de travail",
         "parameters": "Paramètres",
         "import": "Importer / Exporter",
-        "maintenance": "Maintenance",
+        "maintenance": {
+            "title": "Maintenance BD",
+            "subtitle": "Outils pour la gestion technique et le nettoyage des données.",
+            "db": {
+                "title": "Maintenance de la Base de Données",
+                "subtitle": "Outils pour corriger les problèmes d'intégrité et de synchronisation."
+            },
+            "repair": {
+                "title": "Synchroniser les Séquences d'IDs",
+                "desc": "Corrige l'erreur 'Unique constraint failed' lors de la création d'enregistrements si des importations manuelles ont été effectuées précédemment.",
+                "button": "Réparer les Séquences",
+                "confirm": "Cela synchronisera les séquences d'IDs de la base de données pour éviter les erreurs de duplication. Continuer ?",
+                "success": "Séquences d'IDs réparées correctement."
+            },
+            "migration": {
+                "title": "Appliquer la Migration : reviewedForDuplicates",
+                "desc": "Ajoute le champ nécessaire pour le système de nettoyage sélectif des doublons. Exécuter une seule fois.",
+                "button": "Appliquer la Migration",
+                "confirm": "Cela appliquera la migration pour ajouter le champ 'reviewedForDuplicates' à la base de données. Continuer ?",
+                "success": "Migration appliquée correctement. Vous pouvez maintenant utiliser la fonction de nettoyage des doublons.",
+                "exists": "Le champ existe déjà dans la base de données."
+            },
+            "cleanup": {
+                "title": "Nettoyage des Evolutivos T&M",
+                "desc": "Élimine les consommations manuelles qui correspondent à des tickets déjà synchronisés automatiquement par la nouvelle logique Issue Key.",
+                "simulate": "Simuler",
+                "clean": "Nettoyer Réels",
+                "confirm": "Êtes-vous sûr de vouloir éliminer les consommations manuelles dupliquées ? Cette action est irréversible.",
+                "success": "Nettoyage terminé.",
+                "details": "Détails des consommations manuelles dupliquées ({count})"
+            },
+            "table": {
+                "ticket": "Ticket",
+                "wp": "WP",
+                "month": "Mois",
+                "manual": "Heures Manuelles",
+                "sync": "Heures Synchronisées",
+                "match": "Correspondance",
+                "exact": "Exacte",
+                "approx": "Approximative"
+            }
+        },
         "preferences": "Préférences",
-        "settings": "Paramètres",
-        "closures": "Gestión de Cierres",
-        "closuresDesc": "Identifica y factura excesos de consumo de tus clientes.",
-        "evolutivos": "Gestión de Evolutivos",
-        "evolutivosDesc": "Seguimiento detallado de hitos y planificación de evolutivos.",
+        "settings": {
+            "title": "Configuration des Paramètres",
+            "subtitle": "Gérez les listes déroulantes et les paramètres globaux du système.",
+            "contractTypes": "Types de Contrat",
+            "billingTypes": "Types de Facturation",
+            "regTypes": "Types de Régularisation",
+            "scopeUnits": "Unités de Périmètre",
+            "renewalTypes": "Types de Renouvellement",
+            "customFieldsTitle": "Définition des Champs Personnalisés",
+            "customFieldsDesc": "Définissez de nouveaux champs qui apparaîtront automatiquement dans les formulaires.",
+            "customFieldsClient": "Champs Supplémentaires : Clients",
+            "customFieldsProject": "Champs Supplémentaires : Projets",
+            "customFieldsWP": "Champs Supplémentaires : Forfaits de travail",
+            "models": {
+                "title": "Modèles de Correction",
+                "subtitle": "Algorithmes de transformation d'heures (Tempo → Facturable)",
+                "new": "Nouveau Modèle",
+                "edit": "Modifier le Modèle",
+                "create": "Créer un Nouveau Modèle",
+                "table": {
+                    "name": "Nom",
+                    "code": "Code",
+                    "description": "Description",
+                    "config": "Valeurs par Défaut",
+                    "actions": "Actions"
+                },
+                "form": {
+                    "name": "Nom",
+                    "code": "Code (Unique)",
+                    "description": "Description",
+                    "config": "Configuration (JSON Logic)",
+                    "configHelp": "Structure valide pour la logique TIERED, FIXED ou RATE_DIFF.",
+                    "isDefault": "Marquer comme Par Défaut"
+                }
+            },
+            "table": {
+                "label": "Étiquette",
+                "value": "Valeur Interne",
+                "noData": "Aucun enregistrement",
+                "help": "Valeurs disponibles pour {title}"
+            },
+            "form": {
+                "labelPlaceholder": "Nom (ex : Forfait X)",
+                "valuePlaceholder": "VALEUR_INTERNE"
+            }
+        },
+        "closures": "Gestion des Clôtures",
+        "closuresDesc": "Identifiez et facturez les excès de consommation.",
+        "evolutivos": "Gestion des Evolutivos",
+        "evolutivosDesc": "Suivi détaillé des jalons et planification.",
         "notifications": {
             "title": "Nouvelles Réclamations",
             "viewAll": "Voir tout",
@@ -236,6 +322,19 @@
                 "success": "Synchronisation terminée",
                 "error": "Erreur lors de la synchronisation",
                 "critical": "Erreur critique dans la synchronisation des evolutivos"
+            }
+        },
+        "proposals": {
+            "title": "Synchronisation des Demandes d'Evolutivo",
+            "description": "Actualise les tickets de type 'Demande d'Evolutivo' depuis JIRA.",
+            "warning": "Ce processus synchronise uniquement les informations de base. Aucune consommation ni worklog n'est téléchargé.",
+            "confirm": "Voulez-vous lancer la synchronisation des Demandes d'Evolutivo ?",
+            "syncing": "Synchronisation...",
+            "button": "Synchroniser les Demandes",
+            "toast": {
+                "success": "Synchronisation terminée",
+                "error": "Erreur lors de la synchronisation",
+                "critical": "Erreur critique dans la synchronisation des demandes"
             }
         },
         "manager": {
@@ -621,7 +720,8 @@
         "roles": "Rôles",
         "settings": "Paramètres",
         "documentation": "Documentation",
-        "claims": "Réclamations"
+        "claims": "Réclamations",
+        "notifications": "Notifications"
     },
     "errors": {
         "required": "{field} est obligatoire",
