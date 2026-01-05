@@ -67,6 +67,16 @@ export async function createNotification(
     relatedId?: string
 ) {
     try {
+        // Check if this notification type is enabled
+        const setting = await prisma.notificationSetting.findUnique({
+            where: { type }
+        });
+
+        if (setting && !setting.isEnabled) {
+            console.log(`[NOTIFICATIONS] Skipped ${type} as it is disabled in settings.`);
+            return false;
+        }
+
         await prisma.notification.create({
             data: {
                 userId,
@@ -80,6 +90,50 @@ export async function createNotification(
     } catch (error) {
         console.error("Error creating notification:", error);
         return false;
+    }
+}
+
+export async function getNotificationSettings() {
+    try {
+        // Seed some defaults if table is empty
+        const count = await prisma.notificationSetting.count();
+        if (count === 0) {
+            await prisma.notificationSetting.createMany({
+                data: [
+                    { type: 'LOW_BALANCE', title: 'Balance Bajo', description: 'Notifica a administradores cuando un WP tiene < 10% de balance.', group: 'CONTRACTS', roles: 'ADMIN' },
+                    { type: 'SURPLUS_DETECTED', title: 'Exceso Detectado', description: 'Notifica al gerente cuando se detecta un exceso de consumo en el cierre.', group: 'FINANCIAL', roles: 'GERENTE' },
+                    { type: 'REVIEW_REQUEST_CREATED', title: 'Nueva Reclamación', description: 'Notifica a administradores y gerentes cuando se crea una reclamación.', group: 'CLAIMS', roles: 'ADMIN,GERENTE' },
+                    { type: 'REVIEW_DECIDED', title: 'Resolución de Reclamación', description: 'Notifica al gerente cuando una reclamación es resuelta.', group: 'CLAIMS', roles: 'GERENTE' },
+                    { type: 'REVIEW_APPROVED', title: 'Reclamación Aprobada', description: 'Notifica al usuario que su reclamación ha sido aceptada.', group: 'CLAIMS', roles: 'USER' },
+                    { type: 'REVIEW_REJECTED', title: 'Reclamación Rechazada', description: 'Notifica al usuario que su reclamación ha sido rechazada.', group: 'CLAIMS', roles: 'USER' },
+                    { type: 'CONTRACT_ENDING', title: 'Vencimiento Próximo (Interno)', description: 'Aviso 45 días antes del fin de contrato.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
+                    { type: 'CONTRACT_ENDING_CLIENT', title: 'Vencimiento Próximo (Cliente)', description: 'Aviso al cliente sobre fin de contrato.', group: 'CONTRACTS', roles: 'USER' },
+                    { type: 'CONTRACT_RENEWED', title: 'Contrato Renovado', description: 'Notifica cuando un contrato ha sido renovado.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
+                    { type: 'EVOLUTIVO_BILLED', title: 'Evolutivo Facturado', description: 'Notifica al gerente cuando un evolutivo es marcado como facturado.', group: 'FINANCIAL', roles: 'GERENTE' }
+                ]
+            });
+        }
+
+        return await prisma.notificationSetting.findMany({
+            orderBy: [{ group: 'asc' }, { title: 'asc' }]
+        });
+    } catch (error) {
+        console.error("Error fetching notification settings:", error);
+        return [];
+    }
+}
+
+export async function updateNotificationSetting(id: string, isEnabled: boolean) {
+    try {
+        await prisma.notificationSetting.update({
+            where: { id },
+            data: { isEnabled }
+        });
+        revalidatePath("/admin/notifications");
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating notification setting:", error);
+        return { success: false, error: "Error al actualizar configuración" };
     }
 }
 

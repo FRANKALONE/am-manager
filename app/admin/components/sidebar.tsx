@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
@@ -59,6 +59,10 @@ export async function AdminSidebar() {
                     )}
                     <SidebarLink href="/admin/settings" label={t('sidebar.settings')}>
                         <Settings className="h-4 w-4" />
+                    </SidebarLink>
+
+                    <SidebarLink href="/admin/notifications" label={t('sidebar.notifications')}>
+                        <Bell className="h-4 w-4" />
                     </SidebarLink>
 
                     <SidebarLink href="/admin/maintenance" label={t('sidebar.maintenance')}>

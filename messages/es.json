@@ -720,7 +720,8 @@
         "roles": "Roles",
         "settings": "Configuración",
         "documentation": "Documentación",
-        "claims": "Reclamaciones"
+        "claims": "Reclamaciones",
+        "notifications": "Notificaciones"
     },
     "errors": {
         "required": "{field} es obligatorio",

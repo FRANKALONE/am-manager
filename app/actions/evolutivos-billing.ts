@@ -14,6 +14,8 @@ export interface EvolutivoForBilling {
     isBilled?: boolean;
 }
 
+import { createNotification } from "./notifications";
+
 export async function markEvolutivoAsBilled(issueKey: string, year: number, month: number, wpId: string) {
     try {
         const date = new Date(year, month - 1, 1);
@@ -29,6 +31,19 @@ export async function markEvolutivoAsBilled(issueKey: string, year: number, mont
                 isBilled: true
             }
         });
+
+        // Notify Manager
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: { client: true }
+        });
+
+        if (wp?.client?.manager) {
+            const managerId = wp.client.manager;
+            const title = `🚀 Evolutivo Facturado: ${issueKey}`;
+            const message = `Se ha marcado como facturado el evolutivo ${issueKey} del cliente ${wp.client.name} para el periodo ${month}/${year}.`;
+            await createNotification(managerId, 'EVOLUTIVO_BILLED', title, message, issueKey);
+        }
 
         return { success: true };
     } catch (error: any) {

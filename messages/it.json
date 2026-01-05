@@ -621,7 +621,8 @@
         "roles": "Ruoli",
         "settings": "Impostazioni",
         "documentation": "Documentazione",
-        "claims": "Reclami"
+        "claims": "Reclami",
+        "notifications": "Notifiche"
     },
     "errors": {
         "required": "{field} è obbligatorio",

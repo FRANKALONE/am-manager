@@ -258,6 +258,17 @@ model Notification {
   @@index([createdAt])
 }
 
+model NotificationSetting {
+  id          String   @id @default(cuid())
+  type        String   @unique
+  title       String
+  description String?
+  isEnabled   Boolean  @default(true)
+  roles       String   @default("ADMIN,GERENTE")
+  group       String   @default("GENERAL") // e.g., "FINANCIAL", "CONTRACTS", "SYSTEM"
+  updatedAt   DateTime @updatedAt
+}
+
 model ImportLog {
   id             Int      @id @default(autoincrement())
   date           DateTime @default(now())
