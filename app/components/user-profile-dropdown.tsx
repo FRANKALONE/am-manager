@@ -57,7 +57,7 @@ export function UserProfileDropdown({ user }: UserProfileDropdownProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <Link href="/admin/users/preferences" className="cursor-pointer flex items-center">
+                    <Link href="/preferences" className="cursor-pointer flex items-center">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>{t('user.preferences')}</span>
                     </Link>
