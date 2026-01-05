@@ -324,6 +324,19 @@
                 "critical": "Error crítico en la sincronización de evolutivos"
             }
         },
+        "proposals": {
+            "title": "Sincronización de Peticiones de Evolutivo",
+            "description": "Actualiza los tickets de tipo 'Petición de Evolutivo' de JIRA.",
+            "warning": "Este proceso solo sincroniza información básica. No se descargan consumos ni imputaciones.",
+            "confirm": "¿Deseas iniciar la sincronización de las Peticiones de Evolutivo?",
+            "syncing": "Sincronizando...",
+            "button": "Sincronizar Peticiones",
+            "toast": {
+                "success": "Sincronización finalizada",
+                "error": "Error en la sincronización",
+                "critical": "Error crítico en la sincronización de peticiones"
+            }
+        },
         "manager": {
             "wpTitle": "Work Packages y Clientes",
             "regTitle": "Regularizaciones",

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { getEvolutivosByClient, syncClientEvolutivos } from "@/app/actions/evolutivos";
 import { EvolutivoTimeline } from "./evolutivo-timeline";
+import { ProposalsPanel } from "./proposals-panel";
 import { RefreshCw, Search, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,11 +51,11 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
         setSyncing(true);
         const res = await syncClientEvolutivos(selectedClientId);
         if (res.success) {
-            toast.success(res.message);
+            toast.success((res as any).message);
             const newData = await getEvolutivosByClient(selectedClientId);
             setData(newData);
         } else {
-            toast.error(res.error || res.message || "Error al sincronizar");
+            toast.error((res as any).error || (res as any).message || "Error al sincronizar");
         }
         setSyncing(false);
     };
@@ -219,6 +220,10 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                     </div>
                 </CardContent>
             </Card>
+
+            {data.proposals && data.proposals.length > 0 && (
+                <ProposalsPanel proposals={data.proposals} />
+            )}
 
             <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
                 <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">

@@ -17,6 +17,11 @@ export async function getEvolutivosByClient(clientId: string) {
             select: { id: true, name: true }
         });
 
+        const proposals = await (prisma as any).evolutivoProposal.findMany({
+            where: { clientId },
+            orderBy: { createdDate: 'desc' }
+        });
+
         const wpIds = workPackages.map(wp => wp.id);
 
         // Find all Evolutivos (no filters - show all)
@@ -69,7 +74,8 @@ export async function getEvolutivosByClient(clientId: string) {
         return {
             evolutivos: finalEvolutivos,
             hitos,
-            workPackages
+            workPackages,
+            proposals
         };
     } catch (error) {
         console.error("Error in getEvolutivosByClient:", error);
