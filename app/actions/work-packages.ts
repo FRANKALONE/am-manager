@@ -148,6 +148,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
     const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
     const includeEvoTM = formData.get("includeEvoTM") === "on";
+    const isMainWP = formData.get("isMainWP") === "on";
 
     // Custom Attributes
     const customAttributes: Record<string, any> = {};
@@ -181,6 +182,14 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     }
 
     try {
+        // If this is marked as Main WP, unmark others for the same client
+        if (isMainWP) {
+            await prisma.workPackage.updateMany({
+                where: { clientId },
+                data: { isMainWP: false }
+            });
+        }
+
         await prisma.workPackage.create({
             data: {
                 id,
@@ -200,6 +209,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                 includedTicketTypes: includedTicketTypes || null,
                 includeEvoEstimates,
                 includeEvoTM,
+                isMainWP,
 
                 validityPeriods: (initialStartDateStr && initialEndDateStr) ? {
                     create: {
@@ -243,6 +253,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
     const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
     const includeEvoTM = formData.get("includeEvoTM") === "on";
+    const isMainWP = formData.get("isMainWP") === "on";
 
     // ValidityPeriod fields (economic and management)
     const totalQuantity = parseFloat(formData.get("totalQuantity") as string);
@@ -287,7 +298,8 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             validityPeriods: {
                 orderBy: { startDate: 'desc' },
                 take: 1
-            }
+            },
+            clientId: true
         }
     });
 
@@ -314,6 +326,14 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     }
 
     try {
+        // Handle Main WP logic
+        if (isMainWP) {
+            await prisma.workPackage.updateMany({
+                where: { clientId: existingWP.clientId },
+                data: { isMainWP: false }
+            });
+        }
+
         // Build update data object conditionally
         const wpUpdateData: any = {
             customAttributes: JSON.stringify(customAttributes),
@@ -330,6 +350,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         if (includedTicketTypes !== undefined) wpUpdateData.includedTicketTypes = includedTicketTypes || null;
         if (formData.has("includeEvoEstimates")) wpUpdateData.includeEvoEstimates = includeEvoEstimates;
         if (formData.has("includeEvoTM")) wpUpdateData.includeEvoTM = includeEvoTM;
+        if (formData.has("isMainWP")) wpUpdateData.isMainWP = isMainWP;
         if (accumulatedHoursStr) wpUpdateData.accumulatedHours = accumulatedHours;
         if (accumulatedHoursDateStr) wpUpdateData.accumulatedHoursDate = accumulatedHoursDate;
         if (tempoAccountId !== undefined) wpUpdateData.tempoAccountId = tempoAccountId;

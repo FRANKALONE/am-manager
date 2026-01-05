@@ -211,6 +211,19 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                         Evolutivos T&M (Horas)
                                     </Label>
                                 </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isMainWP"
+                                        name="isMainWP"
+                                        defaultChecked={wp.isMainWP || false}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="isMainWP" className="font-bold cursor-pointer text-xs text-green-600">
+                                        WP PRINCIPAL
+                                    </Label>
+                                </div>
                             </div>
                         </div>
 

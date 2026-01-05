@@ -216,12 +216,34 @@ export async function authenticate(prevState: any, formData: FormData) {
             path: "/",
         });
 
+        cookies().set("user_email", user.email, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 60 * 60 * 24, // 1 day
+            path: "/",
+        });
+
         cookies().set("user_role", user.role, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             maxAge: 60 * 60 * 24, // 1 day
             path: "/",
         });
+
+        // Sync preferences to cookies if set in DB
+        if (user.locale) {
+            cookies().set("NEXT_LOCALE", user.locale, {
+                maxAge: 365 * 24 * 60 * 60, // 1 year
+                path: "/",
+            });
+        }
+
+        if (user.timezone) {
+            cookies().set("NEXT_TIMEZONE", user.timezone, {
+                maxAge: 365 * 24 * 60 * 60, // 1 year
+                path: "/",
+            });
+        }
 
         // Update last login
         await prisma.user.update({

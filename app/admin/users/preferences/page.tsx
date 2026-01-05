@@ -1,23 +1,9 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { getMe } from "@/app/actions/users";
 import { UserPreferencesForm } from "../components/user-preferences-form";
 
 export default async function UserPreferencesPage() {
-    const userEmail = cookies().get("user_email")?.value;
-
-    if (!userEmail) {
-        redirect("/login");
-    }
-
-    const user = await prisma.user.findUnique({
-        where: { email: userEmail },
-        select: {
-            id: true,
-            locale: true,
-            timezone: true,
-        },
-    });
+    const user = await getMe();
 
     if (!user) {
         redirect("/login");

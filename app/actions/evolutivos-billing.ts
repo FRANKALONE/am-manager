@@ -10,6 +10,7 @@ export interface EvolutivoForBilling {
     workPackageId: string;
     workPackageName: string;
     clientName: string;
+    rate?: number;
     isBilled?: boolean;
 }
 
@@ -87,7 +88,22 @@ export async function getEvolutivosForBilling(clientId: string | undefined | 'al
                     select: {
                         name: true,
                         client: {
-                            select: { name: true }
+                            select: {
+                                name: true,
+                                workPackages: {
+                                    where: { isMainWP: true },
+                                    include: {
+                                        validityPeriods: {
+                                            orderBy: { startDate: 'desc' },
+                                            take: 1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        validityPeriods: {
+                            orderBy: { startDate: 'desc' },
+                            take: 1
                         }
                     }
                 }
@@ -130,14 +146,24 @@ export async function getEvolutivosForBilling(clientId: string | undefined | 'al
 
             // Only include Evolutivos with hours worked in this month
             if (totalHours > 0) {
+                // Find rate: ticket's WP first, then Main WP
+                const validityPeriods = (evo as any).workPackage?.validityPeriods;
+                let rate = validityPeriods?.[0]?.rateEvolutivo || 0;
+
+                const clientWPs = (evo as any).workPackage?.client?.workPackages;
+                if (rate === 0 && clientWPs?.[0]) {
+                    rate = clientWPs[0].validityPeriods?.[0]?.rateEvolutivo || 0;
+                }
+
                 evolutivosWithHours.push({
                     issueKey: evo.issueKey,
                     issueSummary: evo.issueSummary || '',
                     billingMode: evo.billingMode || 'N/A',
                     workedHours: totalHours,
                     workPackageId: evo.workPackageId,
-                    workPackageName: evo.workPackage?.name || '',
-                    clientName: evo.workPackage?.client?.name || 'Varios',
+                    workPackageName: (evo as any).workPackage?.name || '',
+                    clientName: (evo as any).workPackage?.client?.name || 'Varios',
+                    rate: rate,
                     isBilled: billedKeys.has(evo.issueKey)
                 });
             }
@@ -147,5 +173,25 @@ export async function getEvolutivosForBilling(clientId: string | undefined | 'al
     } catch (error: any) {
         console.error("Error in getEvolutivosForBilling:", error);
         return { success: false, error: error.message, evolutivos: [] };
+    }
+}
+
+export async function getEvolutivoWorklogDetails(issueKey: string, year: number, month: number) {
+    try {
+        const worklogs = await prisma.worklogDetail.findMany({
+            where: {
+                issueKey,
+                year,
+                month
+            },
+            orderBy: {
+                startDate: 'asc'
+            }
+        });
+
+        return { success: true, worklogs };
+    } catch (error: any) {
+        console.error("Error fetching worklog details:", error);
+        return { success: false, error: error.message, worklogs: [] };
     }
 }

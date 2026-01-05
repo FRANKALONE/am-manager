@@ -23,14 +23,14 @@ export function LanguageSelector() {
         }
     }, []);
 
-    const handleChange = (newLocale: string) => {
+    const handleChange = async (newLocale: string) => {
         console.log('Language selected:', newLocale);
 
         // Save to localStorage
         try {
             localStorage.setItem('NEXT_LOCALE', newLocale);
-            // Also set as cookie for server-side awareness
-            setLocaleCookie(newLocale as Locale);
+            // Also set as cookie for server-side awareness - AWAIT it!
+            await setLocaleCookie(newLocale as Locale);
         } catch (e) {
             console.error('Error saving locale:', e);
         }
@@ -38,8 +38,8 @@ export function LanguageSelector() {
         // Update state
         setLocale(newLocale as Locale);
 
-        // Reload page ONCE
-        window.location.href = window.location.href;
+        // Reload page after cookie is definitively set
+        window.location.reload();
     };
 
     if (!isClient) {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getEvolutivosForBilling, markEvolutivoAsBilled, unmarkEvolutivoAsBilled } from "@/app/actions/evolutivos-billing";
+import { getEvolutivosForBilling, markEvolutivoAsBilled, unmarkEvolutivoAsBilled, getEvolutivoWorklogDetails } from "@/app/actions/evolutivos-billing";
 import { FileText, Loader2, DollarSign, Download, Filter, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -32,6 +32,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
     const [isLoading, setIsLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [togglingBilled, setTogglingBilled] = useState<string | null>(null);
+    const [totalAmounts, setTotalAmounts] = useState<Record<string, number>>({});
 
     // Filters
     const [filterMode, setFilterMode] = useState<string>("all");
@@ -45,12 +46,15 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
             const res = await getEvolutivosForBilling(clientId, year, month);
             if (res.success) {
                 setEvolutivos(res.evolutivos);
-                // Initialize adjusted hours with worked hours
+                // Initialize adjusted hours with worked hours and total amounts
                 const initial: Record<string, number> = {};
+                const amounts: Record<string, number> = {};
                 res.evolutivos.forEach((evo: any) => {
                     initial[evo.issueKey] = evo.workedHours;
+                    amounts[evo.issueKey] = evo.rate > 0 ? evo.workedHours * evo.rate : 0;
                 });
                 setAdjustedHours(initial);
+                setTotalAmounts(amounts);
             } else {
                 toast.error(res.error || "Error al cargar evolutivos");
             }
@@ -75,6 +79,11 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                 if (res.success) {
                     setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: true } : e));
                     toast.success(`${issueKey} marcado como facturado`);
+                    // Generate granular report
+                    const evo = evolutivos.find(e => e.issueKey === issueKey);
+                    if (evo) {
+                        await generateGranularReport(evo, adjustedHours[issueKey], totalAmounts[issueKey]);
+                    }
                 }
             }
         } catch (error) {
@@ -87,6 +96,17 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
     const handleHoursChange = (issueKey: string, value: string) => {
         const hours = parseFloat(value) || 0;
         setAdjustedHours(prev => ({ ...prev, [issueKey]: hours }));
+
+        // Auto-update total amount if rate exists
+        const evo = evolutivos.find(e => e.issueKey === issueKey);
+        if (evo && evo.rate > 0) {
+            setTotalAmounts(prev => ({ ...prev, [issueKey]: hours * evo.rate }));
+        }
+    };
+
+    const handleAmountChange = (issueKey: string, value: string) => {
+        const amount = parseFloat(value) || 0;
+        setTotalAmounts(prev => ({ ...prev, [issueKey]: amount }));
     };
 
     const filteredEvolutivos = evolutivos.filter(evo => {
@@ -168,6 +188,94 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
         } catch (error) {
             console.error("Error generating PDF:", error);
             toast.error("Error al generar el reporte PDF");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const generateGranularReport = async (evo: any, hours: number, amount: number) => {
+        setIsGenerating(true);
+        try {
+            const res = await getEvolutivoWorklogDetails(evo.issueKey, year, month);
+            if (!res.success) {
+                toast.error("Error al obtener detalles de worklogs");
+                return;
+            }
+
+            const doc = new jsPDF();
+
+            // Logo / Header
+            try {
+                doc.addImage("/logo-am.png", 'PNG', 14, 10, 22, 13);
+            } catch (e) {
+                doc.setFontSize(14);
+                doc.setTextColor(0, 59, 40);
+                doc.text("ALTIM AMA", 14, 20);
+            }
+
+            doc.setFontSize(16);
+            doc.setTextColor(0, 59, 40);
+            const title = "REPORTE DETALLADO DE EVOLUTIVO";
+            const titleWidth = doc.getTextWidth(title);
+            doc.text(title, 210 - titleWidth - 14, 20);
+
+            doc.setDrawColor(24, 212, 80);
+            doc.line(14, 30, 196, 30);
+
+            doc.setFontSize(10);
+            doc.setTextColor(0);
+            doc.setFont("helvetica", "bold");
+            doc.text("DATOS DEL TICKET", 14, 40);
+
+            doc.setFont("helvetica", "normal");
+            doc.text(`Ticket: ${evo.issueKey}`, 14, 47);
+            doc.text(`Resumen: ${evo.issueSummary}`, 14, 52);
+            doc.text(`Cliente: ${evo.clientName}`, 14, 57);
+            doc.text(`WP: ${evo.workPackageName}`, 14, 62);
+            doc.text(`Periodo: ${MONTHS_LABELS[month - 1]} ${year}`, 120, 47);
+            doc.text(`Modo Facturación: ${evo.billingMode}`, 120, 52);
+            doc.text(`Tarifa Aplicada: ${evo.rate > 0 ? `${evo.rate.toFixed(2)} €/h` : 'Manual'}`, 120, 57);
+
+            // Summary Table
+            autoTable(doc, {
+                startY: 70,
+                head: [['CONCEPTO', 'VALOR']],
+                body: [
+                    ['Horas Reales Trabajadas (Mes)', `${evo.workedHours.toFixed(2)} h`],
+                    ['Horas Ajustadas para Facturación', `${hours.toFixed(2)} h`],
+                    ['IMPORTE TOTAL A FACTURAR', new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)]
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [0, 59, 40], textColor: [255, 255, 255] },
+                styles: { fontSize: 10, cellPadding: 5 }
+            });
+
+            // Worklogs Details
+            const lastY = (doc as any).lastAutoTable.finalY + 15;
+            doc.setFont("helvetica", "bold");
+            doc.text("DETALLE DE DEDICACIÓN (WORKLOGS)", 14, lastY);
+
+            const tableDetail = res.worklogs.map((wl: any) => [
+                formatDate(wl.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                wl.author,
+                wl.tipoImputacion || 'N/A',
+                `${wl.timeSpentHours.toFixed(2)} h`
+            ]);
+
+            autoTable(doc, {
+                startY: lastY + 5,
+                head: [['Fecha', 'Persona', 'Tipo Imputación', 'Horas']],
+                body: tableDetail,
+                theme: 'striped',
+                headStyles: { fillColor: [24, 212, 80] },
+                styles: { fontSize: 9 }
+            });
+
+            doc.save(`Detalle_Facturacion_${evo.issueKey}_${month}_${year}.pdf`);
+            toast.success("Resumen detallado generado");
+        } catch (error) {
+            console.error("Error generating granular report:", error);
+            toast.error("Error al generar resumen detallado");
         } finally {
             setIsGenerating(false);
         }
@@ -291,6 +399,8 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                                         <TableHead>Modo Fact.</TableHead>
                                         <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Reales</th>
                                         <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Facturar</th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Tarifa</th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Importe</th>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -332,14 +442,28 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                                                     className={`w-20 text-right h-8 text-sm focus-visible:ring-green-500 ${evo.isBilled ? 'bg-green-100/50 border-green-200' : ''}`}
                                                 />
                                             </td>
+                                            <td className="px-4 py-3 text-right text-[11px] font-bold text-slate-600">
+                                                {evo.rate > 0 ? `${evo.rate.toFixed(2)}€` : <span className="text-amber-500 italic">No def.</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    readOnly={evo.rate > 0}
+                                                    value={totalAmounts[evo.issueKey] || 0}
+                                                    onChange={(e) => handleAmountChange(evo.issueKey, e.target.value)}
+                                                    className={`w-24 text-right h-8 text-sm font-bold focus-visible:ring-green-500 ${evo.rate > 0 ? 'bg-slate-50 text-slate-500' : 'bg-amber-50 border-amber-200'}`}
+                                                />
+                                            </td>
                                         </TableRow>
                                     ))}
                                     <TableRow className="bg-slate-50/80 font-bold border-t-2">
-                                        <TableCell colSpan={6} className="text-right text-slate-600 uppercase text-xs tracking-widest">
+                                        <TableCell colSpan={7} className="text-right text-slate-600 uppercase text-xs tracking-widest">
                                             Total Facturable
                                         </TableCell>
                                         <TableCell className="text-right text-green-700 text-lg">
-                                            {getTotalHours().toFixed(2)}h
+                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Object.values(totalAmounts).reduce((a, b) => a + b, 0))}
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
