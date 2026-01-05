@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { getEvolutivosByClient, syncClientEvolutivos } from "@/app/actions/evolutivos";
 import { EvolutivoTimeline } from "./evolutivo-timeline";
 import { ProposalsPanel } from "./proposals-panel";
-import { RefreshCw, Search, Eye, Loader2 } from "lucide-react";
+import { RefreshCw, Search, Eye, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -29,7 +30,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState<string[]>([]);
     const [billingFilter, setBillingFilter] = useState("all");
     const [selectedEvolutivo, setSelectedEvolutivo] = useState<any>(null);
     const [timelineOpen, setTimelineOpen] = useState(false);
@@ -72,7 +73,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                 evo.issueKey.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 evo.issueSummary.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesStatus = statusFilter === "all" || evo.status === statusFilter;
+            const matchesStatus = statusFilter.length === 0 || statusFilter.includes(evo.status);
             const matchesBilling = billingFilter === "all" || evo.billingMode === billingFilter;
 
             return matchesSearch && matchesStatus && matchesBilling;
@@ -134,17 +135,44 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
 
                         <div>
                             <Label htmlFor="status-filter">Estado</Label>
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger id="status-filter">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between font-normal" id="status-filter">
+                                        <span className="truncate">
+                                            {statusFilter.length === 0
+                                                ? "Todos"
+                                                : statusFilter.length === 1
+                                                    ? statusFilter[0]
+                                                    : `${statusFilter.length} seleccionados`}
+                                        </span>
+                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[200px]">
+                                    <DropdownMenuCheckboxItem
+                                        checked={statusFilter.length === 0}
+                                        onCheckedChange={() => setStatusFilter([])}
+                                    >
+                                        Todos
+                                    </DropdownMenuCheckboxItem>
+                                    <div className="h-px bg-slate-100 my-1" />
                                     {uniqueStatuses.map((status: any) => (
-                                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                                        <DropdownMenuCheckboxItem
+                                            key={status}
+                                            checked={statusFilter.includes(status)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setStatusFilter([...statusFilter, status]);
+                                                } else {
+                                                    setStatusFilter(statusFilter.filter(s => s !== status));
+                                                }
+                                            }}
+                                        >
+                                            {status}
+                                        </DropdownMenuCheckboxItem>
                                     ))}
-                                </SelectContent>
-                            </Select>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
 
                         <div>
