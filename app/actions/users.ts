@@ -254,6 +254,8 @@ export async function authenticate(prevState: any, formData: FormData) {
         // Determine redirect target
         if (user.role === "ADMIN") {
             return { redirect: "/admin-home" };
+        } else if (user.role === "GERENTE") {
+            return { redirect: "/manager-dashboard" };
         } else {
             return { redirect: "/client-dashboard" };
         }

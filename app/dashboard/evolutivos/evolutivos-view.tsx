@@ -48,12 +48,12 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
         setSyncing(true);
         const res = await syncClientEvolutivos(selectedClientId);
         if (res.success) {
-            toast.success(res.message);
+            toast.success((res as any).message);
             // Refresh data for current client
             const newData = await getEvolutivosByClient(selectedClientId);
             setData(newData);
         } else {
-            toast.error(res.error || res.message || "Error al sincronizar");
+            toast.error((res as any).error || (res as any).message || "Error al sincronizar");
         }
         setSyncing(false);
     };
@@ -79,7 +79,7 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                        {isAdmin && (
+                        {(isAdmin || user.role === 'GERENTE') && (
                             <div className="space-y-2">
                                 <Label htmlFor="client-select" className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex justify-between items-center">
                                     Cliente

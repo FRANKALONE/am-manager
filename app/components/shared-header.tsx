@@ -22,7 +22,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
     return (
         <header className="bg-white dark:bg-slate-900 border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
             <div className="flex items-center gap-6">
-                <Link href={userRole === "ADMIN" ? "/admin-home" : "/client-dashboard"}>
+                <Link href={userRole === "ADMIN" ? "/admin-home" : (userRole === "GERENTE" ? "/manager-dashboard" : "/client-dashboard")}>
                     <Image
                         src="/logo-am.png"
                         alt="Manager AM"
@@ -38,7 +38,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
             </div>
             <div className="flex items-center gap-4">
                 {canSeeDashboard && (
-                    <Link href={userRole === "ADMIN" ? "/admin-home" : "/client-dashboard"} className="text-sm font-semibold text-slate-600 hover:text-malachite flex items-center gap-2 transition-colors mr-2">
+                    <Link href={userRole === "ADMIN" ? "/admin-home" : (userRole === "GERENTE" ? "/manager-dashboard" : "/client-dashboard")} className="text-sm font-semibold text-slate-600 hover:text-malachite flex items-center gap-2 transition-colors mr-2">
                         <Home className="w-4 h-4" /> {t('common.home')}
                     </Link>
                 )}
