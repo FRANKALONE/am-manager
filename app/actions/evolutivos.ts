@@ -79,7 +79,7 @@ export async function getEvolutivosByClient(clientId: string) {
         };
     } catch (error) {
         console.error("Error in getEvolutivosByClient:", error);
-        return { evolutivos: [], hitos: [], workPackages: [] };
+        return { evolutivos: [], hitos: [], workPackages: [], proposals: [] };
     }
 }
 

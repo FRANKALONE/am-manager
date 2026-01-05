@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getEvolutivosForBilling, markEvolutivoAsBilled, unmarkEvolutivoAsBilled, getEvolutivoWorklogDetails } from "@/app/actions/evolutivos-billing";
-import { FileText, Loader2, DollarSign, Download, Filter, CheckCircle2, Info } from "lucide-react";
+import { FileText, Loader2, DollarSign, Download, Filter, CheckCircle2, Info, Eye, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/date-utils";
 
@@ -36,7 +36,7 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
 
     // Filters
     const [filterMode, setFilterMode] = useState<string>("all");
-    const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [activeTab, setActiveTab] = useState<"pending" | "billed">("pending");
 
     // Removed auto-load on mount - user must click "Actualizar" button
 
@@ -65,29 +65,40 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
         }
     };
 
-    const handleToggleBilled = async (issueKey: string, currentStatus: boolean, wpId: string) => {
-        setTogglingBilled(issueKey);
+    const handleProcessBilling = async (evo: any) => {
+        setTogglingBilled(evo.issueKey);
         try {
-            if (currentStatus) {
-                const res = await unmarkEvolutivoAsBilled(issueKey, year, month);
-                if (res.success) {
-                    setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: false } : e));
-                    toast.success(`${issueKey} marcado como pendiente`);
-                }
+            const res = await markEvolutivoAsBilled(evo.issueKey, year, month, evo.workPackageId);
+            if (res.success) {
+                setEvolutivos(prev => prev.map(e => e.issueKey === evo.issueKey ? { ...e, isBilled: true } : e));
+                toast.success(`${evo.issueKey} facturado correctamente`);
+
+                // Generate granular report
+                await generateGranularReport(evo, adjustedHours[evo.issueKey], totalAmounts[evo.issueKey]);
             } else {
-                const res = await markEvolutivoAsBilled(issueKey, year, month, wpId);
-                if (res.success) {
-                    setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: true } : e));
-                    toast.success(`${issueKey} marcado como facturado`);
-                    // Generate granular report
-                    const evo = evolutivos.find(e => e.issueKey === issueKey);
-                    if (evo) {
-                        await generateGranularReport(evo, adjustedHours[issueKey], totalAmounts[issueKey]);
-                    }
-                }
+                toast.error(res.error || "Error al marcar como facturado");
             }
         } catch (error) {
-            toast.error("Error al cambiar estado de facturación");
+            toast.error("Error al procesar la facturación");
+        } finally {
+            setTogglingBilled(null);
+        }
+    };
+
+    const handleCancelBilling = async (issueKey: string) => {
+        if (!confirm(`¿Estás seguro de que deseas anular la facturación de ${issueKey}?`)) return;
+
+        setTogglingBilled(issueKey);
+        try {
+            const res = await unmarkEvolutivoAsBilled(issueKey, year, month);
+            if (res.success) {
+                setEvolutivos(prev => prev.map(e => e.issueKey === issueKey ? { ...e, isBilled: false } : e));
+                toast.success(`Facturación de ${issueKey} anulada`);
+            } else {
+                toast.error(res.error || "Error al anular facturación");
+            }
+        } catch (error) {
+            toast.error("Error al anular la facturación");
         } finally {
             setTogglingBilled(null);
         }
@@ -111,11 +122,11 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
 
     const filteredEvolutivos = evolutivos.filter(evo => {
         const matchesMode = filterMode === "all" || evo.billingMode === filterMode;
-        const matchesStatus = filterStatus === "all" ||
-            (filterStatus === "billed" && evo.isBilled) ||
-            (filterStatus === "pending" && !evo.isBilled);
-        return matchesMode && matchesStatus;
+        return matchesMode;
     });
+
+    const pendingEvolutivos = filteredEvolutivos.filter(evo => !evo.isBilled);
+    const billedEvolutivos = filteredEvolutivos.filter(evo => evo.isBilled);
 
     const getTotalHours = () => {
         return filteredEvolutivos.reduce((sum, evo) => sum + (adjustedHours[evo.issueKey] || 0), 0);
@@ -358,17 +369,6 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                         </SelectContent>
                     </Select>
 
-                    <Select value={filterStatus} onValueChange={setFilterStatus} disabled={isLoading}>
-                        <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
-                            <SelectValue placeholder="Estado de Facturación" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos los Estados</SelectItem>
-                            <SelectItem value="pending">Pendientes</SelectItem>
-                            <SelectItem value="billed">Facturados</SelectItem>
-                        </SelectContent>
-                    </Select>
-
                     <div className="flex-grow" />
 
                     <div className="text-xs font-medium text-slate-400 flex items-center">
@@ -387,92 +387,213 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                         <p className="text-slate-500 font-medium">No hay evolutivos facturables con dedicación en este mes.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        <div className="border rounded-xl overflow-hidden shadow-sm">
-                            <Table>
-                                <TableHeader className="bg-slate-50 border-b">
-                                    <TableRow>
-                                        <TableHead className="w-[100px]">Estado</TableHead>
-                                        <TableHead>Ticket</TableHead>
-                                        <TableHead>Resumen</TableHead>
-                                        <TableHead>WP / Cliente</TableHead>
-                                        <TableHead>Modo Fact.</TableHead>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Reales</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Facturar</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Tarifa</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Importe</th>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredEvolutivos.map((evo) => (
-                                        <TableRow key={evo.issueKey} className={evo.isBilled ? "bg-green-50/30" : ""}>
-                                            <TableCell className="py-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Switch
-                                                        checked={evo.isBilled}
-                                                        disabled={togglingBilled === evo.issueKey}
-                                                        onCheckedChange={() => handleToggleBilled(evo.issueKey, !!evo.isBilled, evo.workPackageId)}
-                                                    />
-                                                    {evo.isBilled && <CheckCircle2 className="w-4 h-4 text-green-600 animate-in zoom-in" />}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="font-bold text-slate-700">{evo.issueKey}</TableCell>
-                                            <TableCell className="max-w-xs truncate" title={evo.issueSummary}>
-                                                {evo.issueSummary}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="text-xs font-bold text-slate-600">{evo.workPackageName}</div>
-                                                <div className="text-[10px] text-slate-400">{evo.clientName}</div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="text-[10px] font-bold uppercase truncate max-w-[120px]">
-                                                    {evo.billingMode}
-                                                </Badge>
-                                            </TableCell>
-                                            <td className="px-4 py-3 text-right text-slate-400 font-medium italic">
-                                                {evo.workedHours.toFixed(2)}h
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <Input
-                                                    type="number"
-                                                    step="0.25"
-                                                    min="0"
-                                                    value={adjustedHours[evo.issueKey] || 0}
-                                                    onChange={(e) => handleHoursChange(evo.issueKey, e.target.value)}
-                                                    className={`w-20 text-right h-8 text-sm focus-visible:ring-green-500 ${evo.isBilled ? 'bg-green-100/50 border-green-200' : ''}`}
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-[11px] font-bold text-slate-600">
-                                                {evo.rate > 0 ? `${evo.rate.toFixed(2)}€` : <span className="text-amber-500 italic">No def.</span>}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    readOnly={evo.rate > 0}
-                                                    value={totalAmounts[evo.issueKey] || 0}
-                                                    onChange={(e) => handleAmountChange(evo.issueKey, e.target.value)}
-                                                    className={`w-24 text-right h-8 text-sm font-bold focus-visible:ring-green-500 ${evo.rate > 0 ? 'bg-slate-50 text-slate-500' : 'bg-amber-50 border-amber-200'}`}
-                                                />
-                                            </td>
-                                        </TableRow>
-                                    ))}
-                                    <TableRow className="bg-slate-50/80 font-bold border-t-2">
-                                        <TableCell colSpan={7} className="text-right text-slate-600 uppercase text-xs tracking-widest">
-                                            Total Facturable
-                                        </TableCell>
-                                        <TableCell className="text-right text-green-700 text-lg">
-                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Object.values(totalAmounts).reduce((a, b) => a + b, 0))}
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
+                    <div className="space-y-6">
+                        <Tabs className="bg-white dark:bg-slate-900 border-none shadow-none">
+                            <TabsList className="bg-slate-100/80 p-1 rounded-xl mb-4 border border-slate-200">
+                                <TabsTrigger
+                                    active={activeTab === "pending"}
+                                    onClick={() => setActiveTab("pending")}
+                                    value="pending"
+                                    className="px-6 py-2 rounded-lg transition-all"
+                                >
+                                    Pendientes ({pendingEvolutivos.length})
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    active={activeTab === "billed"}
+                                    onClick={() => setActiveTab("billed")}
+                                    value="billed"
+                                    className="px-6 py-2 rounded-lg transition-all"
+                                >
+                                    Ya Facturados ({billedEvolutivos.length})
+                                </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent active={activeTab === "pending"} value="pending">
+                                <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50 border-b">
+                                            <TableRow>
+                                                <TableHead>Acción</TableHead>
+                                                <TableHead>Ticket</TableHead>
+                                                <TableHead>Resumen</TableHead>
+                                                <TableHead>WP / Cliente</TableHead>
+                                                <TableHead>Modo Fact.</TableHead>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Reales</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">H. Facturar</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Tarifa</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Importe</th>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {pendingEvolutivos.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={9} className="text-center py-12 text-slate-400">
+                                                        No hay evolutivos pendientes de facturar con los filtros aplicados.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                pendingEvolutivos.map((evo) => (
+                                                    <TableRow key={evo.issueKey}>
+                                                        <TableCell className="py-2">
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleProcessBilling(evo)}
+                                                                disabled={togglingBilled === evo.issueKey}
+                                                                className="bg-green-600 hover:bg-green-700 text-white font-bold h-8 flex items-center gap-2 shadow-sm px-4"
+                                                            >
+                                                                {togglingBilled === evo.issueKey ? (
+                                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                                ) : (
+                                                                    <DollarSign className="w-3.5 h-3.5" />
+                                                                )}
+                                                                Facturar
+                                                            </Button>
+                                                        </TableCell>
+                                                        <TableCell className="font-bold text-slate-700">{evo.issueKey}</TableCell>
+                                                        <TableCell className="max-w-xs truncate" title={evo.issueSummary}>
+                                                            {evo.issueSummary}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="text-xs font-bold text-slate-600">{evo.workPackageName}</div>
+                                                            <div className="text-[10px] text-slate-400">{evo.clientName}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="text-[10px] font-bold uppercase truncate max-w-[120px]">
+                                                                {evo.billingMode}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <td className="px-4 py-3 text-right text-slate-400 font-medium italic">
+                                                            {evo.workedHours.toFixed(2)}h
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.25"
+                                                                min="0"
+                                                                value={adjustedHours[evo.issueKey] || 0}
+                                                                onChange={(e) => handleHoursChange(evo.issueKey, e.target.value)}
+                                                                className="w-20 text-right h-8 text-sm focus-visible:ring-green-500"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-[11px] font-bold text-slate-600">
+                                                            {evo.rate > 0 ? `${evo.rate.toFixed(2)}€` : <span className="text-amber-500 italic">No def.</span>}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                readOnly={evo.rate > 0}
+                                                                value={totalAmounts[evo.issueKey] || 0}
+                                                                onChange={(e) => handleAmountChange(evo.issueKey, e.target.value)}
+                                                                className={`w-24 text-right h-8 text-sm font-bold focus-visible:ring-green-500 ${evo.rate > 0 ? 'bg-slate-50 text-slate-500' : 'bg-amber-50 border-amber-200'}`}
+                                                            />
+                                                        </td>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent active={activeTab === "billed"} value="billed">
+                                <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50 border-b">
+                                            <TableRow>
+                                                <TableHead className="text-center">Acciones</TableHead>
+                                                <TableHead>Ticket</TableHead>
+                                                <TableHead>Resumen</TableHead>
+                                                <TableHead>WP / Cliente</TableHead>
+                                                <TableHead>Modo Fact.</TableHead>
+                                                <TableHead className="text-right">Horas</TableHead>
+                                                <TableHead className="text-right">Importe</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {billedEvolutivos.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} className="text-center py-12 text-slate-400">
+                                                        Aún no se ha facturado ningún evolutivo en este periodo.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                billedEvolutivos.map((evo) => (
+                                                    <TableRow key={evo.issueKey} className="bg-green-50/20 hover:bg-green-50/40 transition-colors">
+                                                        <TableCell className="py-2">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => generateGranularReport(evo, adjustedHours[evo.issueKey], totalAmounts[evo.issueKey])}
+                                                                    className="h-8 w-8 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                                    title="Ver Justificante"
+                                                                >
+                                                                    <Eye className="w-4 h-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleCancelBilling(evo.issueKey)}
+                                                                    disabled={togglingBilled === evo.issueKey}
+                                                                    className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50 text-[11px] font-bold gap-1"
+                                                                >
+                                                                    <XCircle className="w-3.5 h-3.5" />
+                                                                    Anular
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="font-bold text-slate-700">{evo.issueKey}</TableCell>
+                                                        <TableCell className="max-w-xs truncate" title={evo.issueSummary}>
+                                                            {evo.issueSummary}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="text-xs font-bold text-slate-600">{evo.workPackageName}</div>
+                                                            <div className="text-[10px] text-slate-400">{evo.clientName}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 text-[10px] font-bold">
+                                                                FACTURADO
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-medium">
+                                                            {adjustedHours[evo.issueKey]?.toFixed(2)}h
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-bold text-green-700">
+                                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(totalAmounts[evo.issueKey] || 0)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+
+                        {activeTab === "pending" && pendingEvolutivos.length > 0 && (
+                            <div className="mt-4 flex justify-end">
+                                <Card className="bg-slate-50 border-slate-200 shadow-none">
+                                    <CardContent className="p-4 flex items-center gap-8">
+                                        <div className="text-right">
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase">Total Horas</div>
+                                            <div className="text-xl font-bold text-slate-700">{getTotalHours().toFixed(2)}h</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase">Total Importe</div>
+                                            <div className="text-2xl font-black text-green-700">
+                                                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(pendingEvolutivos.reduce((a, b) => a + (totalAmounts[b.issueKey] || 0), 0))}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
                             <Info className="w-4 h-4 text-blue-400" />
-                            <p>Usa los filtros superiores para organizar el listado. Marca como facturado para llevar el control de lo que ya se ha procesado.</p>
+                            <p>Usa la pestaña <strong>Pendientes</strong> para facturar nuevos evolutivos y <strong>Ya Facturados</strong> para consultar o anular cierres realizados.</p>
                         </div>
                     </div>
                 )}
