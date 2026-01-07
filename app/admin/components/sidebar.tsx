@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
@@ -10,8 +10,13 @@ export async function AdminSidebar() {
     const { t } = await getTranslations();
 
     return (
-        <aside className="w-64 bg-white dark:bg-gray-800 shadow-xl hidden md:block pt-4 text-dark-green">
+        <aside className="w-64 bg-white dark:bg-gray-800 shadow-xl hidden md:block pt-4 text-dark-green font-anek">
             <nav className="mt-4 px-4 space-y-2">
+                <SidebarLink href="/admin" label={t('admin.dashboard.title')}>
+                    <LayoutDashboard className="h-4 w-4" />
+                </SidebarLink>
+
+                <div className="h-4" /> {/* Spacer */}
                 {perms.manage_clients && (
                     <SidebarLink href="/admin/clients" label={t('sidebar.clients')}>
                         <Users className="h-4 w-4" />

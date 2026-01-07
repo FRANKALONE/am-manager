@@ -18,20 +18,10 @@ export default async function AdminHomePage() {
             description: t('adminHome.dashboardConsumptionsDesc'),
             icon: BarChart3,
             href: "/dashboard",
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-            gradient: "from-blue-600 to-blue-400",
-            visible: perms.view_dashboard
-        },
-        {
-            title: t('adminHome.closuresManagement'),
-            description: t('adminHome.closuresManagementDesc'),
-            icon: FileCheck,
-            href: "/cierres",
             color: "text-emerald-500",
             bg: "bg-emerald-500/10",
             gradient: "from-emerald-600 to-emerald-400",
-            visible: perms.view_cierres
+            visible: perms.view_dashboard
         },
         {
             title: t('adminHome.evolutivosManagement'),
@@ -44,13 +34,23 @@ export default async function AdminHomePage() {
             visible: perms.view_dashboard
         },
         {
-            title: t('adminHome.administration'),
-            description: t('adminHome.administrationDesc'),
-            icon: Settings,
-            href: "/admin/clients",
+            title: t('adminHome.closuresManagement'),
+            description: t('adminHome.closuresManagementDesc'),
+            icon: FileCheck,
+            href: "/cierres",
             color: "text-purple-500",
             bg: "bg-purple-500/10",
             gradient: "from-purple-600 to-indigo-400",
+            visible: perms.view_cierres
+        },
+        {
+            title: t('adminHome.administration'),
+            description: t('adminHome.administrationDesc'),
+            icon: Settings,
+            href: "/admin",
+            color: "text-blue-500",
+            bg: "bg-blue-500/10",
+            gradient: "from-blue-600 to-blue-400",
             visible: perms.manage_users || perms.manage_clients || perms.manage_wps || perms.manage_roles
         }
     ].filter(o => o.visible);
