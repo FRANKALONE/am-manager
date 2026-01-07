@@ -128,7 +128,9 @@ export function RegularizationEditForm({ regularization, workPackages }: Regular
                                     <SelectContent>
                                         <SelectItem value="EXCESS">Exceso</SelectItem>
                                         <SelectItem value="RETURN">Devolución</SelectItem>
+                                        <SelectItem value="SOBRANTE_ANTERIOR">Sobrante Anterior</SelectItem>
                                         <SelectItem value="MANUAL_CONSUMPTION">Consumo Manual</SelectItem>
+                                        <SelectItem value="CONTRATACION_PUNTUAL">Contratación Puntual</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

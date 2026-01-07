@@ -43,6 +43,8 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                 return <Badge className="bg-blue-600 hover:bg-blue-700">Sobrante Anterior</Badge>;
             case "MANUAL_CONSUMPTION":
                 return <Badge className="bg-blue-600 hover:bg-blue-700">Consumo Manual</Badge>;
+            case "CONTRATACION_PUNTUAL":
+                return <Badge className="bg-indigo-600 hover:bg-indigo-700">Contratación Puntual</Badge>;
             default:
                 return <Badge variant="outline">{type}</Badge>;
         }
@@ -197,6 +199,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                     <SelectItem value="RETURN">Devolución</SelectItem>
                                     <SelectItem value="SOBRANTE_ANTERIOR">Sobrante Anterior</SelectItem>
                                     <SelectItem value="MANUAL_CONSUMPTION">Consumo Manual</SelectItem>
+                                    <SelectItem value="CONTRATACION_PUNTUAL">Contratación Puntual</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

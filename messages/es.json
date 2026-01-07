@@ -435,6 +435,8 @@
         "evolutivosManagementDesc": "Seguimiento de hitos, responsables y planificación",
         "administration": "Administración",
         "administrationDesc": "Gestión de usuarios, clientes y configuración del sistema",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados",
         "accessModule": "Acceder al módulo"
     },
     "user": {

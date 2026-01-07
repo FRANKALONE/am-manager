@@ -1,7 +1,7 @@
 import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles } from "lucide-react";
+import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users } from "lucide-react";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
 import { getTranslations } from "@/lib/get-translations";
@@ -44,13 +44,23 @@ export default async function AdminHomePage() {
             visible: perms.view_cierres
         },
         {
+            title: t('adminHome.jiraUsers'),
+            description: t('adminHome.jiraUsersDesc'),
+            icon: Users,
+            href: "/admin/jira-customers",
+            color: "text-blue-500",
+            bg: "bg-blue-500/10",
+            gradient: "from-blue-600 to-blue-400",
+            visible: perms.manage_clients || perms.manage_users
+        },
+        {
             title: t('adminHome.administration'),
             description: t('adminHome.administrationDesc'),
             icon: Settings,
             href: "/admin",
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-            gradient: "from-blue-600 to-blue-400",
+            color: "text-slate-900",
+            bg: "bg-slate-900/10",
+            gradient: "from-slate-900 to-slate-700",
             visible: perms.manage_users || perms.manage_clients || perms.manage_wps || perms.manage_roles
         }
     ].filter(o => o.visible);
@@ -77,7 +87,7 @@ export default async function AdminHomePage() {
                     </p>
                 </div>
 
-                <div className={`grid grid-cols-1 ${options.length > 1 ? 'md:grid-cols-' + Math.min(2, options.length) : ''} lg:grid-cols-${Math.min(4, options.length)} gap-10 max-w-7xl mx-auto items-stretch`}>
+                <div className={`grid grid-cols-1 ${options.length > 1 ? 'md:grid-cols-' + Math.min(3, options.length) : ''} lg:grid-cols-${Math.min(5, options.length)} gap-10 max-w-7xl mx-auto items-stretch`}>
                     {options.map((option, i) => (
                         <Link key={option.href} href={option.href} className="group outline-none">
                             <Card className="h-full border-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_45px_80px_-20px_rgba(0,0,0,0.15)] transition-all duration-700 hover:-translate-y-4 cursor-pointer bg-white/70 backdrop-blur-2xl ring-1 ring-slate-200/50 hover:ring-slate-300 relative overflow-hidden flex flex-col rounded-[2.5rem] group">
