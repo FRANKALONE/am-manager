@@ -87,9 +87,10 @@ type Props = {
     renewalTypes: any[];
     regularizationTypes: any[];
     scopeUnits: any[];
+    returnTo?: string;
 };
 
-export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits }: Props) {
+export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits, returnTo }: Props) {
     const updateAction = updateWorkPackage.bind(null, wp.id);
     const [state, formAction] = useFormState(updateAction, initialState);
 
@@ -105,6 +106,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                 </CardHeader>
                 <CardContent>
                     <form action={formAction} className="space-y-4">
+                        <input type="hidden" name="returnUrl" value={returnTo} />
                         {state?.error && (
                             <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
                                 {state.error}
@@ -242,6 +244,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                 </CardHeader>
                 <CardContent>
                     <form action={formAction} className="space-y-6">
+                        <input type="hidden" name="returnUrl" value={returnTo} />
                         {/* Row 0: Fechas del Periodo */}
                         <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                             <div className="space-y-2">

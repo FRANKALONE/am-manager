@@ -159,21 +159,22 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
     }
 }
 
-export async function getExpiringWPs(managerId?: string) {
+export async function getExpiringWPs(managerId?: string, filters?: { clientId?: string, contractType?: string, startDate?: Date, endDate?: Date }) {
     try {
         const today = new Date();
         const sixtyDaysOut = new Date();
         sixtyDaysOut.setDate(today.getDate() + 60);
 
-        // Temp change for January: Include Dec 2025
-        const startDate = new Date(2025, 11, 1); // Dec 1, 2025
+        // Date range for the query
+        const queryStartDate = filters?.startDate || new Date(2025, 11, 1); // Default to Dec 1, 2025
+        const queryEndDate = filters?.endDate || sixtyDaysOut;
 
         const where: any = {
             validityPeriods: {
                 some: {
                     endDate: {
-                        gte: startDate,
-                        lte: sixtyDaysOut
+                        gte: queryStartDate,
+                        lte: queryEndDate
                     }
                 }
             }
@@ -181,6 +182,14 @@ export async function getExpiringWPs(managerId?: string) {
 
         if (managerId) {
             where.client = { manager: managerId };
+        }
+
+        if (filters?.clientId) {
+            where.clientId = filters.clientId;
+        }
+
+        if (filters?.contractType) {
+            where.contractType = filters.contractType;
         }
 
         const wps = await prisma.workPackage.findMany({
@@ -193,11 +202,11 @@ export async function getExpiringWPs(managerId?: string) {
             }
         });
 
-        // Ensure the LATEST period is the one that's expiring or recently expired
+        // Filter valid periods on the application side to ensure the LATEST is within range
         return wps.filter(wp => {
             const latestEndDate = wp.validityPeriods[0]?.endDate;
             if (!latestEndDate) return false;
-            return latestEndDate >= startDate && latestEndDate <= sixtyDaysOut;
+            return latestEndDate >= queryStartDate && latestEndDate <= queryEndDate;
         });
     } catch (error) {
         console.error("Error loading expiring WPs:", error);

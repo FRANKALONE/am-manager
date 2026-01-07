@@ -254,6 +254,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
     const includeEvoTM = formData.get("includeEvoTM") === "on";
     const isMainWP = formData.get("isMainWP") === "on";
+    const returnUrl = formData.get("returnUrl") as string;
 
     // ValidityPeriod fields (economic and management)
     const totalQuantity = parseFloat(formData.get("totalQuantity") as string);
@@ -394,8 +395,8 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     }
 
     revalidatePath("/admin/work-packages");
-    console.log("Redirecting...");
-    redirect("/admin/work-packages");
+    console.log("Redirecting to:", returnUrl || "/admin/work-packages");
+    redirect(returnUrl || "/admin/work-packages");
 }
 
 

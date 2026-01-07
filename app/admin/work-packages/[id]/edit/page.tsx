@@ -10,8 +10,9 @@ import { CorrectionManager } from "../../components/correction-manager";
 import { notFound } from "next/navigation";
 import { WorkPackageForm } from "../../components/work-package-form";
 
-export default async function EditWorkPackagePage({ params }: { params: { id: string } }) {
+export default async function EditWorkPackagePage({ params, searchParams }: { params: { id: string }, searchParams: { returnTo?: string } }) {
     const wp = await getWorkPackageById(params.id);
+    const returnTo = searchParams.returnTo || "/admin/work-packages";
 
     if (!wp) {
         notFound();
@@ -43,7 +44,7 @@ export default async function EditWorkPackagePage({ params }: { params: { id: st
         <div className="space-y-6">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href="/admin/work-packages"><ChevronLeft className="h-4 w-4" /></Link>
+                    <Link href={returnTo}><ChevronLeft className="h-4 w-4" /></Link>
                 </Button>
                 <h1 className="text-xl font-bold tracking-tight">Editar Work Package: {wp.name}</h1>
             </div>
@@ -57,6 +58,7 @@ export default async function EditWorkPackagePage({ params }: { params: { id: st
                     renewalTypes={renewalTypes}
                     regularizationTypes={regularizationTypes}
                     scopeUnits={scopeUnits}
+                    returnTo={returnTo}
                 />
 
                 {/* Validity Periods - Multiple Periods Management */}

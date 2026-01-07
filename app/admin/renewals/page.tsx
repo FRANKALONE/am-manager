@@ -2,32 +2,43 @@ import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getMe } from "@/app/actions/users";
 import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations } from "@/app/actions/contract-actions";
+import { getClients } from "@/app/actions/clients";
+import { getParametersByCategory } from "@/app/actions/parameters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, RefreshCcw, Bell } from "lucide-react";
+import { Calendar, RefreshCcw, Bell, Filter, X } from "lucide-react";
 import { redirect } from "next/navigation";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
-export default async function RenewalsPage() {
+export default async function RenewalsPage({ searchParams }: { searchParams: { client?: string, type?: string, from?: string, to?: string } }) {
     const user = await getMe();
     if (!user || (user.role !== 'ADMIN' && user.role !== 'GERENTE')) {
         redirect("/login");
     }
 
+    const { client, type, from, to } = searchParams;
     const isGerente = user.role === 'GERENTE';
-    const expiringWPs = await getExpiringWPs(isGerente ? user.id : undefined);
 
-    // Sort by proximity
-    expiringWPs.sort((a, b) => {
-        const dateA = a.validityPeriods[0]?.endDate ? new Date(a.validityPeriods[0].endDate).getTime() : Infinity;
-        const dateB = b.validityPeriods[0]?.endDate ? new Date(b.validityPeriods[0].endDate).getTime() : Infinity;
-        return dateA - dateB;
-    });
-
-    // Filter into groups
-    const autoRenewals = expiringWPs.filter(wp => wp.renewalType?.toUpperCase() === 'AUTO');
-    const manualRenewals = expiringWPs.filter(wp => wp.renewalType?.toUpperCase() !== 'AUTO');
+    const [expiringWPs, clients, contractTypes] = await Promise.all([
+        getExpiringWPs(isGerente ? user.id : undefined, {
+            clientId: client,
+            contractType: type,
+            startDate: from ? new Date(from) : undefined,
+            endDate: to ? new Date(to) : undefined
+        }),
+        getClients(isGerente ? user.id : undefined),
+        getParametersByCategory("CONTRACT_TYPE")
+    ]);
 
     return (
         <div className="space-y-6">
@@ -50,6 +61,60 @@ export default async function RenewalsPage() {
                     </form>
                 </div>
             </div>
+
+            <Card className="p-4 bg-slate-50/50">
+                <form className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="client" className="text-xs uppercase font-bold text-muted-foreground">Cliente</Label>
+                        <Select name="client" defaultValue={client || "all"}>
+                            <SelectTrigger id="client" className="bg-white">
+                                <SelectValue placeholder="Todos los clientes" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos los clientes</SelectItem>
+                                {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="type" className="text-xs uppercase font-bold text-muted-foreground">Tipo de Contrato</Label>
+                        <Select name="type" defaultValue={type || "all"}>
+                            <SelectTrigger id="type" className="bg-white">
+                                <SelectValue placeholder="Todos los tipos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos los tipos</SelectItem>
+                                {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="from" className="text-xs uppercase font-bold text-muted-foreground">Vence Desde</Label>
+                        <Input type="date" name="from" id="from" defaultValue={from} className="bg-white" />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="to" className="text-xs uppercase font-bold text-muted-foreground">Vence Hasta</Label>
+                        <Input type="date" name="to" id="to" defaultValue={to} className="bg-white" />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Button type="submit" variant="default" className="flex-1">
+                            <Filter className="w-4 h-4 mr-2" />
+                            Filtrar
+                        </Button>
+                        {(client || type || from || to) && (
+                            <Button variant="outline" asChild className="px-3">
+                                <Link href="/admin/renewals">
+                                    <X className="w-4 h-4" />
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                </form>
+            </Card>
 
             <Card>
                 <CardHeader>
@@ -151,7 +216,7 @@ function RenewalRow({ wp }: { wp: any }) {
                     </form>
                 )}
 
-                <Link href={`/admin/work-packages/${wp.id}/edit`}>
+                <Link href={`/admin/work-packages/${wp.id}/edit?returnTo=/admin/renewals`}>
                     <Button size="sm" variant="outline" className="whitespace-nowrap">
                         Nuevas Condiciones
                     </Button>
