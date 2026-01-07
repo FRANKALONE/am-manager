@@ -35,6 +35,8 @@ model Client {
   users            User[]
   workPackages     WorkPackage[]
   evolutivoProposals EvolutivoProposal[]
+  jiraOrganizations JiraOrganization[]
+  jiraCustomerUsers JiraCustomerUser[]
 }
 
 model WorkPackage {
@@ -109,6 +111,7 @@ model User {
   reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
   requestedReviews ReviewRequest[] @relation("RequestedReviews")
   client           Client?         @relation(fields: [clientId], references: [id])
+  linkedJiraCustomer JiraCustomerUser?
 
   @@index([locale])
 }
@@ -303,4 +306,51 @@ model EvolutivoProposal {
   client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
+}
+
+model JiraOrganization {
+  id              String   @id @default(cuid())
+  jiraOrgId       String   @unique // ID de la organización en JIRA
+  name            String
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  users           JiraCustomerUser[]
+  
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([clientId])
+  @@index([jiraOrgId])
+}
+
+model JiraCustomerUser {
+  id                String   @id @default(cuid())
+  accountId         String   @unique // Account ID de JIRA
+  displayName       String
+  emailAddress      String?
+  active            Boolean  @default(true)
+  accountType       String?
+  
+  // Relación con organización
+  organizationId    String
+  organization      JiraOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Relación con cliente
+  clientId          String
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Vinculación con usuario de la app (opcional)
+  linkedUserId      String?  @unique
+  linkedUser        User?    @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([emailAddress])
+  @@index([accountId])
 }

@@ -766,5 +766,52 @@
         "types": {
             "return": "Rimborsi ore"
         }
+    },
+    "jiraCustomers": {
+        "title": "Usuarios JIRA",
+        "subtitle": "Gestiona usuarios de cliente sincronizados desde JIRA Service Management",
+        "sync": "Sincronizar",
+        "syncAll": "Sincronizar Todos",
+        "syncClient": "Sincronizar Cliente",
+        "syncing": "Sincronizando...",
+        "linkUser": "Vincular Usuario",
+        "createUser": "Crear Usuario",
+        "unlink": "Desvincular",
+        "organization": "Organización",
+        "linked": "Vinculado",
+        "notLinked": "No vinculado",
+        "lastSync": "Última sincronización",
+        "syncSuccess": "Sincronización completada",
+        "linkSuccess": "Usuario vinculado correctamente",
+        "createSuccess": "Usuario creado y vinculado",
+        "unlinkSuccess": "Usuario desvinculado",
+        "noUsers": "No se encontraron usuarios",
+        "table": {
+            "user": "Usuario",
+            "email": "Email",
+            "client": "Cliente",
+            "organization": "Organización",
+            "status": "Estado",
+            "linkedUser": "Usuario Vinculado",
+            "lastSync": "Última Sync",
+            "actions": "Acciones"
+        },
+        "filters": {
+            "search": "Buscar por nombre, email o cliente...",
+            "allClients": "Todos los clientes",
+            "allStatus": "Todos",
+            "active": "Activos",
+            "inactive": "Inactivos",
+            "allLink": "Todos",
+            "linked": "Vinculados",
+            "unlinked": "No vinculados"
+        },
+        "portal": {
+            "title": "Usuarios de la Organización",
+            "subtitle": "Usuarios de cliente registrados en JIRA Service Management",
+            "noUsers": "No hay usuarios JIRA sincronizados para tu organización.",
+            "contactAdmin": "Contacta con el administrador para sincronizar los usuarios.",
+            "total": "Total: {count} usuario{plural}"
+        }
     }
 }

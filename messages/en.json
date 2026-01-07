@@ -705,6 +705,53 @@
         "november": "November",
         "december": "December"
     },
+    "jiraCustomers": {
+        "title": "JIRA Users",
+        "subtitle": "Manage customer users synced from JIRA Service Management",
+        "sync": "Sync",
+        "syncAll": "Sync All",
+        "syncClient": "Sync Client",
+        "syncing": "Syncing...",
+        "linkUser": "Link User",
+        "createUser": "Create User",
+        "unlink": "Unlink",
+        "organization": "Organization",
+        "linked": "Linked",
+        "notLinked": "Not linked",
+        "lastSync": "Last sync",
+        "syncSuccess": "Sync completed",
+        "linkSuccess": "User linked successfully",
+        "createSuccess": "User created and linked",
+        "unlinkSuccess": "User unlinked",
+        "noUsers": "No users found",
+        "table": {
+            "user": "User",
+            "email": "Email",
+            "client": "Client",
+            "organization": "Organization",
+            "status": "Status",
+            "linkedUser": "Linked User",
+            "lastSync": "Last Sync",
+            "actions": "Actions"
+        },
+        "filters": {
+            "search": "Search by name, email or client...",
+            "allClients": "All clients",
+            "allStatus": "All",
+            "active": "Active",
+            "inactive": "Inactive",
+            "allLink": "All",
+            "linked": "Linked",
+            "unlinked": "Not linked"
+        },
+        "portal": {
+            "title": "Organization Users",
+            "subtitle": "Customer users registered in JIRA Service Management",
+            "noUsers": "No JIRA users synced for your organization.",
+            "contactAdmin": "Contact the administrator to sync users.",
+            "total": "Total: {count} user{plural}"
+        }
+    },
     "sidebar": {
         "dashboard": "Dashboard",
         "closures": "Closures",

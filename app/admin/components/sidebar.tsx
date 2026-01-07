@@ -48,9 +48,14 @@ export async function AdminSidebar() {
 
                 <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
                     {perms.manage_users && (
-                        <SidebarLink href="/admin/users" label={t('sidebar.users')}>
-                            <UserCog className="h-4 w-4" />
-                        </SidebarLink>
+                        <>
+                            <SidebarLink href="/admin/users" label={t('sidebar.users')}>
+                                <UserCog className="h-4 w-4" />
+                            </SidebarLink>
+                            <SidebarLink href="/admin/jira-customers" label="Usuarios JIRA">
+                                <Users className="h-4 w-4" />
+                            </SidebarLink>
+                        </>
                     )}
                     {perms.manage_roles && (
                         <SidebarLink href="/admin/roles" label={t('sidebar.roles')}>
