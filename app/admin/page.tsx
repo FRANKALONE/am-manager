@@ -12,7 +12,7 @@ export default async function AdminDashboardPage() {
     const { t } = await getTranslations();
     const user = await getMe();
     const clients = await getClients();
-    const wps = await getWorkPackages();
+    const wps = await getWorkPackages({ status: "all" });
     const usersCount = await prisma.user.count();
     const evolutivosCount = await (prisma as any).ticket.count({
         where: { issueType: 'Evolutivo' }

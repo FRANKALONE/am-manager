@@ -164,7 +164,7 @@
             "clients": "Clientes Totales",
             "clientsDesc": "Empresas registradas",
             "workPackages": "Work Packages",
-            "workPackagesDesc": "Servicios activos",
+            "workPackagesDesc": "Servicios registrados",
             "evolutivos": "Evolutivos",
             "evolutivosDesc": "Tickets de desarrollo",
             "users": "Usuarios App",
