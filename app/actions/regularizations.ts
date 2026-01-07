@@ -66,6 +66,8 @@ export async function createRegularization(data: {
     note?: string;
     isRevenueRecognized?: boolean;
     isBilled?: boolean;
+    createdBy?: string;
+    createdByName?: string;
 }) {
     try {
         const regularization = await prisma.regularization.create({

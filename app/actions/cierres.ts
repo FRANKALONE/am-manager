@@ -386,7 +386,7 @@ export async function processBatchCierres(month: number, year: number, selection
     }
 }
 
-export async function processCierre(wpId: string, month: number, year: number, amount: number, note: string, isRevenueRecognized: boolean = false, isBilled: boolean = true) {
+export async function processCierre(wpId: string, month: number, year: number, amount: number, note: string, isRevenueRecognized: boolean = false, isBilled: boolean = true, createdBy?: string, createdByName?: string) {
     try {
         // 1. Mandatory safety sync
         console.log(`[CIERRE] Safety sync for ${wpId}...`);
@@ -401,7 +401,9 @@ export async function processCierre(wpId: string, month: number, year: number, a
                 quantity: amount,
                 description: `Regularización Cierre ${month}/${year}. ${note}`,
                 isRevenueRecognized,
-                isBilled
+                isBilled,
+                createdBy,
+                createdByName
             },
             include: {
                 workPackage: {

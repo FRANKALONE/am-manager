@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ValidityPeriodsManager } from "../components/validity-manager";
-import { RegularizationManager } from "../components/regularization-manager";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
@@ -339,18 +338,7 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                         </CardContent>
                     </Card>
 
-                    {/* Regularizations (Only Edit) */}
-                    {isEdit && wp && (
-                        <Card className="md:col-span-2">
-                            <CardHeader>
-                                <CardTitle>{t('workPackages.form.cardRegularizations')}</CardTitle>
-                                <CardDescription>{t('workPackages.form.cardRegularizationsDesc')}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <RegularizationManager wpId={wp.id} regularizations={wp.regularizations || []} />
-                            </CardContent>
-                        </Card>
-                    )}
+
 
                     {/* Custom Fields */}
                     {customFieldsDef.length > 0 && (

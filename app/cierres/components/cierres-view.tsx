@@ -42,7 +42,15 @@ const MONTHS_LABELS = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
-export function CierresView() {
+interface CierresViewProps {
+    user: {
+        id: string;
+        name: string;
+        surname?: string;
+    };
+}
+
+export function CierresView({ user }: CierresViewProps) {
     const { locale } = useTranslations();
     const today = new Date();
     const [month, setMonth] = useState(today.getMonth() + 1);
@@ -316,7 +324,17 @@ export function CierresView() {
         setProcessingModal(prev => ({ ...prev, isOpen: false }));
 
         try {
-            const result = await processCierre(candidate.wpId, month, year, candidate.suggestedAmount, note, isRevenueRecognized, isBilled);
+            const result = await processCierre(
+                candidate.wpId,
+                month,
+                year,
+                candidate.suggestedAmount,
+                note,
+                isRevenueRecognized,
+                isBilled,
+                user.id,
+                `${user.name}${user.surname ? ' ' + user.surname : ''}`
+            );
             if (result.success) {
                 await downloadReport(candidate);
                 await loadData();

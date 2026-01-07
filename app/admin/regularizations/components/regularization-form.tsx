@@ -19,9 +19,14 @@ interface RegularizationFormProps {
         contractType?: string;
         client: { name: string };
     }>;
+    user: {
+        id: string;
+        name: string;
+        surname?: string;
+    };
 }
 
-export function RegularizationForm({ workPackages }: RegularizationFormProps) {
+export function RegularizationForm({ workPackages, user }: RegularizationFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -49,7 +54,9 @@ export function RegularizationForm({ workPackages }: RegularizationFormProps) {
             ticketId: formData.ticketId || undefined,
             note: formData.note || undefined,
             isRevenueRecognized: formData.isRevenueRecognized,
-            isBilled: formData.isBilled
+            isBilled: formData.isBilled,
+            createdBy: user.id,
+            createdByName: `${user.name}${user.surname ? ' ' + user.surname : ''}`
         });
 
         if (result.success) {

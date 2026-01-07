@@ -31,6 +31,7 @@ model Client {
   clientPortalUrl  String?
   jiraProjectKey   String?
   reportEmails     String?
+  isDemo           Boolean       @default(false)
   users            User[]
   workPackages     WorkPackage[]
   evolutivoProposals EvolutivoProposal[]
@@ -80,6 +81,8 @@ model Regularization {
   reviewedForDuplicates Boolean     @default(false)
   isRevenueRecognized   Boolean     @default(false)
   isBilled              Boolean     @default(true)
+  createdBy             String?
+  createdByName         String?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
   workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)

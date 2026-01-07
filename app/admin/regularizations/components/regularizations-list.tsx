@@ -233,6 +233,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                     <TableHead className="text-right">Cantidad</TableHead>
                                     <TableHead>Descripción</TableHead>
                                     <TableHead>Ticket ID</TableHead>
+                                    <TableHead>Creado por</TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -269,6 +270,9 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                         <TableCell className="text-sm">
                                             {reg.ticketId || "-"}
                                         </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {reg.createdByName || "-"}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="outline" size="sm" asChild>
@@ -283,7 +287,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                 ))}
                                 {filteredRegularizations.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                                             {hasActiveFilters ? "No hay regularizaciones que coincidan con los filtros." : "No hay regularizaciones registradas."}
                                         </TableCell>
                                     </TableRow>

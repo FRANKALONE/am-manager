@@ -10,7 +10,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "@/lib/use-translations";
 import { formatDate as formatTimezoneDate } from "@/lib/date-utils";
 
-export function RegularizationManager({ wpId, regularizations }: { wpId: string, regularizations: any[] }) {
+export function RegularizationManager({ wpId, regularizations, user }: { wpId: string, regularizations: any[], user: { id: string, name: string, surname?: string } }) {
     const { t, locale } = useTranslations();
     const [isPending, startTransition] = useTransition();
 
@@ -28,7 +28,9 @@ export function RegularizationManager({ wpId, regularizations }: { wpId: string,
                 date: new Date(date),
                 type: type as "EXCESS" | "RETURN" | "MANUAL_CONSUMPTION" | "SOBRANTE_ANTERIOR",
                 quantity: parseFloat(quantity),
-                description
+                description,
+                createdBy: user.id,
+                createdByName: `${user.name}${user.surname ? ' ' + user.surname : ''}`
             });
             // Reset form
             setDate("");
