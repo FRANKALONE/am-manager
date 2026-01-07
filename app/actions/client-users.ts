@@ -1,3 +1,4 @@
+'use server';
 
 /**
  * ========================================
@@ -5,12 +6,14 @@
  * ========================================
  */
 
+import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
 /**
- * Obtener usuario actual desde cookies
+ * Obtener usuario actual desde cookies (helper interno)
  */
-async function getCurrentUser() {
+async function getCurrentUserInfo() {
     const userId = cookies().get('user_id')?.value;
     const userRole = cookies().get('user_role')?.value;
     const clientId = cookies().get('client_id')?.value;
@@ -27,7 +30,7 @@ async function getCurrentUser() {
  */
 export async function getAppUsersByClient(clientId: string) {
     try {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUserInfo();
 
         if (!currentUser) {
             return { success: false, error: 'No autenticado' };
@@ -70,7 +73,7 @@ export async function getAppUsersByClient(clientId: string) {
  */
 export async function linkJiraUserForClient(jiraUserId: string, appUserId: string, clientId: string) {
     try {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUserInfo();
 
         if (!currentUser) {
             return { success: false, error: 'No autenticado' };
@@ -133,7 +136,7 @@ export async function createAppUserForClient(
     }
 ) {
     try {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUserInfo();
 
         if (!currentUser) {
             return { success: false, error: 'No autenticado' };
@@ -210,7 +213,7 @@ export async function createAppUserFromJiraForClient(
     password: string
 ) {
     try {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUserInfo();
 
         if (!currentUser) {
             return { success: false, error: 'No autenticado' };
@@ -287,7 +290,7 @@ export async function createAppUserFromJiraForClient(
  */
 export async function deleteAppUserForClient(userId: string, clientId: string) {
     try {
-        const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUserInfo();
 
         if (!currentUser) {
             return { success: false, error: 'No autenticado' };
