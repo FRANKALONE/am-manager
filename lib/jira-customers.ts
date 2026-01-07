@@ -35,27 +35,54 @@ export async function getServiceDeskByProjectKey(projectKey: string): Promise<Ji
     }
 
     const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-    const url = `${jiraUrl}/rest/servicedeskapi/servicedesk`;
 
     try {
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Basic ${auth}`,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            cache: 'no-store'
-        });
+        let allServiceDesks: JiraServiceDesk[] = [];
+        let start = 0;
+        const limit = 50;
+        let isLast = false;
 
-        if (!response.ok) {
-            console.error(`Error fetching service desks: ${response.status}`);
-            return null;
+        // Paginar para obtener todos los Service Desks
+        while (!isLast) {
+            const url = `${jiraUrl}/rest/servicedeskapi/servicedesk?start=${start}&limit=${limit}`;
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                console.error(`Error fetching service desks: ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json();
+            const serviceDesks = data.values || [];
+            allServiceDesks = allServiceDesks.concat(serviceDesks);
+
+            isLast = data.isLast || serviceDesks.length < limit;
+            start += limit;
+
+            // Límite de seguridad para evitar loops infinitos
+            if (start > 1000) {
+                console.warn('Reached safety limit of 1000 service desks');
+                break;
+            }
         }
 
-        const data = await response.json();
-        const serviceDesks = data.values || [];
+        console.log(`Found ${allServiceDesks.length} service desks total`);
+        const found = allServiceDesks.find((sd: JiraServiceDesk) => sd.projectKey === projectKey);
 
-        return serviceDesks.find((sd: JiraServiceDesk) => sd.projectKey === projectKey) || null;
+        if (!found) {
+            console.log(`Service Desk with key ${projectKey} not found. Available keys:`,
+                allServiceDesks.map(sd => sd.projectKey).join(', '));
+        }
+
+        return found || null;
     } catch (error) {
         console.error('Error fetching service desk:', error);
         return null;
