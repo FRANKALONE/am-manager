@@ -123,7 +123,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     // Economic fields (now for ValidityPeriod)
     const totalQuantity = parseFloat(formData.get("totalQuantity") as string);
     const rate = parseFloat(formData.get("rate") as string);
-    const isPremium = formData.get("isPremium") === "on";
+    const isPremium = formData.get("isPremium") === "true"; // Match the select value
     const premiumPriceStr = formData.get("premiumPrice") as string;
     const premiumPrice = premiumPriceStr ? parseFloat(premiumPriceStr) : null;
 
@@ -133,6 +133,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const surplusStrategy = formData.get("surplusStrategy") as string;
     const rateEvolutivoStr = formData.get("rateEvolutivo") as string;
     const rateEvolutivo = rateEvolutivoStr ? parseFloat(rateEvolutivoStr) : null;
+    const regularizationRateStr = formData.get("regularizationRate") as string;
+    const regularizationRate = regularizationRateStr ? parseFloat(regularizationRateStr) : null;
 
     // Accumulation fields
     const accumulatedHoursStr = formData.get("accumulatedHours") as string;
@@ -148,6 +150,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
     const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
     const includeEvoTM = formData.get("includeEvoTM") === "on";
+    const hasIaasService = formData.get("hasIaasService") === "on";
     const isMainWP = formData.get("isMainWP") === "on";
 
     // Custom Attributes
@@ -209,6 +212,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                 includedTicketTypes: includedTicketTypes || null,
                 includeEvoEstimates,
                 includeEvoTM,
+                hasIaasService,
                 isMainWP,
 
                 validityPeriods: (initialStartDateStr && initialEndDateStr) ? {
@@ -223,6 +227,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                         // Management fields now in ValidityPeriod
                         scopeUnit,
                         regularizationType: regularizationType || null,
+                        regularizationRate,
                         surplusStrategy: surplusStrategy || null,
                         rateEvolutivo
                     }

@@ -138,10 +138,6 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                             <CardTitle>{t('workPackages.form.cardGeneralData')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">{t('workPackages.form.labels.name')}</Label>
-                                <Input name="name" defaultValue={wp?.name} required />
-                            </div>
                             <SelectField
                                 label={t('workPackages.form.labels.contractType')}
                                 name="contractType"
@@ -153,6 +149,76 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                             <div className="space-y-2">
                                 <Label htmlFor="jiraProjectKeys">{t('workPackages.form.labels.jiraKeys')}</Label>
                                 <Input name="jiraProjectKeys" defaultValue={wp?.jiraProjectKeys || ""} placeholder={t('workPackages.form.labels.jiraKeysPlaceholder')} />
+                            </div>
+
+                            {/* Consumo configuration */}
+                            <div className="space-y-4 pt-4 border-t mt-4">
+                                <h3 className="text-sm font-medium">Configuración de Consumo</h3>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="includedTicketTypes">Tipos de Ticket Consumibles</Label>
+                                    <Input
+                                        id="includedTicketTypes"
+                                        name="includedTicketTypes"
+                                        defaultValue={wp?.includedTicketTypes || ""}
+                                        placeholder="Ej: Incidencia, Consulta, Soporte AM"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Separar por comas. Vacío = global.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="hasIaasService"
+                                            name="hasIaasService"
+                                            defaultChecked={wp?.hasIaasService || false}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                        <Label htmlFor="hasIaasService" className="font-normal cursor-pointer text-xs">
+                                            Incluir IAAS
+                                        </Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="includeEvoEstimates"
+                                            name="includeEvoEstimates"
+                                            defaultChecked={wp?.includeEvoEstimates ?? true}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                        <Label htmlFor="includeEvoEstimates" className="font-normal cursor-pointer text-xs">
+                                            Evolutivos Bolsa (Estimados)
+                                        </Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="includeEvoTM"
+                                            name="includeEvoTM"
+                                            defaultChecked={wp?.includeEvoTM ?? true}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                        <Label htmlFor="includeEvoTM" className="font-normal cursor-pointer text-xs">
+                                            Evolutivos T&M (Horas)
+                                        </Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isMainWP"
+                                            name="isMainWP"
+                                            defaultChecked={wp?.isMainWP || false}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                        <Label htmlFor="isMainWP" className="font-bold cursor-pointer text-xs text-green-600 uppercase">
+                                            WP PRINCIPAL
+                                        </Label>
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -272,9 +338,15 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                                                 <Input type="number" step="0.01" name="rate" defaultValue="50" required />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="premiumPrice">{t('workPackages.form.labels.premiumPrice')} (€)</Label>
-                                            <Input type="number" step="0.01" name="premiumPrice" placeholder={t('workPackages.form.labels.none')} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="rateEvolutivo">{t('workPackages.form.labels.rateEvolutivo')} (€)</Label>
+                                                <Input type="number" step="0.01" name="rateEvolutivo" placeholder="Opcional" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="premiumPrice">{t('workPackages.form.labels.premiumPrice')} (€)</Label>
+                                                <Input type="number" step="0.01" name="premiumPrice" placeholder={t('workPackages.form.labels.none')} />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -283,11 +355,24 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                                         <h4 className="font-semibold text-sm">{t('workPackages.form.labels.initialPeriodMgmt')}</h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <SelectField label={t('workPackages.form.labels.scopeUnit')} name="scopeUnit" options={scopeUnits} defaultValue="HORAS" required t={t} />
-                                            <SelectField label={t('workPackages.form.labels.regType')} name="regularizationType" options={regularizationTypes} t={t} />
+                                            <div className="space-y-2">
+                                                <Label htmlFor="regularizationRate">{t('workPackages.form.labels.regRate')} (€)</Label>
+                                                <Input type="number" step="0.01" name="regularizationRate" placeholder="Misma que tarifa" />
+                                            </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <SelectField label={t('workPackages.form.labels.billingType')} name="billingType" options={billingTypes} required t={t} />
+                                            <SelectField label={t('workPackages.form.labels.regularizationType')} name="regularizationType" options={regularizationTypes} defaultValue="NONE" t={t} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
                                             <SelectField label={t('workPackages.form.labels.renewalType')} name="renewalType" options={renewalTypes} required t={t} />
+                                            <div className="space-y-2">
+                                                <Label htmlFor="isPremium">Premium</Label>
+                                                <select name="isPremium" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                                    <option value="false">No</option>
+                                                    <option value="true">Sí</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="surplusStrategy">{t('workPackages.form.labels.surplusStrategy')}</Label>
