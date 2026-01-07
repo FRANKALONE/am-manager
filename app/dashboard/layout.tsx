@@ -2,10 +2,6 @@ import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import { cn } from "@/utils";
 
-import { SharedHeader } from "@/app/components/shared-header";
-import { Footer } from "@/app/components/footer";
-import { getTranslations } from "@/lib/get-translations";
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -18,16 +14,9 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { t } = await getTranslations();
-
     return (
         <div className={cn("min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col", inter.className)}>
-            <SharedHeader title={t('dashboard.title')} />
-
-            <main className="container mx-auto py-8 px-4 md:px-6 flex-1">
-                {children}
-            </main>
-            <Footer />
+            {children}
         </div>
     );
 }

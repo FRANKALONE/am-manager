@@ -9,6 +9,9 @@ export const metadata = {
     title: 'Gestión de Usuarios - Portal Cliente',
 };
 
+import { SharedHeader } from '@/app/components/shared-header';
+import { Footer } from '@/app/components/footer';
+
 export default async function ClientUsersPage() {
     // Obtener información del usuario actual
     const userRole = cookies().get('user_role')?.value;
@@ -29,14 +32,18 @@ export default async function ClientUsersPage() {
 
     if (!clientId) {
         return (
-            <div className="p-6">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-yellow-800">No se pudo identificar el cliente</p>
-                    <p className="text-sm text-yellow-600 mt-2">
-                        Tu usuario no tiene un cliente asignado. Contacta con el administrador.
-                    </p>
-                </div>
-            </div>
+            <>
+                <SharedHeader title="Gestión de Usuarios" />
+                <main className="container mx-auto py-8 px-4 md:px-6 flex-1">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p className="text-yellow-800">No se pudo identificar el cliente</p>
+                        <p className="text-sm text-yellow-600 mt-2">
+                            Tu usuario no tiene un cliente asignado. Contacta con el administrador.
+                        </p>
+                    </div>
+                </main>
+                <Footer />
+            </>
         );
     }
 
@@ -50,14 +57,18 @@ export default async function ClientUsersPage() {
 
     if (!appUsersResult.success || !jiraUsersResult.success) {
         return (
-            <div className="p-6">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-800">Error al cargar usuarios</p>
-                    <p className="text-sm text-red-600 mt-2">
-                        {appUsersResult.error || jiraUsersResult.error || 'Error desconocido'}
-                    </p>
-                </div>
-            </div>
+            <>
+                <SharedHeader title="Gestión de Usuarios" />
+                <main className="container mx-auto py-8 px-4 md:px-6 flex-1">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-800">Error al cargar usuarios</p>
+                        <p className="text-sm text-red-600 mt-2">
+                            {appUsersResult.error || jiraUsersResult.error || 'Error desconocido'}
+                        </p>
+                    </div>
+                </main>
+                <Footer />
+            </>
         );
     }
 
@@ -65,13 +76,17 @@ export default async function ClientUsersPage() {
     const jiraUsers = jiraUsersResult.users || [];
 
     return (
-        <div className="p-6">
-            <UsersPortal
-                appUsers={appUsers}
-                jiraUsers={jiraUsers}
-                clientId={clientId}
-                isClientRole={isClientRole}
-            />
-        </div>
+        <>
+            <SharedHeader title="Gestión de Usuarios" />
+            <main className="container mx-auto py-8 px-4 md:px-6 flex-1">
+                <UsersPortal
+                    appUsers={appUsers}
+                    jiraUsers={jiraUsers}
+                    clientId={clientId}
+                    isClientRole={isClientRole}
+                />
+            </main>
+            <Footer />
+        </>
     );
 }

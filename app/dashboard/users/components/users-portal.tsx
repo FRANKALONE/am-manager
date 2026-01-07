@@ -19,6 +19,7 @@ interface UsersPortalProps {
 }
 
 export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: UsersPortalProps) {
+    const [activeTab, setActiveTab] = useState<'app' | 'jira'>('app');
     const [createFromJiraOpen, setCreateFromJiraOpen] = useState(false);
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [newUserOpen, setNewUserOpen] = useState(false);
@@ -49,8 +50,6 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
         setLinkDialogOpen(true);
     };
 
-    console.log('UsersPortal - appUsers:', appUsers.length, 'jiraUsers:', jiraUsers.length);
-
     return (
         <>
             <div className="space-y-6">
@@ -71,17 +70,25 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
                     )}
                 </div>
 
-                <Tabs defaultValue="app" className="space-y-4">
+                <Tabs className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="app">
+                        <TabsTrigger
+                            value="app"
+                            active={activeTab === 'app'}
+                            onClick={() => setActiveTab('app')}
+                        >
                             Usuarios de la Aplicación ({appUsers.length})
                         </TabsTrigger>
-                        <TabsTrigger value="jira">
+                        <TabsTrigger
+                            value="jira"
+                            active={activeTab === 'jira'}
+                            onClick={() => setActiveTab('jira')}
+                        >
                             Usuarios de JIRA ({jiraUsers.length})
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="app" className="space-y-4">
+                    <TabsContent value="app" active={activeTab === 'app'} className="space-y-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Usuarios de la Aplicación</CardTitle>
@@ -100,7 +107,7 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
                         </Card>
                     </TabsContent>
 
-                    <TabsContent value="jira" className="space-y-4">
+                    <TabsContent value="jira" active={activeTab === 'jira'} className="space-y-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Usuarios de JIRA</CardTitle>
