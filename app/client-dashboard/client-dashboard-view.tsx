@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { BookOpen, BarChart3, Calendar, ArrowRight } from "lucide-react";
+import { BookOpen, BarChart3, Calendar, ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 
@@ -92,8 +92,8 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="shadow-xl md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Card className="shadow-xl">
                         <CardHeader className="bg-white border-b">
                             <CardTitle className="text-dark-green">Reporte de Consumos</CardTitle>
                             <CardDescription>
@@ -191,25 +191,47 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-xl bg-gradient-to-br from-orange-50 to-amber-50 md:col-span-1 border-orange-200">
-                        <CardHeader className="bg-white/50 border-b border-orange-100">
-                            <CardTitle className="text-orange-900 flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-orange-600" />
-                                Gestión de Evolutivos
-                            </CardTitle>
-                            <CardDescription className="text-orange-700/70">
-                                Planificación, hitos y responsables de tus proyectos evolutivos.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Link href="/dashboard/evolutivos">
-                                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2 group shadow-md shadow-orange-200">
-                                    Ir al Centro de Trabajo
-                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
+                    <div className="space-y-8">
+                        <Card className="shadow-xl bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+                            <CardHeader className="bg-white/50 border-b border-orange-100">
+                                <CardTitle className="text-orange-900 flex items-center gap-2">
+                                    <Calendar className="w-5 h-5 text-orange-600" />
+                                    Gestión de Evolutivos
+                                </CardTitle>
+                                <CardDescription className="text-orange-700/70">
+                                    Planificación, hitos y responsables de tus proyectos evolutivos.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <Link href="/dashboard/evolutivos">
+                                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2 group shadow-md shadow-orange-200">
+                                        Ir al Centro de Trabajo
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-xl bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+                            <CardHeader className="bg-white/50 border-b border-blue-100">
+                                <CardTitle className="text-blue-900 flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-blue-600" />
+                                    Gestión de Usuarios
+                                </CardTitle>
+                                <CardDescription className="text-blue-700/70">
+                                    Gestiona los usuarios de tu organización y JIRA.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <Link href="/dashboard/users">
+                                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 group shadow-md shadow-blue-200">
+                                        Gestionar Usuarios
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         </div>
