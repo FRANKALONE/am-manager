@@ -1,5 +1,6 @@
 import { getAppUsersByClient } from '@/app/actions/client-users';
 import { getJiraCustomerUsersByClient } from '@/app/actions/jira-customers';
+import { getMe } from '@/app/actions/users';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UsersPortal } from './components/users-portal';
@@ -11,11 +12,19 @@ export const metadata = {
 export default async function ClientUsersPage() {
     // Obtener información del usuario actual
     const userRole = cookies().get('user_role')?.value;
-    const clientId = cookies().get('client_id')?.value;
+    let clientId = cookies().get('client_id')?.value;
 
     // Solo CLIENTE y MANAGER pueden acceder
     if (!userRole || !['CLIENTE', 'MANAGER'].includes(userRole)) {
         redirect('/dashboard');
+    }
+
+    // Fallback: si no hay cookie client_id, obtener del usuario en BD
+    if (!clientId) {
+        const user = await getMe();
+        if (user?.clientId) {
+            clientId = user.clientId;
+        }
     }
 
     if (!clientId) {
@@ -23,6 +32,9 @@ export default async function ClientUsersPage() {
             <div className="p-6">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p className="text-yellow-800">No se pudo identificar el cliente</p>
+                    <p className="text-sm text-yellow-600 mt-2">
+                        Tu usuario no tiene un cliente asignado. Contacta con el administrador.
+                    </p>
                 </div>
             </div>
         );
@@ -41,6 +53,9 @@ export default async function ClientUsersPage() {
             <div className="p-6">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <p className="text-red-800">Error al cargar usuarios</p>
+                    <p className="text-sm text-red-600 mt-2">
+                        {appUsersResult.error || jiraUsersResult.error || 'Error desconocido'}
+                    </p>
                 </div>
             </div>
         );
