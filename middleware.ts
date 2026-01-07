@@ -10,7 +10,13 @@ export function middleware(request: NextRequest) {
     if (pathname === '/login' || pathname === '/') {
         if (userId) {
             // If already logged in, redirect to appropriate home
-            return NextResponse.redirect(new URL(userRole === 'ADMIN' ? '/admin-home' : '/client-dashboard', request.url));
+            if (userRole === 'ADMIN') {
+                return NextResponse.redirect(new URL('/admin-home', request.url));
+            } else if (userRole === 'GERENTE') {
+                return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+            } else {
+                return NextResponse.redirect(new URL('/client-dashboard', request.url));
+            }
         }
         return NextResponse.next();
     }
@@ -24,8 +30,20 @@ export function middleware(request: NextRequest) {
     // Role-based access control
     // Admin only sections
     if (pathname.startsWith('/admin') || pathname.startsWith('/cierres')) {
-        if (userRole !== 'ADMIN') {
-            // If not admin, redirect to client dashboard
+        if (userRole === 'ADMIN') {
+            // Admin has full access
+        } else if (userRole === 'GERENTE') {
+            // GERENTE only receives notifications, cannot access admin management sections
+            return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+        } else {
+            // Regular users cannot access admin sections
+            return NextResponse.redirect(new URL('/client-dashboard', request.url));
+        }
+    }
+
+    // Manager dashboard - only GERENTE and ADMIN
+    if (pathname.startsWith('/manager-dashboard')) {
+        if (userRole !== 'GERENTE' && userRole !== 'ADMIN') {
             return NextResponse.redirect(new URL('/client-dashboard', request.url));
         }
     }

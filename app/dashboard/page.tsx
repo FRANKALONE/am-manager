@@ -10,9 +10,13 @@ import { getTranslations } from "@/lib/get-translations";
 export default async function DashboardPage() {
     const user = await getMe();
     const isManager = user?.role === 'GERENTE';
+    const isAdmin = user?.role === 'ADMIN';
     const clients = await getDashboardClients(isManager ? user?.id : undefined);
     const perms = await getPermissionsByRoleName(user?.role || "");
     const { t } = await getTranslations();
+
+    // Determine home URL based on role
+    const homeUrl = isAdmin ? '/admin-home' : (isManager ? '/manager-dashboard' : '/client-dashboard');
 
     return (
         <div className="space-y-6">
@@ -23,7 +27,7 @@ export default async function DashboardPage() {
                         {t('dashboard.subtitle')}
                     </p>
                 </div>
-                <Link href="/admin-home">
+                <Link href={homeUrl}>
                     <Button variant="outline" size="sm">
                         <Home className="w-4 h-4 mr-2" />
                         {t('dashboard.backHome')}
@@ -31,7 +35,7 @@ export default async function DashboardPage() {
                 </Link>
             </div>
 
-            <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} isAdmin={user?.role === 'ADMIN'} />
+            <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} isAdmin={isAdmin} />
         </div>
     );
 }
