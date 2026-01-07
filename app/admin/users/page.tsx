@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { getTranslations } from "@/lib/get-translations";
 import { formatDate } from "@/lib/date-utils";
+import { ResetPasswordDialog } from "./components/reset-password-dialog";
 
 export default async function UsersPage() {
     const users = await getUsers();
@@ -63,6 +64,7 @@ export default async function UsersPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
+                                        <ResetPasswordDialog userId={user.id} userName={`${user.name} ${user.surname || ''}`} />
                                         <Link href={`/admin/users/${user.id}/edit`}>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                                 <Pencil className="w-4 h-4" />

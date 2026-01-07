@@ -104,6 +104,7 @@ model User {
   lastLoginAt      DateTime?
   resetToken       String?         @unique
   resetTokenExpiry DateTime?
+  mustChangePassword Boolean       @default(false)
   notifications    Notification[]
   reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
   requestedReviews ReviewRequest[] @relation("RequestedReviews")

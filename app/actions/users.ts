@@ -161,7 +161,10 @@ export async function resetUserPassword(id: string, newPassword: string) {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
             where: { id },
-            data: { password: hashedPassword }
+            data: {
+                password: hashedPassword,
+                mustChangePassword: true
+            }
         });
         revalidatePath("/admin/users");
         return { success: true };
@@ -251,6 +254,11 @@ export async function authenticate(prevState: any, formData: FormData) {
             data: { lastLoginAt: new Date() }
         });
 
+        // Check if user must change password
+        if (user.mustChangePassword) {
+            return { redirect: "/change-password" };
+        }
+
         // Determine redirect target
         if (user.role === "ADMIN") {
             return { redirect: "/admin-home" };
@@ -264,6 +272,44 @@ export async function authenticate(prevState: any, formData: FormData) {
         console.error(error);
         const { t } = await getTranslations();
         return { error: t('errors.generic') };
+    }
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+    const userId = cookies().get("user_id")?.value;
+    if (!userId) {
+        return { success: false, error: "No autenticado" };
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return { success: false, error: "Usuario no encontrado" };
+        }
+
+        // Verify current password
+        const isPasswordCorrect = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordCorrect) {
+            return { success: false, error: "Contraseña actual incorrecta" };
+        }
+
+        // Update password and clear mustChangePassword flag
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+                mustChangePassword: false
+            }
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Error al cambiar la contraseña" };
     }
 }
 

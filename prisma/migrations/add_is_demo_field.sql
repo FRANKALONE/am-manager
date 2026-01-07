@@ -1,0 +1,2 @@
+-- AddIsDemo
+ALTER TABLE "Client" ADD COLUMN "isDemo" BOOLEAN NOT NULL DEFAULT false;
