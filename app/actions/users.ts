@@ -233,6 +233,16 @@ export async function authenticate(prevState: any, formData: FormData) {
             path: "/",
         });
 
+        // Set client_id cookie if user has a client
+        if (user.clientId) {
+            cookies().set("client_id", user.clientId, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                maxAge: 60 * 60 * 24, // 1 day
+                path: "/",
+            });
+        }
+
         // Sync preferences to cookies if set in DB
         if (user.locale) {
             cookies().set("NEXT_LOCALE", user.locale, {
@@ -318,6 +328,7 @@ export async function logout() {
     const cookieStore = cookies();
     cookieStore.set("user_id", "", { path: "/", expires: new Date(0) });
     cookieStore.set("user_role", "", { path: "/", expires: new Date(0) });
+    cookieStore.set("client_id", "", { path: "/", expires: new Date(0) });
     console.log("[AUTH] Cookies cleared, redirecting to login");
     redirect("/login");
 }
