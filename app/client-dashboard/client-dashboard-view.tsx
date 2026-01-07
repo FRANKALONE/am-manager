@@ -81,42 +81,56 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                        Dashboard AM Clientes
-                    </h1>
-                    <p className="text-gray-600">
-                        Bienvenido, {user.name} {user.surname}
-                    </p>
+        <div className="bg-gradient-to-br from-slate-50 to-blue-100 min-h-screen p-8">
+            <div className="max-w-5xl mx-auto">
+                <div className="mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                            Dashboard AM Clientes
+                        </h1>
+                        <p className="text-slate-600">
+                            Bienvenido, {user.name} {user.surname}
+                        </p>
+                    </div>
+                    <div className="bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Portal Cliente</span>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Card className="shadow-xl">
-                        <CardHeader className="bg-white border-b">
-                            <CardTitle className="text-dark-green">Reporte de Consumos</CardTitle>
-                            <CardDescription>
-                                Selecciona un Work Package para ver su dashboard de consumos en tiempo real
-                            </CardDescription>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <Card className="shadow-2xl md:col-span-2 border-none overflow-hidden bg-white/80 backdrop-blur-md">
+                        <CardHeader className="bg-gradient-to-r from-dark-green to-jade text-white p-6">
+                            <div className="flex items-center gap-3">
+                                <BarChart3 className="w-6 h-6" />
+                                <div>
+                                    <CardTitle className="text-xl">Reporte de Consumos</CardTitle>
+                                    <CardDescription className="text-white/80">
+                                        Visualiza los consumos de tus Work Packages en tiempo real
+                                    </CardDescription>
+                                </div>
+                            </div>
                         </CardHeader>
-                        <CardContent className="space-y-6 pt-6">
+                        <CardContent className="space-y-6 pt-8 p-6">
                             {availableWPs.length === 0 ? (
-                                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
-                                    <p className="text-gray-500 mb-2 font-medium">No tienes Work Packages asignados actualmente.</p>
-                                    <p className="text-sm text-gray-400">Contacta con tu gestor AM para solicitar acceso.</p>
+                                <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
+                                    <p className="text-slate-500 mb-2 font-medium">No tienes Work Packages asignados actualmente.</p>
+                                    <p className="text-sm text-slate-400">Contacta con tu gestor AM para solicitar acceso.</p>
                                 </div>
                             ) : (
                                 <>
                                     <div className="space-y-3">
-                                        <Label htmlFor="wpSelect" className="text-base">Work Package de tu Cliente</Label>
+                                        <Label htmlFor="wpSelect" className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                            <BookOpen className="w-4 h-4 text-malachite" />
+                                            1. Selecciona Work Package (Contrato)
+                                        </Label>
                                         <select
                                             id="wpSelect"
                                             value={selectedWpId}
                                             onChange={(e) => setSelectedWpId(e.target.value)}
-                                            className="flex h-12 w-full rounded-md border border-input bg-background px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow cursor-pointer"
+                                            className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malachite transition-all cursor-pointer hover:border-malachite/50"
                                         >
-                                            <option value="">-- Seleccionar Work Package (Contrato) --</option>
+                                            <option value="">-- Seleccionar Work Package --</option>
                                             {availableWPs.map(wp => (
                                                 <option key={wp.id} value={wp.id}>
                                                     {wp.name}
@@ -133,43 +147,34 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                         );
 
                                         return (
-                                            <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-2">
-                                                <h3 className="font-bold text-blue-900 mb-3 border-b border-blue-200 pb-2">Información del WP:</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <p className="text-xs text-blue-600 uppercase font-bold">Nombre</p>
-                                                        <p className="text-sm text-gray-800 font-medium">{selectedWP.name}</p>
+                                            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                                    <span className="w-1.5 h-4 bg-malachite rounded-full" />
+                                                    Información del Contrato
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Modalidad</p>
+                                                        <p className="text-sm text-slate-700 font-semibold">{selectedWP.contractType}</p>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-xs text-blue-600 uppercase font-bold">WP ID</p>
-                                                        <p className="text-sm text-gray-800 font-medium">{selectedWP.id}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-blue-600 uppercase font-bold">Modalidad</p>
-                                                        <p className="text-sm text-gray-800 font-medium">{selectedWP.contractType}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-blue-600 uppercase font-bold">Facturación</p>
-                                                        <p className="text-sm text-gray-800 font-medium">{selectedWP.billingType}</p>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Facturación</p>
+                                                        <p className="text-sm text-slate-700 font-semibold">{selectedWP.billingType}</p>
                                                     </div>
                                                     {currentPeriod?.regularizationType && (
-                                                        <div>
-                                                            <p className="text-xs text-blue-600 uppercase font-bold">Tipo de Regularización</p>
-                                                            <p className="text-sm text-gray-800 font-medium">{currentPeriod.regularizationType}</p>
-                                                        </div>
-                                                    )}
-                                                    {currentPeriod?.isPremium && (
-                                                        <div>
-                                                            <p className="text-xs text-blue-600 uppercase font-bold">Premium</p>
-                                                            <p className="text-sm text-gray-800 font-medium">Sí</p>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Regularización</p>
+                                                            <p className="text-sm text-slate-700 font-semibold">{currentPeriod.regularizationType}</p>
                                                         </div>
                                                     )}
                                                     {currentPeriod && (
-                                                        <div className="col-span-2">
-                                                            <p className="text-xs text-blue-600 uppercase font-bold">Vigencia del Contrato Actual</p>
-                                                            <p className="text-sm text-gray-800 font-medium">
-                                                                {formatDate(currentPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })} - {formatDate(currentPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                            </p>
+                                                        <div className="col-span-full pt-4 border-t border-slate-200/50">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Periodo de Vigencia Actual</p>
+                                                            <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-slate-200 text-sm font-medium text-slate-600">
+                                                                {formatDate(currentPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                                <ArrowRight className="w-3 h-3 text-slate-300" />
+                                                                {formatDate(currentPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -177,13 +182,13 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                         );
                                     })()}
 
-                                    <div className="flex justify-end pt-4 border-t">
+                                    <div className="flex justify-end pt-6 border-t border-slate-100">
                                         <Button
                                             onClick={handleViewDashboard}
                                             disabled={!selectedWpId}
-                                            className="bg-malachite hover:bg-jade px-8 h-11 text-base font-bold shadow-lg transition-all active:scale-95"
+                                            className="bg-malachite hover:bg-jade px-10 h-12 text-base font-bold shadow-xl shadow-malachite/20 transition-all active:scale-95 disabled:grayscale"
                                         >
-                                            Acceder al Reporte de consumos de {selectedWP?.name || "WP"}
+                                            Abrir Reporte de {selectedWP?.name || "Consumos"}
                                         </Button>
                                     </div>
                                 </>
@@ -191,42 +196,48 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-8">
-                        <Card className="shadow-xl bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
-                            <CardHeader className="bg-white/50 border-b border-orange-100">
-                                <CardTitle className="text-orange-900 flex items-center gap-2">
-                                    <Calendar className="w-5 h-5 text-orange-600" />
-                                    Gestión de Evolutivos
+                    <div className="space-y-8 flex flex-col">
+                        <Card className="shadow-2xl bg-gradient-to-br from-amber-500 to-orange-600 border-none text-white overflow-hidden relative group flex-1">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                <Calendar className="w-24 h-24" />
+                            </div>
+                            <CardHeader className="relative p-6">
+                                <CardTitle className="text-2xl flex items-center gap-2 mb-2">
+                                    <Calendar className="w-6 h-6" />
+                                    Evolutivos
                                 </CardTitle>
-                                <CardDescription className="text-orange-700/70">
-                                    Planificación, hitos y responsables de tus proyectos evolutivos.
+                                <CardDescription className="text-orange-100 text-sm leading-relaxed">
+                                    Seguimiento de hitos y planificación de tus proyectos evolutivos.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-6">
+                            <CardContent className="relative pt-2 p-6">
                                 <Link href="/dashboard/evolutivos">
-                                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2 group shadow-md shadow-orange-200">
-                                        Ir al Centro de Trabajo
-                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
+                                        Ir al Centro
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
                                 </Link>
                             </CardContent>
                         </Card>
 
-                        <Card className="shadow-xl bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
-                            <CardHeader className="bg-white/50 border-b border-blue-100">
-                                <CardTitle className="text-blue-900 flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-blue-600" />
-                                    Gestión de Usuarios
+                        <Card className="shadow-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border-none text-white overflow-hidden relative group flex-1">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                <Users className="w-24 h-24" />
+                            </div>
+                            <CardHeader className="relative p-6">
+                                <CardTitle className="text-2xl flex items-center gap-2 mb-2">
+                                    <Users className="w-6 h-6" />
+                                    Usuarios
                                 </CardTitle>
-                                <CardDescription className="text-blue-700/70">
-                                    Gestiona los usuarios de tu organización y JIRA.
+                                <CardDescription className="text-blue-100 text-sm leading-relaxed">
+                                    Gestión de usuarios de tu organización y vinculación con JIRA.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-6">
+                            <CardContent className="relative pt-2 p-6">
                                 <Link href="/dashboard/users">
-                                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 group shadow-md shadow-blue-200">
-                                        Gestionar Usuarios
-                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    <Button className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-blue-900/20">
+                                        Configurar
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
                                 </Link>
                             </CardContent>
