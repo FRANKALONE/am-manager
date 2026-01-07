@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { getEvolutivosByClient, syncClientEvolutivos } from "@/app/actions/evolutivos";
 import { EvolutivoTimeline } from "./components/evolutivo-timeline";
+import { ProposalsPanel } from "@/app/evolutivos/components/proposals-panel";
 import { Briefcase, Calendar, User, Search, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -159,12 +160,18 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
                     </CardContent>
                 </Card>
             ) : (
-                <EvolutivoTimeline
-                    evolutivo={selectedEvolutivo}
-                    hitos={data.hitos.filter((h: any) => h.parentKey === selectedEvolutivo.issueKey)}
-                    isAdmin={isAdmin}
-                    portalUrl={currentClient?.portalUrl || (user.clientId === currentClient?.id ? currentClient?.portalUrl : null)}
-                />
+                <div className="space-y-8">
+                    <EvolutivoTimeline
+                        evolutivo={selectedEvolutivo}
+                        hitos={data.hitos.filter((h: any) => h.parentKey === selectedEvolutivo.issueKey)}
+                        isAdmin={isAdmin}
+                        portalUrl={currentClient?.portalUrl || (user.clientId === currentClient?.id ? currentClient?.portalUrl : null)}
+                    />
+                </div>
+            )}
+
+            {data.proposals && data.proposals.length > 0 && (
+                <ProposalsPanel proposals={data.proposals} />
             )}
         </div>
     );
