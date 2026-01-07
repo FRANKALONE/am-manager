@@ -125,8 +125,8 @@ export default async function AdminHomePage() {
                 </div>
 
                 {/* Bottom Footer Info */}
-                <div className="mt-24 text-center text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] opacity-50">
-                    Altamira Asset Management • 2026 • Professional Environment
+                <div className="mt-24 text-center text-slate-400 font-medium text-sm opacity-70">
+                    © {new Date().getFullYear()} Altim Tecnologías de la Información. {t('common.allRightsReserved')}.
                 </div>
             </div>
         </div>
