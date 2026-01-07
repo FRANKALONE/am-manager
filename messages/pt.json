@@ -260,6 +260,33 @@
             "viewAll": "Ver todas",
             "empty": "Nenhuma reclamação pendente",
             "from": "De: {name}"
+        },
+        "dashboard": {
+            "title": "Panel de Control",
+            "subtitle": "Bienvenido al Centro de Administración, {name}",
+            "adminMode": "Modo Administrador Principal",
+            "clients": "Clientes Totales",
+            "clientsDesc": "Empresas registradas",
+            "workPackages": "Work Packages",
+            "workPackagesDesc": "Servicios activos",
+            "evolutivos": "Evolutivos",
+            "evolutivosDesc": "Tickets de desarrollo",
+            "users": "Usuarios App",
+            "usersDesc": "Total de cuentas",
+            "syncTitle": "Sincronización de Datos",
+            "syncSubtitle": "Mantén el sistema actualizado con los últimos datos de JIRA y Tempo.",
+            "pendingProposals": "Peticiones Pendientes",
+            "jiraStatus": "Estado JIRA",
+            "connected": "Conectado",
+            "goToImports": "Ir a Importaciones",
+            "jiraUsers": "Usuarios JIRA",
+            "securityTitle": "Sistema y Seguridad",
+            "maintenance": "Mantenimiento",
+            "maintenanceDesc": "Limpieza de logs y optimización",
+            "parametrization": "Parametrización",
+            "parametrizationDesc": "Variables globales y factores",
+            "reviewRequests": "Solicitantes de Revisión",
+            "reviewRequestsDesc": "Aprobación de devoluciones"
         }
     },
     "help": {

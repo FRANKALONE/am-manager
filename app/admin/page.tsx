@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Users, Briefcase, BarChart3, RefreshCw, ShieldCheck, UserCheck, ArrowRight, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { getMe } from "@/app/actions/users";
+import { getTranslations } from "@/lib/get-translations";
 
 export default async function AdminDashboardPage() {
+    const { t } = await getTranslations();
     const user = await getMe();
     const clients = await getClients();
     const wps = await getWorkPackages();
@@ -19,36 +21,36 @@ export default async function AdminDashboardPage() {
 
     const stats = [
         {
-            title: "Clientes Totales",
+            title: t('admin.dashboard.clients'),
             value: clients.length,
-            description: "Empresas registradas",
+            description: t('admin.dashboard.clientsDesc'),
             icon: Users,
             color: "text-blue-600",
             bg: "bg-blue-50",
             link: "/admin/clients"
         },
         {
-            title: "Work Packages",
+            title: t('admin.dashboard.workPackages'),
             value: wps.length,
-            description: "Servicios activos",
+            description: t('admin.dashboard.workPackagesDesc'),
             icon: Briefcase,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             link: "/admin/work-packages"
         },
         {
-            title: "Evolutivos",
+            title: t('admin.dashboard.evolutivos'),
             value: evolutivosCount,
-            description: "Tickets de desarrollo",
+            description: t('admin.dashboard.evolutivosDesc'),
             icon: BarChart3,
             color: "text-amber-600",
             bg: "bg-amber-50",
             link: "/evolutivos"
         },
         {
-            title: "Usuarios App",
+            title: t('admin.dashboard.users'),
             value: usersCount,
-            description: "Total de cuentas",
+            description: t('admin.dashboard.usersDesc'),
             icon: UserCheck,
             color: "text-indigo-600",
             bg: "bg-indigo-50",
@@ -63,15 +65,15 @@ export default async function AdminDashboardPage() {
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 flex items-center gap-3">
                         <LayoutDashboard className="w-10 h-10 text-dark-green" />
-                        Panel de Control
+                        {t('admin.dashboard.title')}
                     </h1>
                     <p className="text-slate-500 text-lg font-medium">
-                        Bienvenido al Centro de Administración, <span className="text-slate-900">{user?.name}</span>
+                        {t('admin.dashboard.subtitle', { name: user?.name || '' })}
                     </p>
                 </div>
                 <div className="bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 flex items-center gap-2 shadow-sm">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Modo Administrador Principal</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.dashboard.adminMode')}</span>
                 </div>
             </div>
 
@@ -108,24 +110,24 @@ export default async function AdminDashboardPage() {
                     <CardHeader className="relative">
                         <CardTitle className="text-2xl font-bold flex items-center gap-3">
                             <RefreshCw className="w-6 h-6" />
-                            Sincronización de Datos
+                            {t('admin.dashboard.syncTitle')}
                         </CardTitle>
                         <CardDescription className="text-jade-foreground/80 text-white/70">
-                            Mantén el sistema actualizado con los últimos datos de JIRA y Tempo.
+                            {t('admin.dashboard.syncSubtitle')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="relative space-y-6">
                         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-white/50">Peticiones Pendientes</p>
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-white/50">{t('admin.dashboard.pendingProposals')}</p>
                                     <p className="text-2xl font-bold">{proposalsCount}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-white/50">Estado JIRA</p>
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-white/50">{t('admin.dashboard.jiraStatus')}</p>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-malachite animate-pulse" />
-                                        <p className="text-sm font-bold">Conectado</p>
+                                        <p className="text-sm font-bold">{t('admin.dashboard.connected')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -133,13 +135,13 @@ export default async function AdminDashboardPage() {
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link href="/admin/import" className="flex-1">
                                 <Button className="w-full bg-white text-dark-green hover:bg-slate-100 font-bold h-12 gap-2 shadow-lg">
-                                    Ir a Importaciones
+                                    {t('admin.dashboard.goToImports')}
                                     <ArrowRight className="w-4 h-4" />
                                 </Button>
                             </Link>
                             <Link href="/admin/jira-customers" className="flex-1">
                                 <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 font-bold h-12">
-                                    Usuarios JIRA
+                                    {t('admin.dashboard.jiraUsers')}
                                 </Button>
                             </Link>
                         </div>
@@ -154,30 +156,30 @@ export default async function AdminDashboardPage() {
                     <CardHeader className="relative">
                         <CardTitle className="text-xl font-bold flex items-center gap-2">
                             <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                            Sistema y Seguridad
+                            {t('admin.dashboard.securityTitle')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="relative space-y-4">
                         <Link href="/admin/maintenance" className="block p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Mantenimiento</span>
+                                <span className="font-bold text-sm">{t('admin.dashboard.maintenance')}</span>
                                 <ArrowRight className="w-4 h-4 text-slate-500" />
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1">Limpieza de logs y optimización</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{t('admin.dashboard.maintenanceDesc')}</p>
                         </Link>
                         <Link href="/admin/settings" className="block p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Parametrización</span>
+                                <span className="font-bold text-sm">{t('admin.dashboard.parametrization')}</span>
                                 <ArrowRight className="w-4 h-4 text-slate-500" />
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1">Variables globales y factores</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{t('admin.dashboard.parametrizationDesc')}</p>
                         </Link>
                         <Link href="/admin/review-requests" className="block p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Solicitantes de Revisión</span>
+                                <span className="font-bold text-sm">{t('admin.dashboard.reviewRequests')}</span>
                                 <ArrowRight className="w-4 h-4 text-slate-500" />
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1">Aprobación de devoluciones</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{t('admin.dashboard.reviewRequestsDesc')}</p>
                         </Link>
                     </CardContent>
                 </Card>
