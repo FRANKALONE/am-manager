@@ -195,9 +195,29 @@ export function ProposalsPanel({ proposals }: Props) {
                                                 {formatShortDate(p.createdDate)}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">
-                                                    {p.status}
-                                                </Badge>
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge variant="outline" className={cn(
+                                                        "w-fit truncate",
+                                                        p.status.toUpperCase() === 'CERRADO' || p.status.toUpperCase() === 'FINALIZADO' || p.status.toUpperCase() === 'DONE'
+                                                            ? "border-slate-300 text-slate-600 bg-slate-100"
+                                                            : "border-amber-200 text-amber-700 bg-amber-50"
+                                                    )}>
+                                                        {p.status}
+                                                    </Badge>
+                                                    {(p.status.toUpperCase() === 'CERRADO' || p.status.toUpperCase() === 'FINALIZADO' || p.status.toUpperCase() === 'DONE') && p.resolution && (
+                                                        <span className={cn(
+                                                            "text-[10px] font-black uppercase px-2 py-0.5 rounded-md border w-fit",
+                                                            p.resolution.toLowerCase().includes('aprobado') ||
+                                                                p.resolution.toLowerCase().includes('fixed') ||
+                                                                p.resolution.toLowerCase().includes('resuelto') ||
+                                                                p.resolution.toLowerCase().includes('done')
+                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                                : "bg-red-50 text-red-700 border-red-200"
+                                                        )}>
+                                                            {p.resolution}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-slate-600 dark:text-slate-400">
                                                 {p.components || '-'}

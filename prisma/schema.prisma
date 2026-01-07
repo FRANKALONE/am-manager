@@ -300,6 +300,7 @@ model EvolutivoProposal {
   reporter         String?
   components       String?
   priority         String?
+  resolution       String?
   relatedTickets   String?  // JSON stringified array of related tickets
   issueCreatedDate DateTime?
   lastSyncedAt     DateTime @default(now())

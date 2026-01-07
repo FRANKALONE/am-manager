@@ -53,7 +53,7 @@ export async function syncEvolutivoProposals(clientId?: string) {
             const bodyData = JSON.stringify({
                 jql,
                 maxResults: 1000,
-                fields: ['key', 'summary', 'status', 'created', 'assignee', 'reporter', 'components', 'priority', 'issuelinks']
+                fields: ['key', 'summary', 'status', 'created', 'assignee', 'reporter', 'components', 'priority', 'resolution', 'issuelinks']
             });
 
             const proposalsRes: any = await new Promise((resolve) => {
@@ -151,6 +151,7 @@ export async function syncEvolutivoProposals(clientId?: string) {
                             reporter: fields.reporter?.displayName || null,
                             components: fields.components?.map((c: any) => c.name).join(', ') || null,
                             priority: fields.priority?.name || null,
+                            resolution: fields.resolution?.name || null,
                             relatedTickets: JSON.stringify(relatedTickets),
                             issueCreatedDate: new Date(fields.created)
                         },
@@ -161,6 +162,7 @@ export async function syncEvolutivoProposals(clientId?: string) {
                             reporter: fields.reporter?.displayName || null,
                             components: fields.components?.map((c: any) => c.name).join(', ') || null,
                             priority: fields.priority?.name || null,
+                            resolution: fields.resolution?.name || null,
                             relatedTickets: JSON.stringify(relatedTickets),
                             lastSyncedAt: new Date()
                         }
