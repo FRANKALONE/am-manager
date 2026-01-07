@@ -49,6 +49,8 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
         setLinkDialogOpen(true);
     };
 
+    console.log('UsersPortal - appUsers:', appUsers.length, 'jiraUsers:', jiraUsers.length);
+
     return (
         <>
             <div className="space-y-6">
