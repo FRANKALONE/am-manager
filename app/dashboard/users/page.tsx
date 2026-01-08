@@ -14,20 +14,18 @@ import { Footer } from '@/app/components/footer';
 
 export default async function ClientUsersPage() {
     // Obtener información del usuario actual
-    const userRole = cookies().get('user_role')?.value;
-    let clientId = cookies().get('client_id')?.value;
+    const user = await getMe();
+    const userRole = user?.role;
+    let clientId = user?.clientId;
 
     // Solo CLIENTE y MANAGER pueden acceder
     if (!userRole || !['CLIENTE', 'MANAGER'].includes(userRole)) {
         redirect('/dashboard');
     }
 
-    // Fallback: si no hay cookie client_id, obtener del usuario en BD
+    // Fallback: si no hay client_id en el usuario, intentar de cookies
     if (!clientId) {
-        const user = await getMe();
-        if (user?.clientId) {
-            clientId = user.clientId;
-        }
+        clientId = cookies().get('client_id')?.value;
     }
 
     if (!clientId) {
@@ -84,6 +82,7 @@ export default async function ClientUsersPage() {
                     jiraUsers={jiraUsers}
                     clientId={clientId}
                     isClientRole={isClientRole}
+                    currentUserId={user?.id || ''}
                 />
             </main>
             <Footer />

@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { cookies } from "next/headers";
 import { getPermissionsByRoleName } from "@/lib/permissions";
@@ -59,6 +59,9 @@ export async function AdminSidebar() {
                             </SidebarLink>
                             <SidebarLink href="/admin/jira-customers" label="Usuarios JIRA">
                                 <Users className="h-4 w-4" />
+                            </SidebarLink>
+                            <SidebarLink href="/admin/jira-requests" label="Solicitudes JIRA">
+                                <UserPlus className="h-4 w-4" />
                             </SidebarLink>
                         </>
                     )}

@@ -27,9 +27,10 @@ interface JiraUsersPanelProps {
     isClientRole: boolean;
     onCreateFromJira: (jiraUserId: string) => void;
     onLinkToApp: (jiraUserId: string) => void;
+    onDeleteRequest?: (jiraUserId: string) => void;
 }
 
-export function JiraUsersPanel({ users, isClientRole, onCreateFromJira, onLinkToApp }: JiraUsersPanelProps) {
+export function JiraUsersPanel({ users, isClientRole, onCreateFromJira, onLinkToApp, onDeleteRequest }: JiraUsersPanelProps) {
     return (
         <div className="border rounded-lg">
             <Table>
@@ -100,7 +101,32 @@ export function JiraUsersPanel({ users, isClientRole, onCreateFromJira, onLinkTo
                                                     <UserPlus className="h-4 w-4 mr-1" />
                                                     Crear Usuario
                                                 </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (confirm('¿Estás seguro de que quieres solicitar la eliminación de este usuario de JIRA?')) {
+                                                            onDeleteRequest?.(user.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    Solicitar Eliminación
+                                                </Button>
                                             </div>
+                                        )}
+                                        {user.linkedUser && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => {
+                                                    if (confirm('¿Estás seguro de que quieres solicitar la eliminación de este usuario de JIRA?')) {
+                                                        onDeleteRequest?.(user.id);
+                                                    }
+                                                }}
+                                            >
+                                                Solicitar Eliminación
+                                            </Button>
                                         )}
                                     </TableCell>
                                 )}

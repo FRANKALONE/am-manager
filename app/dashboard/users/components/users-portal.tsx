@@ -10,19 +10,24 @@ import { JiraUsersPanel } from './jira-users-panel';
 import { CreateFromJiraDialog } from './create-from-jira-dialog';
 import { LinkDialog } from './link-dialog';
 import { NewUserDialog } from './new-user-dialog';
+import { JiraRequestDialog } from './jira-request-dialog';
+import { useEffect, useState as useReactState } from 'react'; // Renaming just in case, though not needed here
 
 interface UsersPortalProps {
     appUsers: any[];
     jiraUsers: any[];
     clientId: string;
     isClientRole: boolean;
+    currentUserId: string;
 }
 
-export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: UsersPortalProps) {
+export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole, currentUserId }: UsersPortalProps) {
     const [activeTab, setActiveTab] = useState<'app' | 'jira'>('app');
     const [createFromJiraOpen, setCreateFromJiraOpen] = useState(false);
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [newUserOpen, setNewUserOpen] = useState(false);
+    const [jiraRequestOpen, setJiraRequestOpen] = useState(false);
+    const [jiraRequestType, setJiraRequestType] = useState<'CREATE' | 'DELETE'>('CREATE');
     const [selectedJiraUser, setSelectedJiraUser] = useState<any>(null);
     const [selectedAppUserId, setSelectedAppUserId] = useState<string | null>(null);
     const [selectedJiraUserId, setSelectedJiraUserId] = useState<string | null>(null);
@@ -50,6 +55,21 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
         setLinkDialogOpen(true);
     };
 
+    const handleNewJiraUserRequest = () => {
+        setJiraRequestType('CREATE');
+        setSelectedJiraUser(null);
+        setJiraRequestOpen(true);
+    };
+
+    const handleDeleteJiraUserRequest = (jiraUserId: string) => {
+        const user = jiraUsers.find(u => u.id === jiraUserId);
+        if (user) {
+            setJiraRequestType('DELETE');
+            setSelectedJiraUser(user);
+            setJiraRequestOpen(true);
+        }
+    };
+
     return (
         <>
             <div className="space-y-6">
@@ -63,10 +83,16 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
                         </p>
                     </div>
                     {isClientRole && (
-                        <Button onClick={() => setNewUserOpen(true)}>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Nuevo Usuario
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={handleNewJiraUserRequest}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Solicitar Usuario JIRA
+                            </Button>
+                            <Button onClick={() => setNewUserOpen(true)}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Nuevo Usuario App
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -121,6 +147,7 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
                                     isClientRole={isClientRole}
                                     onCreateFromJira={handleCreateFromJira}
                                     onLinkToApp={handleLinkFromJira}
+                                    onDeleteRequest={handleDeleteJiraUserRequest}
                                 />
                             </CardContent>
                         </Card>
@@ -152,6 +179,16 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole }: Use
                 onOpenChange={setNewUserOpen}
                 clientId={clientId}
                 jiraUsers={jiraUsers}
+            />
+
+            <JiraRequestDialog
+                open={jiraRequestOpen}
+                onOpenChange={setJiraRequestOpen}
+                clientId={clientId}
+                requestedBy={currentUserId}
+                type={jiraRequestType}
+                jiraUserId={selectedJiraUser?.id}
+                jiraUserName={selectedJiraUser?.displayName}
             />
         </>
     );

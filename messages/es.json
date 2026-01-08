@@ -753,6 +753,16 @@
         "createSuccess": "Usuario creado y vinculado",
         "unlinkSuccess": "Usuario desvinculado",
         "noUsers": "No se encontraron usuarios",
+        "requests": {
+            "title": "Solicitudes JIRA",
+            "pending": "Solicitudes Pendientes",
+            "history": "Historial de Solicitudes",
+            "createRequest": "Solicitar Creación",
+            "deleteRequest": "Solicitar Eliminación",
+            "approve": "Aprobar",
+            "reject": "Rechazar",
+            "notes": "Notas"
+        },
         "table": {
             "user": "Usuario",
             "email": "Email",

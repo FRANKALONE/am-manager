@@ -37,6 +37,7 @@ model Client {
   evolutivoProposals EvolutivoProposal[]
   jiraOrganizations JiraOrganization[]
   jiraCustomerUsers JiraCustomerUser[]
+  jiraUserRequests  JiraUserRequest[]
 }
 
 model WorkPackage {
@@ -112,6 +113,8 @@ model User {
   requestedReviews ReviewRequest[] @relation("RequestedReviews")
   client           Client?         @relation(fields: [clientId], references: [id])
   linkedJiraCustomer JiraCustomerUser?
+  requestedJiraRequests JiraUserRequest[] @relation("RequestedJiraRequests")
+  reviewedJiraRequests  JiraUserRequest[] @relation("ReviewedJiraRequests")
 
   @@index([locale])
 }
@@ -354,4 +357,32 @@ model JiraCustomerUser {
   @@index([organizationId])
   @@index([emailAddress])
   @@index([accountId])
+}
+
+model JiraUserRequest {
+  id              String      @id @default(cuid())
+  clientId        String
+  requestedBy     String
+  type            String      // 'CREATE' or 'DELETE'
+  status          String      // 'PENDING', 'APPROVED', 'REJECTED'
+  
+  // Data for creation or reference for deletion
+  email           String?
+  displayName     String?
+  jiraAccountId   String?     // For DELETE requests
+  
+  reason          String?
+  reviewNotes     String?
+  
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  requestedByUser User        @relation("RequestedJiraRequests", fields: [requestedBy], references: [id])
+  reviewedByUser  User?       @relation("ReviewedJiraRequests", fields: [reviewedBy], references: [id])
+
+  @@index([clientId])
+  @@index([status])
 }
