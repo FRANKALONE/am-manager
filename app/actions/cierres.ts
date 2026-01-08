@@ -498,25 +498,42 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
         const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
 
-        // Determine start point for the evolution table
+        // Determine start point for the evolution table: strictly since last regularization
         let cutoffYYYYMM: number | null = null;
-        const lastExcessReg = wp.regularizations
-            ?.filter(r => r.type === 'EXCESS')
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-        if (lastExcessReg) {
-            const d = new Date(lastExcessReg.date);
-            d.setMonth(d.getMonth() + 1);
-            cutoffYYYYMM = d.getFullYear() * 100 + (d.getMonth() + 1);
+        // Find the most recent EXCESS regularization BEFORE the target month
+        const prevExcessRegs = wp.regularizations
+            ?.filter(r => {
+                const rd = new Date(r.date);
+                const regYYYYMM = rd.getFullYear() * 100 + (rd.getMonth() + 1);
+                return r.type === 'EXCESS' && regYYYYMM < targetYYYYMM;
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        if (prevExcessRegs && prevExcessRegs.length > 0) {
+            const lastRegDate = new Date(prevExcessRegs[0].date);
+            // The next month after last regularization is the first one to show
+            const nextMonth = new Date(lastRegDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            cutoffYYYYMM = nextMonth.getFullYear() * 100 + (nextMonth.getMonth() + 1);
         }
 
         // Build monthly summary iterating history (mirroring getPendingCierres logic)
         const summary: { label: string, contracted: number, consumed: number, balance: number }[] = [];
         let accumulatedBalance = 0;
         let safety = 0;
-        let firstMonthWithConsumption: number | null = null;
 
-        // Iterate all periods up to current
+        // 1. Initial balance from sobrantes before any period
+        const firstPeriodStart = new Date(wp.validityPeriods[0].startDate);
+        const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+            const regDate = new Date(reg.date);
+            if (regDate >= firstPeriodStart) return false;
+            return (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
+        }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+
+        accumulatedBalance += sobrantesBeforeSelection;
+
+        // 2. Iterate all periods up to current
         for (const p of wp.validityPeriods) {
             const pStart = new Date(p.startDate);
             const pEnd = new Date(p.endDate);
@@ -536,7 +553,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 const pm = pIterDate.getMonth() + 1;
                 const pIterYYYYMM = py * 100 + pm;
 
-                if (pIterYYYYMM > pEndYYYYMM || pIterYYYYMM >= targetYYYYMM) break;
+                if (pIterYYYYMM > pEndYYYYMM || pIterYYYYMM > targetYYYYMM) break;
 
                 const metric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
                 let consumed = metric ? metric.consumedHours : 0;
@@ -552,11 +569,6 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
                 consumed = consumed - returnTotal;
 
-                // Track first month with consumption
-                if (consumed > 0 && firstMonthWithConsumption === null) {
-                    firstMonthWithConsumption = pIterYYYYMM;
-                }
-
                 let monthlyContracted = 0;
                 if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {
                     monthlyContracted = p.totalQuantity || 0;
@@ -567,12 +579,9 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 const monthBalance = (monthlyContracted + puntualTotal) - consumed + regTotal;
                 accumulatedBalance += monthBalance;
 
-                // Dynamic filtering: start from cutoff or first negative balance
-                if (cutoffYYYYMM === null && accumulatedBalance < 0) {
-                    cutoffYYYYMM = pIterYYYYMM;
-                }
-
-                if (cutoffYYYYMM !== null && pIterYYYYMM >= cutoffYYYYMM && pIterYYYYMM < targetYYYYMM) {
+                // Add to summary if it's within the requested window
+                // If no previous regularization, start from the first period
+                if ((cutoffYYYYMM === null || pIterYYYYMM >= cutoffYYYYMM) && pIterYYYYMM <= targetYYYYMM) {
                     summary.push({
                         label: `${pm.toString().padStart(2, '0')}/${py}`,
                         contracted: monthlyContracted + puntualTotal,
@@ -583,76 +592,6 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
                 pIterDate.setMonth(pIterDate.getMonth() + 1);
                 safety++;
-            }
-        }
-
-        // If summary is empty (no debt history), show from first month with consumption
-        if (summary.length === 0 && firstMonthWithConsumption !== null) {
-            // Recalculate showing from first consumption
-            accumulatedBalance = 0;
-            safety = 0;
-
-            for (const p of wp.validityPeriods) {
-                const pStart = new Date(p.startDate);
-                const pEnd = new Date(p.endDate);
-                const pStartYYYYMM = pStart.getFullYear() * 100 + (pStart.getMonth() + 1);
-                const pEndYYYYMM = pEnd.getFullYear() * 100 + (pEnd.getMonth() + 1);
-
-                if (pEndYYYYMM < firstMonthWithConsumption) continue;
-                if (pStartYYYYMM > targetYYYYMM) continue;
-
-                const pTotalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
-                const pMonthlyContracted = pTotalMonths > 0 ? (p.totalQuantity || 0) / pTotalMonths : 0;
-
-                let pIterDate = new Date(pStart);
-                pIterDate.setDate(1);
-
-                // Skip to first consumption month if needed
-                while (pIterDate.getFullYear() * 100 + (pIterDate.getMonth() + 1) < firstMonthWithConsumption) {
-                    pIterDate.setMonth(pIterDate.getMonth() + 1);
-                }
-
-                while (safety < 2400) {
-                    const py = pIterDate.getFullYear();
-                    const pm = pIterDate.getMonth() + 1;
-                    const pIterYYYYMM = py * 100 + pm;
-
-                    if (pIterYYYYMM > pEndYYYYMM || pIterYYYYMM >= targetYYYYMM) break;
-
-                    const metric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
-                    let consumed = metric ? metric.consumedHours : 0;
-
-                    const regs = wp.regularizations?.filter(reg => {
-                        const regDate = new Date(reg.date);
-                        return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
-                    }) || [];
-
-                    const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
-
-                    consumed = consumed - returnTotal;
-
-                    let monthlyContracted = 0;
-                    if (isBolsaPuntual && pm === (pStart.getMonth() + 1) && py === pStart.getFullYear()) {
-                        monthlyContracted = p.totalQuantity || 0;
-                    } else if (!isBolsaPuntual) {
-                        monthlyContracted = pMonthlyContracted;
-                    }
-
-                    const monthBalance = (monthlyContracted + puntualTotal) - consumed + regTotal;
-                    accumulatedBalance += monthBalance;
-
-                    summary.push({
-                        label: `${pm.toString().padStart(2, '0')}/${py}`,
-                        contracted: monthlyContracted + puntualTotal,
-                        consumed: consumed,
-                        balance: accumulatedBalance
-                    });
-
-                    pIterDate.setMonth(pIterDate.getMonth() + 1);
-                    safety++;
-                }
             }
         }
 
