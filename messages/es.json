@@ -837,7 +837,10 @@
             "reviewApproved": "Reclamación Aprobada",
             "reviewRejected": "Reclamación Rechazada",
             "reviewDecidedApproved": "Reclamación Resuelta (Aprobada)",
-            "reviewDecidedRejected": "Reclamación Resuelta (Rechazada)"
+            "reviewDecidedRejected": "Reclamación Resuelta (Rechazada)",
+            "jiraUserRequestCreated": "Nueva solicitud JIRA",
+            "jiraUserRequestApproved": "Solicitud JIRA Aprobada",
+            "jiraUserRequestRejected": "Solicitud JIRA Rechazada"
         },
         "messages": {
             "reviewCreated": "El usuario ha solicitado revisar {count} imputaciones en el WP {wp}.",
@@ -845,7 +848,10 @@
             "reviewApproved": "Tu reclamación de horas ha sido aprobada. Se han devuelto {count} imputaciones. Notas: {notes}",
             "reviewRejected": "Tu reclamación de horas ha sido rechazada. Notas: {notes}",
             "reviewDecidedApproved": "Se ha aprobado una reclamación en el WP {wp}. Notas: {notes}",
-            "reviewDecidedRejected": "Se ha rechazado una reclamación en el WP {wp}. Notas: {notes}"
+            "reviewDecidedRejected": "Se ha rechazado una reclamación en el WP {wp}. Notas: {notes}",
+            "jiraUserRequestCreated": "Se ha creado una nueva solicitud de usuario JIRA ({type}) para el cliente {client}.",
+            "jiraUserRequestApproved": "Tu solicitud de usuario JIRA ha sido aprobada. Notas: {notes}",
+            "jiraUserRequestRejected": "Tu solicitud de usuario JIRA ha sido rechazada. Notas: {notes}"
         }
     },
     "regularizations": {

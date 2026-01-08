@@ -77,6 +77,19 @@ export async function syncClientJiraUsers(clientId: string) {
 
             // Obtener usuarios de la organización
             const jiraUsers = await getUsersByOrganization(jiraOrg.id);
+            const jiraUserAccountIds = jiraUsers.map(u => u.accountId);
+
+            // Eliminar usuarios locales que ya no existen en JIRA para esta organización
+            const deleteResult = await prisma.jiraCustomerUser.deleteMany({
+                where: {
+                    organizationId: organization.id,
+                    accountId: { notIn: jiraUserAccountIds }
+                }
+            });
+
+            if (deleteResult.count > 0) {
+                console.log(`[SYNC] Deleted ${deleteResult.count} users for organization ${organization.name}`);
+            }
 
             // Crear o actualizar usuarios
             for (const jiraUser of jiraUsers) {

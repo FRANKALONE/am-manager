@@ -825,7 +825,10 @@
             "reviewApproved": "Claim Approved",
             "reviewRejected": "Claim Rejected",
             "reviewDecidedApproved": "Claim Resolved (Approved)",
-            "reviewDecidedRejected": "Claim Resolved (Rejected)"
+            "reviewDecidedRejected": "Claim Resolved (Rejected)",
+            "jiraUserRequestCreated": "New JIRA request",
+            "jiraUserRequestApproved": "JIRA Request Approved",
+            "jiraUserRequestRejected": "JIRA Request Rejected"
         },
         "messages": {
             "reviewCreated": "The user has requested to review {count} entries in WP {wp}.",
@@ -833,7 +836,10 @@
             "reviewApproved": "Your hours claim has been approved. {count} entries have been returned. Notes: {notes}",
             "reviewRejected": "Your hours claim has been rejected. Notes: {notes}",
             "reviewDecidedApproved": "A claim has been approved in WP {wp}. Notes: {notes}",
-            "reviewDecidedRejected": "A claim has been rejected in WP {wp}. Notes: {notes}"
+            "reviewDecidedRejected": "A claim has been rejected in WP {wp}. Notes: {notes}",
+            "jiraUserRequestCreated": "A new JIRA user request ({type}) has been created for client {client}.",
+            "jiraUserRequestApproved": "Your JIRA user request has been approved. Notes: {notes}",
+            "jiraUserRequestRejected": "Your JIRA user request has been rejected. Notes: {notes}"
         }
     },
     "regularizations": {

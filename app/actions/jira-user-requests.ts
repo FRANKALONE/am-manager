@@ -29,20 +29,29 @@ export async function createJiraUserRequest(data: {
         });
 
         // Notify admins
-        const admins = await prisma.user.findMany({
-            where: { role: "ADMIN" }
-        });
+        try {
+            const { t } = await getTranslations();
+            const admins = await prisma.user.findMany({
+                where: { role: "ADMIN" }
+            });
 
-        const { t } = await getTranslations();
+            const title = t('notifications.titles.jiraUserRequestCreated');
+            const message = t('notifications.messages.jiraUserRequestCreated', {
+                type: data.type,
+                client: data.clientId
+            });
 
-        for (const admin of admins) {
-            await createNotification(
-                admin.id,
-                "JIRA_USER_REQUEST_CREATED",
-                t('notifications.titles.jiraUserRequestCreated'),
-                t('notifications.messages.jiraUserRequestCreated', { type: data.type, client: data.clientId }),
-                request.id
-            );
+            for (const admin of admins) {
+                await createNotification(
+                    admin.id,
+                    "JIRA_USER_REQUEST_CREATED",
+                    title,
+                    message,
+                    request.id
+                );
+            }
+        } catch (notifyError) {
+            console.error("Error notifying admins about JIRA request:", notifyError);
         }
 
         revalidatePath("/admin/jira-requests");
@@ -121,19 +130,24 @@ export async function handleJiraUserRequest(
         const { t } = await getTranslations();
 
         // Notify the requester
-        const type = status === 'APPROVED' ? 'JIRA_USER_REQUEST_APPROVED' : 'JIRA_USER_REQUEST_REJECTED';
-        const title = status === 'APPROVED' ? t('notifications.titles.jiraUserRequestApproved') : t('notifications.titles.jiraUserRequestRejected');
-        const message = status === 'APPROVED'
-            ? t('notifications.messages.jiraUserRequestApproved', { notes: notes || '' })
-            : t('notifications.messages.jiraUserRequestRejected', { notes: notes || '' });
+        try {
+            const { t } = await getTranslations();
+            const type = status === 'APPROVED' ? 'JIRA_USER_REQUEST_APPROVED' : 'JIRA_USER_REQUEST_REJECTED';
+            const title = status === 'APPROVED' ? t('notifications.titles.jiraUserRequestApproved') : t('notifications.titles.jiraUserRequestRejected');
+            const message = status === 'APPROVED'
+                ? t('notifications.messages.jiraUserRequestApproved', { notes: notes || '' })
+                : t('notifications.messages.jiraUserRequestRejected', { notes: notes || '' });
 
-        await createNotification(
-            request.requestedBy,
-            type,
-            title,
-            message,
-            request.id
-        );
+            await createNotification(
+                request.requestedBy,
+                type,
+                title,
+                message,
+                request.id
+            );
+        } catch (notifyError) {
+            console.error("Error notifying requester about JIRA request status:", notifyError);
+        }
 
         // If approved and creation, maybe trigger sync? 
         // The user said: "Y se debería sincronizar auto ese cliente para actulaizar los usuarios de jira en su pool."
