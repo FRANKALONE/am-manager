@@ -145,8 +145,8 @@ export async function handleJiraUserRequest(
                 // The user said: "cuando el administrador ejecute esto en JIRA y el admin confirme esta tarea en la web..."
                 // So the sync should happen AFTER the admin clicks "Aprobar" (which means they already did it in JIRA)
 
-                const { syncJiraCustomerUsersByClient } = await import("./jira-customers");
-                await syncJiraCustomerUsersByClient(request.clientId);
+                const { syncClientJiraUsers } = await import("./jira-customers");
+                await syncClientJiraUsers(request.clientId);
             } catch (syncError) {
                 console.error("Error triggering sync after approval:", syncError);
             }
