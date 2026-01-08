@@ -32,8 +32,11 @@ export async function syncClientJiraUsers(clientId: string) {
             return { success: false, error: 'Cliente no tiene proyecto JIRA configurado' };
         }
 
+        // Si hay varias claves (separadas por coma), tomamos solo la primera para la gestión de usuarios
+        const mainProjectKey = client.jiraProjectKey.split(',')[0].trim();
+
         // Obtener Service Desk
-        const serviceDesk = await getServiceDeskByProjectKey(client.jiraProjectKey);
+        const serviceDesk = await getServiceDeskByProjectKey(mainProjectKey);
 
         if (!serviceDesk) {
             return {
