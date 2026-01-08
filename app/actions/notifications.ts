@@ -109,7 +109,10 @@ export async function getNotificationSettings() {
                     { type: 'CONTRACT_ENDING', title: 'Vencimiento Próximo (Interno)', description: 'Aviso 45 días antes del fin de contrato.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
                     { type: 'CONTRACT_ENDING_CLIENT', title: 'Vencimiento Próximo (Cliente)', description: 'Aviso al cliente sobre fin de contrato.', group: 'CONTRACTS', roles: 'USER' },
                     { type: 'CONTRACT_RENEWED', title: 'Contrato Renovado', description: 'Notifica cuando un contrato ha sido renovado.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
-                    { type: 'EVOLUTIVO_BILLED', title: 'Evolutivo Facturado', description: 'Notifica al gerente cuando un evolutivo es marcado como facturado.', group: 'FINANCIAL', roles: 'GERENTE' }
+                    { type: 'EVOLUTIVO_BILLED', title: 'Evolutivo Facturado', description: 'Notifica al gerente cuando un evolutivo es marcado como facturado.', group: 'FINANCIAL', roles: 'GERENTE' },
+                    { type: 'JIRA_USER_REQUEST_CREATED', title: 'Nueva Solicitud JIRA', description: 'Notifica a los administradores cuando un cliente solicita un cambio en usuarios JIRA.', group: 'SYSTEM', roles: 'ADMIN' },
+                    { type: 'JIRA_USER_REQUEST_APPROVED', title: 'Solicitud JIRA Aprobada', description: 'Notifica al usuario cuando su solicitud JIRA es aprobada.', group: 'SYSTEM', roles: 'USER' },
+                    { type: 'JIRA_USER_REQUEST_REJECTED', title: 'Solicitud JIRA Rechazada', description: 'Notifica al usuario cuando su solicitud JIRA es rechazada.', group: 'SYSTEM', roles: 'USER' }
                 ]
             });
         }

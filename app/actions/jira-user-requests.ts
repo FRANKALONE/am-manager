@@ -36,9 +36,16 @@ export async function createJiraUserRequest(data: {
             });
 
             const title = t('notifications.titles.jiraUserRequestCreated');
+
+            // Get client name for the message
+            const client = await prisma.client.findUnique({
+                where: { id: data.clientId },
+                select: { name: true }
+            });
+
             const message = t('notifications.messages.jiraUserRequestCreated', {
-                type: data.type,
-                client: data.clientId
+                type: data.type === 'CREATE' ? 'Creación' : 'Eliminación',
+                client: client?.name || data.clientId
             });
 
             for (const admin of admins) {
@@ -56,9 +63,21 @@ export async function createJiraUserRequest(data: {
 
         revalidatePath("/admin/jira-requests");
         return { success: true, id: request.id };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating JIRA user request:", error);
-        return { success: false, error: "Error al crear la solicitud" };
+        // Provide more detailed error info for debugging if possible
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Detailed error context:", {
+            message: errorMessage,
+            code: error.code,
+            meta: error.meta,
+            data: {
+                clientId: data.clientId,
+                requestedBy: data.requestedBy,
+                type: data.type
+            }
+        });
+        return { success: false, error: `Error al crear la solicitud: ${errorMessage}` };
     }
 }
 

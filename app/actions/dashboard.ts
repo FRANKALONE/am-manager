@@ -80,8 +80,15 @@ async function getTicketCountFromJira(projectKeys: string, month: number, year: 
 
 export async function getDashboardClients(managerId?: string) {
     try {
+        const { cookies } = await import("next/headers");
+        const { getPermissionsByRoleName } = await import("@/lib/permissions");
+
+        const userRole = cookies().get("user_role")?.value || "";
+        const perms = await getPermissionsByRoleName(userRole);
+
         const where: any = {};
-        if (managerId) {
+        // If they don't have view_all_clients, filter by managerId
+        if (managerId && !perms.view_all_clients) {
             where.manager = managerId;
         }
         return await prisma.client.findMany({
@@ -97,8 +104,15 @@ export async function getDashboardClients(managerId?: string) {
 export async function getDashboardWPs(clientId: string, managerId?: string) {
     if (!clientId) return [];
     try {
+        const { cookies } = await import("next/headers");
+        const { getPermissionsByRoleName } = await import("@/lib/permissions");
+
+        const userRole = cookies().get("user_role")?.value || "";
+        const perms = await getPermissionsByRoleName(userRole);
+
         const where: any = { clientId };
-        if (managerId) {
+        // If they don't have view_all_wps, filter by manager of the client
+        if (managerId && !perms.view_all_wps) {
             where.client = { manager: managerId };
         }
         return await prisma.workPackage.findMany({

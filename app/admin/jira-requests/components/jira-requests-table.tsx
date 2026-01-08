@@ -22,6 +22,9 @@ interface JiraRequestsTableProps {
 export function JiraRequestsTable({ pendingRequests, historyRequests, currentUserId }: JiraRequestsTableProps) {
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
+    const [debugData, setDebugData] = useState(false);
+
+    console.log("[JiraRequestsTable] Props:", { pendingRequests, historyRequests });
 
     const onHandleRequest = async (id: string, status: 'APPROVED' | 'REJECTED') => {
         const notes = prompt(status === 'APPROVED' ? 'Notas de aprobación (opcional):' : 'Motivo del rechazo (obligatorio):');
@@ -156,6 +159,16 @@ export function JiraRequestsTable({ pendingRequests, historyRequests, currentUse
 
     return (
         <Tabs defaultValue="pending" className="w-full">
+            <div className="flex justify-end mb-2">
+                <Button variant="ghost" size="sm" onClick={() => setDebugData(!debugData)} className="text-[10px] text-gray-400">
+                    {debugData ? 'Ocultar Debug' : 'Mostrar Debug'}
+                </Button>
+            </div>
+            {debugData && (
+                <pre className="bg-gray-100 p-2 rounded text-[10px] overflow-auto max-h-40 mb-4">
+                    {JSON.stringify({ pendingRequests, historyRequests }, null, 2)}
+                </pre>
+            )}
             <TabsList className="mb-4">
                 <TabsTrigger value="pending">Pendientes ({pendingRequests.length})</TabsTrigger>
                 <TabsTrigger value="history">Historial</TabsTrigger>

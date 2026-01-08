@@ -19,10 +19,18 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
     const canSeeDashboard = await hasPermission(userRole, "view_dashboard");
     const { t } = await getTranslations();
 
+    // Determine home link based on role and permissions
+    let homeHref = "/client-dashboard";
+    if (userRole === "ADMIN") {
+        homeHref = "/admin-home";
+    } else if (canSeeDashboard) {
+        homeHref = "/manager-dashboard";
+    }
+
     return (
         <header className="bg-white dark:bg-slate-900 border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
             <div className="flex items-center gap-6">
-                <Link href={userRole === "ADMIN" ? "/admin-home" : (userRole === "GERENTE" ? "/manager-dashboard" : "/client-dashboard")}>
+                <Link href={homeHref}>
                     <Image
                         src="/logo-am.png"
                         alt="Manager AM"
@@ -38,7 +46,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
             </div>
             <div className="flex items-center gap-4">
                 {canSeeDashboard && (
-                    <Link href={userRole === "ADMIN" ? "/admin-home" : (userRole === "GERENTE" ? "/manager-dashboard" : "/client-dashboard")} className="text-sm font-semibold text-slate-600 hover:text-malachite flex items-center gap-2 transition-colors mr-2">
+                    <Link href={homeHref} className="text-sm font-semibold text-slate-600 hover:text-malachite flex items-center gap-2 transition-colors mr-2">
                         <Home className="w-4 h-4" /> {t('common.home')}
                     </Link>
                 )}

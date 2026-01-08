@@ -4,6 +4,7 @@ import { getMe } from '@/app/actions/users';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UsersPortal } from './components/users-portal';
+import { getPermissionsByRoleName } from '@/lib/permissions';
 
 export const metadata = {
     title: 'Gestión de Usuarios - Portal Cliente',
@@ -18,8 +19,10 @@ export default async function ClientUsersPage() {
     const userRole = user?.role;
     let clientId = user?.clientId;
 
-    // Solo CLIENTE y MANAGER pueden acceder
-    if (!userRole || !['CLIENTE', 'MANAGER'].includes(userRole)) {
+    const perms = await getPermissionsByRoleName(userRole || "");
+
+    // Check for specific permission instead of hardcoded roles
+    if (!userRole || !perms.manage_client_users) {
         redirect('/dashboard');
     }
 

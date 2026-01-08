@@ -13,12 +13,14 @@ export default async function ManagerDashboardPage() {
         redirect("/login");
     }
 
-    if (user.role !== "GERENTE" && user.role !== "ADMIN") {
+    const permissions = await getPermissionsByRoleName(user.role);
+
+    if (!permissions.view_dashboard) {
         redirect("/client-dashboard");
     }
 
-    const clients = await getDashboardClients(user.role === "GERENTE" ? user.id : undefined);
-    const permissions = await getPermissionsByRoleName(user.role);
+    const clients = await getDashboardClients(user.role === "GERENTE" || !permissions.view_all_clients ? user.id : undefined);
+    // const permissions = await getPermissionsByRoleName(user.role); // moved up
 
     return (
         <div className="flex flex-col min-h-screen">

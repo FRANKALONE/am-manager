@@ -7,8 +7,14 @@ import { getTranslations } from "@/lib/get-translations";
 
 export async function getClients(managerId?: string) {
     try {
+        const { cookies } = await import("next/headers");
+        const { getPermissionsByRoleName } = await import("@/lib/permissions");
+
+        const userRole = cookies().get("user_role")?.value || "";
+        const perms = await getPermissionsByRoleName(userRole);
+
         const where: any = {};
-        if (managerId) {
+        if (managerId && !perms.view_all_clients) {
             where.manager = managerId;
         }
 
