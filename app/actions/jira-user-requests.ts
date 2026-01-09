@@ -162,7 +162,8 @@ export async function handleJiraUserRequest(
                 type,
                 title,
                 message,
-                request.id
+                request.id,
+                true // Send email alert
             );
         } catch (notifyError) {
             console.error("Error notifying requester about JIRA request status:", notifyError);

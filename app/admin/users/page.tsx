@@ -1,4 +1,5 @@
-import { getUsers, deleteUser } from "@/app/actions/users";
+import { getUsers, deleteUser, UserFilters as FilterType } from "@/app/actions/users";
+import { getClients } from "@/app/actions/clients";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
@@ -6,9 +7,23 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { getTranslations } from "@/lib/get-translations";
 import { formatDate } from "@/lib/date-utils";
 import { ResetPasswordDialog } from "./components/reset-password-dialog";
+import { UserFilters } from "./components/user-filters";
 
-export default async function UsersPage() {
-    const users = await getUsers();
+export default async function UsersPage({
+    searchParams
+}: {
+    searchParams: { [key: string]: string | string[] | undefined }
+}) {
+    const filters: FilterType = {
+        email: searchParams.email as string,
+        role: searchParams.role as string,
+        clientId: searchParams.clientId as string,
+        lastLoginFrom: searchParams.lastLoginFrom as string,
+        lastLoginTo: searchParams.lastLoginTo as string,
+    };
+
+    const users = await getUsers(filters);
+    const clients = await getClients();
     const { t, locale } = await getTranslations();
 
     async function deleteAction(id: string) {
@@ -31,6 +46,8 @@ export default async function UsersPage() {
                     </Button>
                 </Link>
             </div>
+
+            <UserFilters clients={clients} />
 
             <div className="border rounded-md">
                 <Table>

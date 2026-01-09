@@ -534,6 +534,16 @@
             "lastLogin": "Última Conexión",
             "actions": "Acciones"
         },
+        "filters": {
+            "email": "Filtrar por email",
+            "role": "Rol",
+            "client": "Cliente",
+            "lastLoginFrom": "Desde",
+            "lastLoginTo": "Hasta",
+            "clear": "Limpiar filtros",
+            "allRoles": "Todos los roles",
+            "allClients": "Todos los clientes"
+        },
         "never": "Nunca",
         "roles": {
             "ADMIN": "Administrador",

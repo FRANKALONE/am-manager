@@ -3,7 +3,7 @@ import { getWorkPackages } from "@/app/actions/work-packages";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Briefcase, BarChart3, RefreshCw, ShieldCheck, UserCheck, ArrowRight, LayoutDashboard, Zap, Activity, Database, Settings } from "lucide-react";
+import { Users, Briefcase, BarChart3, RefreshCw, ShieldCheck, UserCheck, ArrowRight, LayoutDashboard, Zap, Activity, Database, Settings, Mail } from "lucide-react";
 import Link from "next/link";
 import { getMe } from "@/app/actions/users";
 import { getTranslations } from "@/lib/get-translations";
@@ -205,6 +205,7 @@ export default async function AdminDashboardPage() {
                                 {[
                                     { href: "/admin/maintenance", label: t('admin.dashboard.maintenance'), desc: t('admin.dashboard.maintenanceDesc'), icon: Database, color: "blue" },
                                     { href: "/admin/settings", label: t('admin.dashboard.parametrization'), desc: t('admin.dashboard.parametrizationDesc'), icon: Settings, color: "indigo" },
+                                    { href: "/admin/emails", label: "Gestión de Emails", desc: "Configuración SMTP y Logs", icon: Mail, color: "emerald" },
                                     { href: "/admin/review-requests", label: t('admin.dashboard.reviewRequests'), desc: t('admin.dashboard.reviewRequestsDesc'), icon: UserCheck, color: "emerald" }
                                 ].map((item, i) => (
                                     <Link key={i} href={item.href} className="group/item flex items-center justify-between p-5 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-300 shadow-sm hover:shadow-md">

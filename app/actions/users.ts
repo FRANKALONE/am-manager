@@ -7,9 +7,42 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { getTranslations } from "@/lib/get-translations";
 
-export async function getUsers() {
+export interface UserFilters {
+    email?: string;
+    role?: string;
+    clientId?: string;
+    lastLoginFrom?: string;
+    lastLoginTo?: string;
+}
+
+export async function getUsers(filters?: UserFilters) {
     try {
+        const where: any = {};
+
+        if (filters?.email) {
+            where.email = { contains: filters.email, mode: 'insensitive' };
+        }
+        if (filters?.role && filters.role !== 'ALL') {
+            where.role = filters.role;
+        }
+        if (filters?.clientId && filters.clientId !== 'ALL') {
+            where.clientId = filters.clientId;
+        }
+        if (filters?.lastLoginFrom || filters?.lastLoginTo) {
+            where.lastLoginAt = {};
+            if (filters.lastLoginFrom) {
+                where.lastLoginAt.gte = new Date(filters.lastLoginFrom);
+            }
+            if (filters.lastLoginTo) {
+                // To include the whole day, we set to end of day if it's just a date
+                const toDate = new Date(filters.lastLoginTo);
+                toDate.setHours(23, 59, 59, 999);
+                where.lastLoginAt.lte = toDate;
+            }
+        }
+
         const users = await prisma.user.findMany({
+            where,
             include: {
                 client: true
             },

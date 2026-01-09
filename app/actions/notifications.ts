@@ -58,16 +58,19 @@ export async function markAllNotificationsAsRead(userId: string) {
     }
 }
 
+import { sendEmail } from "@/lib/mail";
+
 // Internal helper for other actions
 export async function createNotification(
     userId: string,
     type: string,
     title: string,
     message: string,
-    relatedId?: string
+    relatedId?: string,
+    sendEmailAlert: boolean = false
 ) {
     try {
-        // Check if this notification type is enabled
+        // Check if this notification type is enabled in general settings
         const setting = await prisma.notificationSetting.findUnique({
             where: { type }
         });
@@ -77,6 +80,7 @@ export async function createNotification(
             return false;
         }
 
+        // Create the in-app notification
         await prisma.notification.create({
             data: {
                 userId,
@@ -86,6 +90,31 @@ export async function createNotification(
                 relatedId
             }
         });
+
+        // Send email alert if requested
+        if (sendEmailAlert) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { email: true, name: true }
+            });
+
+            if (user?.email) {
+                await sendEmail({
+                    to: user.email,
+                    subject: `${title} - AM Manager`,
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                            <h2 style="color: #333;">${title}</h2>
+                            <p>Hola ${user.name},</p>
+                            <p>${message}</p>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                            <p style="color: #999; font-size: 12px;">Este es un aviso automático de AM Manager. Puedes gestionar tus notificaciones en la aplicación.</p>
+                        </div>
+                    `
+                });
+            }
+        }
+
         return true;
     } catch (error) {
         console.error("Error creating notification:", error);

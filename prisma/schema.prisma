@@ -386,3 +386,27 @@ model JiraUserRequest {
   @@index([clientId])
   @@index([status])
 }
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  content   String?  @db.Text
+  status    String   // 'SUCCESS', 'FAILED'
+  error     String?  @db.Text
+  messageId String?
+  createdAt DateTime @default(now())
+
+  @@index([to])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String   @db.Text
+  description String?
+  group       String   @default("GENERAL") // e.g., "EMAIL", "JIRA"
+  updatedAt   DateTime @updatedAt
+
+  @@index([group])
+}
