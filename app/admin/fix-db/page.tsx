@@ -103,6 +103,21 @@ export default async function FixDBPage() {
             results.push("⚠️ No se encontró el rol CLIENTE para actualizar.");
         }
 
+        // 6. Sincronizar plantillas de notificación críticas
+        results.push("Sincronizando plantillas de notificaciones...");
+        const renewalSetting = await prisma.notificationSetting.findUnique({ where: { type: 'CONTRACT_RENEWED' } });
+        if (renewalSetting) {
+            await prisma.notificationSetting.update({
+                where: { type: 'CONTRACT_RENEWED' },
+                data: {
+                    appMessage: '✅ Renovación Automática: {clientName} - {wpName}',
+                    emailSubject: '✅ Renovación Automática: {clientName} - {wpName}',
+                    emailMessage: 'Se ha renovado automáticamente el WP "{wpName}" hasta el {endDate} con un incremento del {ipcValue}% (Tarifa: {newRate}€).'
+                }
+            });
+            results.push("✅ Plantilla CONTRACT_RENEWED actualizada.");
+        }
+
         results.push("🚀 Proceso completado con éxito.");
     } catch (error: any) {
         results.push(`❌ ERROR CRÍTICO: ${error.message}`);

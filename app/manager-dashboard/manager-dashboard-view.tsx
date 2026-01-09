@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { Calendar, ArrowRight, Building2, LayoutDashboard } from "lucide-react";
+import { Calendar, ArrowRight, Building2, LayoutDashboard, History, Zap, TrendingUp, Info } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getWorkPackages } from "@/app/actions/work-packages";
+import { getMyNotifications, markNotificationAsRead } from "@/app/actions/notifications";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
     user: any;
@@ -23,11 +26,17 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
     const [workPackages, setWorkPackages] = useState<any[]>([]);
     const [isLoadingWPs, setIsLoadingWPs] = useState(false);
 
+    // Renewal popup state
+    const [showRenewalPopup, setShowRenewalPopup] = useState(false);
+    const [renewalData, setRenewalData] = useState<any>(null);
+    const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
+
     // Fetch WPs when client changes
     useEffect(() => {
         if (selectedClientId) {
             setIsLoadingWPs(true);
             setSelectedWpId("");
+            setSelectedPeriodId(null);
             getWorkPackages({ clientId: selectedClientId, status: "all" })
                 .then(wps => {
                     setWorkPackages(wps);
@@ -41,8 +50,44 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
         } else {
             setWorkPackages([]);
             setSelectedWpId("");
+            setSelectedPeriodId(null);
         }
     }, [selectedClientId]);
+
+    // Detect unread renewal notifications for the Manager
+    useEffect(() => {
+        if (user?.id) {
+            getMyNotifications(user.id).then(notifs => {
+                const renewalNotif = notifs.find(n => n.type === 'CONTRACT_RENEWED' && !n.isRead);
+                if (renewalNotif) {
+                    const wpId = renewalNotif.relatedId;
+                    if (wpId) {
+                        import("@/app/actions/work-packages").then(mod => {
+                            mod.getWorkPackageById(wpId).then(wp => {
+                                if (wp && wp.validityPeriods.length >= 2) {
+                                    setRenewalData({
+                                        notificationId: renewalNotif.id,
+                                        wpName: wp.name,
+                                        newPeriod: wp.validityPeriods[0],
+                                        oldPeriod: wp.validityPeriods[1]
+                                    });
+                                    setShowRenewalPopup(true);
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        }
+    }, [user?.id]);
+
+    const handleCloseRenewalPopup = async () => {
+        if (renewalData?.notificationId) {
+            await markNotificationAsRead(renewalData.notificationId);
+        }
+        setShowRenewalPopup(false);
+        setRenewalData(null);
+    };
 
     const selectedWP = workPackages.find(wp => wp.id === selectedWpId);
     const selectedClient = clients.find(c => c.id === selectedClientId);
@@ -86,7 +131,7 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
     }
 
     return (
-        <div className="bg-gradient-to-br from-slate-50 to-blue-100 p-8">
+        <div className="bg-gradient-to-br from-slate-50 to-blue-100 p-8 min-h-screen">
             <div className="max-w-5xl mx-auto">
                 <div className="mb-8 flex justify-between items-end">
                     <div>
@@ -163,43 +208,112 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                             </div>
 
                             {selectedWpId && selectedWP && (() => {
-                                // Get current validity period
                                 const now = new Date();
-                                const currentPeriod = (selectedWP as any).validityPeriods?.find((vp: any) =>
-                                    new Date(vp.startDate) <= now && new Date(vp.endDate) >= now
+                                const periods = [...(selectedWP as any).validityPeriods].sort((a: any, b: any) =>
+                                    new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
                                 );
 
+                                const currentActualPeriod = periods.find((vp: any) =>
+                                    new Date(vp.startDate) <= now && new Date(vp.endDate) >= now
+                                ) || periods[0];
+
+                                const displayPeriod = selectedPeriodId
+                                    ? periods.find((p: any) => p.id === selectedPeriodId)
+                                    : currentActualPeriod;
+
                                 return (
-                                    <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                            <span className="w-1.5 h-4 bg-malachite rounded-full" />
-                                            Detalles del Work Package
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Modalidad</p>
-                                                <p className="text-sm text-slate-700 font-semibold">{selectedWP.contractType}</p>
+                                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+                                        <div className="bg-slate-50/80 p-4 border-b border-slate-100 flex items-center justify-between">
+                                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                                <History className="w-4 h-4 text-malachite" />
+                                                Ficha del Servicio y Vigencias
+                                            </h3>
+                                            <Badge variant="outline" className="bg-white text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                {periods.length} Períodos registrados
+                                            </Badge>
+                                        </div>
+
+                                        {/* Visual Timeline / Periods Grid */}
+                                        <div className="p-6">
+                                            <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+                                                {periods.map((period: any, idx: number) => {
+                                                    const isCurrent = period.id === currentActualPeriod?.id;
+                                                    const isSelected = period.id === displayPeriod?.id;
+                                                    const isPast = new Date(period.endDate) < now;
+
+                                                    return (
+                                                        <button
+                                                            key={period.id}
+                                                            onClick={() => setSelectedPeriodId(period.id)}
+                                                            className={`flex-shrink-0 w-48 text-left p-4 rounded-xl border-2 transition-all hover:border-malachite/50 ${isSelected
+                                                                    ? 'border-malachite bg-malachite/5 ring-4 ring-malachite/10'
+                                                                    : 'border-slate-50 bg-slate-50/30'
+                                                                }`}
+                                                        >
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${isCurrent ? 'bg-malachite text-white' : 'bg-slate-200 text-slate-500'
+                                                                    }`}>
+                                                                    {isCurrent ? 'Actual' : isPast ? 'Pasado' : 'Próximo'}
+                                                                </span>
+                                                                <p className="text-[10px] font-bold text-slate-400">
+                                                                    #{periods.length - idx}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs font-bold text-slate-700 mb-1">
+                                                                {formatDate(period.startDate, { month: 'short', year: 'numeric' })}
+                                                            </p>
+                                                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                                                                <span>{formatDate(period.startDate, { day: '2-digit', month: '2-digit' })}</span>
+                                                                <ArrowRight className="w-2 h-2" />
+                                                                <span>{formatDate(period.endDate, { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Facturación</p>
-                                                <p className="text-sm text-slate-700 font-semibold">{selectedWP.billingType}</p>
-                                            </div>
-                                            {currentPeriod?.regularizationType && (
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Regularización</p>
-                                                    <p className="text-sm text-slate-700 font-semibold">{currentPeriod.regularizationType}</p>
+
+                                            {/* characteristics of current/selected period */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 relative">
+                                                <div className="absolute -top-3 left-6 px-2 bg-white text-[10px] font-black text-malachite uppercase tracking-widest border border-slate-100 rounded">
+                                                    Detalles Periodo {displayPeriod?.id === currentActualPeriod?.id ? 'Vigente' : 'Seleccionado'}
                                                 </div>
-                                            )}
-                                            {currentPeriod && (
-                                                <div className="col-span-full pt-4 border-t border-slate-200/50">
-                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Periodo de Vigencia</p>
-                                                    <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-slate-200 text-sm font-medium text-slate-600">
-                                                        {formatDate(currentPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                        <ArrowRight className="w-3 h-3 text-slate-300" />
-                                                        {formatDate(currentPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Modalidad</p>
+                                                    <p className="text-sm text-slate-700 font-bold">{selectedWP.contractType}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Facturación</p>
+                                                    <p className="text-sm text-slate-700 font-bold">{selectedWP.billingType}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Base</p>
+                                                    <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rate.toFixed(2)}€ / {displayPeriod?.scopeUnit === 'HORAS' ? 'h' : 'u'}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Volumen</p>
+                                                    <p className="text-sm text-slate-700 font-bold">{displayPeriod?.totalQuantity} {displayPeriod?.scopeUnit}</p>
+                                                </div>
+
+                                                <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pt-4 border-t border-slate-200/50 mt-2">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Regularización</p>
+                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.regularizationType || 'N/A'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Excedentes</p>
+                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.surplusStrategy || 'Estándar'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Evolutivo</p>
+                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rateEvolutivo ? `${displayPeriod.rateEvolutivo.toFixed(2)}€` : 'Misma tarifa'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Premium / Plus</p>
+                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.isPremium ? `Sí (${displayPeriod.premiumPrice}€)` : 'No'}</p>
                                                     </div>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -257,6 +371,99 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                     </Card>
                 </div>
             </div>
+
+            {/* Renewal Comparison Popup */}
+            <Dialog open={showRenewalPopup} onOpenChange={setShowRenewalPopup}>
+                <DialogContent className="max-w-2xl border-none shadow-2xl bg-white/95 backdrop-blur-md p-0 overflow-hidden">
+                    <div className="bg-malachite p-6 text-white relative">
+                        <Zap className="absolute top-4 right-4 h-12 w-12 opacity-20" />
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black flex items-center gap-2">
+                                <TrendingUp className="h-6 w-6" />
+                                CONTRATO RENOVADO
+                            </DialogTitle>
+                            <DialogDescription className="text-malachite-foreground/80 font-medium">
+                                Se han actualizado las condiciones del servicio para {renewalData?.wpName}
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="p-8 space-y-8">
+                        <div className="flex items-center justify-between text-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Periodo Anterior</p>
+                                <p className="text-sm font-bold text-slate-600">
+                                    {renewalData?.oldPeriod ? formatDate(renewalData.oldPeriod.endDate, { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                                </p>
+                            </div>
+                            <ArrowRight className="h-6 w-6 text-slate-300" />
+                            <div>
+                                <p className="text-[10px] text-malachite font-black uppercase tracking-widest mb-1">Nuevo Periodo</p>
+                                <p className="text-sm font-bold text-slate-900">
+                                    {renewalData?.newPeriod ? formatDate(renewalData.newPeriod.endDate, { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Info className="h-3 w-3" />
+                                    Cambios en Tarifa
+                                </h4>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-xs text-slate-500">Tarifa Base</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-slate-400 line-through">{renewalData?.oldPeriod?.rate.toFixed(2)}€</span>
+                                            <span className="text-sm font-bold text-slate-900">{renewalData?.newPeriod?.rate.toFixed(2)}€</span>
+                                        </div>
+                                    </div>
+                                    {renewalData?.newPeriod?.rate > renewalData?.oldPeriod?.rate && (
+                                        <div className="bg-malachite/10 px-3 py-1 rounded-full w-fit">
+                                            <span className="text-[10px] font-bold text-malachite-dark flex items-center gap-1">
+                                                <TrendingUp className="h-2.5 w-2.5" />
+                                                +{((renewalData.newPeriod.rate / renewalData.oldPeriod.rate - 1) * 100).toFixed(1)}% incremento
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Info className="h-3 w-3" />
+                                    Volumen Contratado
+                                </h4>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-xs text-slate-500">{renewalData?.newPeriod?.scopeUnit}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-slate-400 line-through">{renewalData?.oldPeriod?.totalQuantity}</span>
+                                            <span className="text-sm font-bold text-slate-900">{renewalData?.newPeriod?.totalQuantity}</span>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className="text-[10px] font-bold text-slate-400">
+                                        {renewalData?.newPeriod?.regularizationType || 'Sin regularización'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="p-6 bg-slate-50 border-t items-center sm:justify-between gap-4">
+                        <p className="text-[10px] text-slate-400 max-w-[280px]">
+                            Al cerrar este aviso se marcará como leído y no volverá a aparecer.
+                        </p>
+                        <Button
+                            onClick={handleCloseRenewalPopup}
+                            className="bg-slate-900 hover:bg-black px-8 font-bold"
+                        >
+                            Entendido
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

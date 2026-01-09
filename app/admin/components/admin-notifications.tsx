@@ -19,7 +19,8 @@ import { useTranslations } from "@/lib/use-translations";
 import {
     getMyNotifications,
     getUnreadNotificationsCount,
-    markNotificationAsRead
+    markNotificationAsRead,
+    markAllNotificationsAsRead
 } from "@/app/actions/notifications";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, Check } from "lucide-react";
@@ -111,7 +112,7 @@ export function AdminNotifications({ userId }: AdminNotificationsProps) {
                             onClick={() => setActiveTab('system')}
                             className="text-xs relative"
                         >
-                            Sistema
+                            Notificaciones
                             {unreadCount > 0 && (
                                 <span className="ml-1.5 px-1.5 py-0.5 bg-malachite/20 text-malachite-dark rounded-full text-[10px] font-bold">
                                     {unreadCount}
@@ -204,6 +205,21 @@ export function AdminNotifications({ userId }: AdminNotificationsProps) {
                                 </div>
                             )}
                         </ScrollArea>
+                        {notifications.length > 0 && unreadCount > 0 && (
+                            <div className="p-2 bg-slate-50 border-t">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-[11px] font-bold text-slate-500 hover:text-malachite"
+                                    onClick={async () => {
+                                        await markAllNotificationsAsRead(userId);
+                                        fetchData();
+                                    }}
+                                >
+                                    Marcar todas como leídas
+                                </Button>
+                            </div>
+                        )}
                     </TabsContent>
                 </Tabs>
             </DropdownMenuContent>
