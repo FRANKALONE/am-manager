@@ -23,6 +23,7 @@ export function JiraRequestsTable({ pendingRequests, historyRequests, currentUse
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
     const [debugData, setDebugData] = useState(false);
+    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
 
     console.log("[JiraRequestsTable] Props:", { pendingRequests, historyRequests });
 
@@ -170,13 +171,25 @@ export function JiraRequestsTable({ pendingRequests, historyRequests, currentUse
                 </pre>
             )}
             <TabsList className="mb-4">
-                <TabsTrigger value="pending">Pendientes ({pendingRequests.length})</TabsTrigger>
-                <TabsTrigger value="history">Historial</TabsTrigger>
+                <TabsTrigger
+                    value="pending"
+                    active={activeTab === 'pending'}
+                    onClick={() => setActiveTab('pending')}
+                >
+                    Pendientes ({pendingRequests.length})
+                </TabsTrigger>
+                <TabsTrigger
+                    value="history"
+                    active={activeTab === 'history'}
+                    onClick={() => setActiveTab('history')}
+                >
+                    Historial
+                </TabsTrigger>
             </TabsList>
-            <TabsContent value="pending">
+            <TabsContent value="pending" active={activeTab === 'pending'}>
                 {renderTable(pendingRequests, false)}
             </TabsContent>
-            <TabsContent value="history">
+            <TabsContent value="history" active={activeTab === 'history'}>
                 {renderTable(historyRequests, true)}
             </TabsContent>
         </Tabs>
