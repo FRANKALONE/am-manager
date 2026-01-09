@@ -112,7 +112,7 @@ export function NotificationsManagerView({ initialSettings }: { initialSettings:
                                                 onClick={() => setEditingTemplate(setting)}
                                             >
                                                 <Code className="w-3.5 h-3.5 mr-1.5" />
-                                                Plantillas
+                                                Configurar
                                             </Button>
                                         </div>
                                     </div>
@@ -160,6 +160,7 @@ export function NotificationsManagerView({ initialSettings }: { initialSettings:
                     appMessage: editingTemplate.appMessage || "",
                     emailSubject: editingTemplate.emailSubject || "",
                     emailMessage: editingTemplate.emailMessage || "",
+                    roles: editingTemplate.roles,
                     type: editingTemplate.type
                 } : null}
             />

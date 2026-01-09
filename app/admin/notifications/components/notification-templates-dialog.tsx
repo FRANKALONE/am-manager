@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Mail, AppWindow, Code } from "lucide-react";
+import { Info, Mail, AppWindow, Code, ShieldCheck } from "lucide-react";
 
 interface TemplateData {
     id: string;
@@ -15,6 +15,7 @@ interface TemplateData {
     appMessage: string;
     emailSubject: string;
     emailMessage: string;
+    roles: string;
     type: string;
 }
 
@@ -28,13 +29,15 @@ interface NotificationTemplatesDialogProps {
 export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template }: NotificationTemplatesDialogProps) {
     const [formData, setFormData] = useState<Partial<TemplateData>>({});
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState("app");
 
     useEffect(() => {
         if (template) {
             setFormData({
                 appMessage: template.appMessage || "",
                 emailSubject: template.emailSubject || "",
-                emailMessage: template.emailMessage || ""
+                emailMessage: template.emailMessage || "",
+                roles: template.roles || ""
             });
         }
     }, [template]);
@@ -67,25 +70,43 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Code className="w-5 h-5 text-indigo-500" />
-                        Editar Plantillas: {template?.title}
+                        Configurar Notificación: {template?.title}
                     </DialogTitle>
                     <DialogDescription>
-                        Personaliza los mensajes que verán los usuarios. Usa llaves para datos dinámicos.
+                        Personaliza los destinatarios y mensajes del flujo.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
                     <Tabs defaultValue="app" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1">
-                            <TabsTrigger value="app" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsList className="grid w-full grid-cols-3 bg-slate-100 p-1">
+                            <TabsTrigger
+                                value="app"
+                                active={activeTab === 'app'}
+                                onClick={() => setActiveTab('app')}
+                                className="flex items-center gap-2"
+                            >
                                 <AppWindow className="w-4 h-4" /> App
                             </TabsTrigger>
-                            <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                            <TabsTrigger
+                                value="email"
+                                active={activeTab === 'email'}
+                                onClick={() => setActiveTab('email')}
+                                className="flex items-center gap-2"
+                            >
                                 <Mail className="w-4 h-4" /> Email
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="roles"
+                                active={activeTab === 'roles'}
+                                onClick={() => setActiveTab('roles')}
+                                className="flex items-center gap-2"
+                            >
+                                <ShieldCheck className="w-4 h-4" /> Roles
                             </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="app" className="space-y-4 pt-4 border-none shadow-none">
+                        <TabsContent value="app" active={activeTab === 'app'} className="space-y-4 pt-4 border-none shadow-none">
                             <div className="space-y-2">
                                 <Label className="text-slate-700 font-bold">Mensaje en la App</Label>
                                 <Textarea
@@ -98,7 +119,7 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="email" className="space-y-4 pt-4 border-none shadow-none">
+                        <TabsContent value="email" active={activeTab === 'email'} className="space-y-4 pt-4 border-none shadow-none">
                             <div className="space-y-2">
                                 <Label className="text-slate-700 font-bold">Asunto del Email</Label>
                                 <Input
@@ -117,6 +138,25 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
                                     className="min-h-[150px] bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                 />
                                 <p className="text-[10px] text-slate-400">El sistema añadirá automáticamente el saludo "Hola [Nombre]" y un pie de página estándar.</p>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="roles" active={activeTab === 'roles'} className="space-y-4 pt-4 border-none shadow-none">
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 font-bold">Roles de Destinatarios</Label>
+                                <Input
+                                    value={formData.roles}
+                                    onChange={e => setFormData(prev => ({ ...prev, roles: e.target.value.toUpperCase() }))}
+                                    placeholder="Ej: ADMIN, GERENTE, CLIENT_USER"
+                                    className="bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                                        <strong>Nota:</strong> Separa los roles por comas.
+                                        Los roles estándar son: <code className="font-bold">ADMIN</code>, <code className="font-bold">GERENTE</code>, <code className="font-bold">COLABORADOR</code>, <code className="font-bold">USER</code>.
+                                        Para notificaciones de cliente, usa <code className="font-bold">USER</code> para notificar al contacto del cliente.
+                                    </p>
+                                </div>
                             </div>
                         </TabsContent>
                     </Tabs>
