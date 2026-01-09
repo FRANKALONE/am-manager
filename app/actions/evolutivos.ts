@@ -140,7 +140,7 @@ export async function syncTotalEvolutivos() {
             if (filter.managerId) {
                 where.OR.push({ manager: filter.managerId });
             }
-            if (where.OR.length === 0) return { success: false, message: "No tienes clientes asignados para sincronizar" };
+            if (where.OR.length === 0) return { success: false, error: "No tienes clientes asignados para sincronizar", message: undefined };
         }
 
         const clients = await prisma.client.findMany({
@@ -174,7 +174,7 @@ export async function syncTotalEvolutivos() {
         return await syncEvolutivosByProjectKeys(Array.from(allProjectKeys));
     } catch (error: any) {
         console.error("Error in syncTotalEvolutivos:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message, message: undefined };
     }
 }
 
@@ -188,7 +188,7 @@ export async function syncClientEvolutivos(clientId: string) {
             include: { workPackages: true }
         });
 
-        if (!client) return { success: false, message: "Cliente no encontrado" };
+        if (!client) return { success: false, error: "Cliente no encontrado", message: undefined };
 
         const keys = client.workPackages
             .map(wp => wp.jiraProjectKeys)
@@ -199,7 +199,7 @@ export async function syncClientEvolutivos(clientId: string) {
 
         const projectKeys = Array.from(new Set(keys));
 
-        if (projectKeys.length === 0) return { success: false, message: "Este cliente no tiene claves de proyecto JIRA asociadas" };
+        if (projectKeys.length === 0) return { success: false, error: "Este cliente no tiene claves de proyecto JIRA asociadas", message: undefined };
 
         // Also update client.jiraProjectKey for convenience
         const uniqueKeysStr = projectKeys.join(',');
@@ -215,13 +215,13 @@ export async function syncClientEvolutivos(clientId: string) {
         return res;
     } catch (error: any) {
         console.error("Error in syncClientEvolutivos:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message, message: undefined };
     }
 }
 
 async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
     try {
-        if (projectKeys.length === 0) return { success: false, message: "No hay proyectos que sincronizar" };
+        if (projectKeys.length === 0) return { success: false, error: "No hay proyectos que sincronizar", message: undefined };
 
         const projectList = projectKeys.map(k => `"${k}"`).join(',');
 
@@ -248,7 +248,7 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
         });
 
         const allIssues = [...(evolutivosRes.issues || []), ...(hitosRes.issues || [])];
-        if (allIssues.length === 0) return { success: false, message: "No se encontraron tickets en JIRA" };
+        if (allIssues.length === 0) return { success: false, error: "No se encontraron tickets en JIRA", message: undefined };
 
         let upsertedCount = 0;
         for (const issue of allIssues) {
@@ -305,10 +305,10 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
         }
 
         revalidatePath("/dashboard/evolutivos");
-        return { success: true, message: `Sincronizados ${upsertedCount} tickets evolutivos e hitos` };
+        return { success: true, message: `Sincronizados ${upsertedCount} tickets evolutivos e hitos`, error: undefined };
     } catch (error: any) {
         console.error("Error in syncTotalEvolutivos:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message, message: undefined };
     }
 }
 

@@ -24,11 +24,11 @@ export function BulkSyncEvolutivosManager() {
         try {
             const res = await syncTotalEvolutivos();
             if (res.success) {
-                const msg = res.message || t('import.evolutivos.toast.success');
+                const msg = (res as any).message || t('import.evolutivos.toast.success');
                 setSuccess(msg);
                 toast.success(msg);
             } else {
-                toast.error(res.error || res.message || t('import.evolutivos.toast.error'));
+                toast.error((res as any).error || (res as any).message || t('import.evolutivos.toast.error'));
             }
         } catch (err: any) {
             toast.error(t('import.evolutivos.toast.critical'));
