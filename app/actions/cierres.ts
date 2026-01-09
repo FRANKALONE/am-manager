@@ -424,7 +424,20 @@ export async function processCierre(wpId: string, month: number, year: number, a
             const unit = regularization.workPackage.validityPeriods[0]?.scopeUnit || 'Horas';
             const title = `📈 Exceso detectado: ${regularization.workPackage.client.name}`;
             const message = `Se ha generado una regularización por exceso de ${amount.toFixed(2)} ${unit} en el WP "${regularization.workPackage.name}" durante el cierre de ${month}/${year}. Ya puedes descargar el reporte detallado en PDF desde el panel de cierres.`;
-            await createNotification(managerId, "SURPLUS_DETECTED", title, message, regularization.id.toString());
+            await createNotification(
+                "SURPLUS_DETECTED",
+                {
+                    clientName: regularization.workPackage.client.name,
+                    amount: amount.toFixed(2),
+                    unit,
+                    wpName: regularization.workPackage.name,
+                    month,
+                    year
+                },
+                regularization.id.toString(),
+                regularization.workPackage.clientId,
+                managerId
+            );
         }
 
         // 3. Re-scan to update WP total hours if needed (handled by sync normally)
