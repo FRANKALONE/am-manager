@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 
-export function EmailSettingsForm({ initialSettings }: { initialSettings: Record<string, string> }) {
+export function EmailSettingsForm({ initialSettings, t }: { initialSettings: Record<string, string>, t: any }) {
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState({
         SMTP_HOST: initialSettings.SMTP_HOST || "",
@@ -42,80 +42,40 @@ export function EmailSettingsForm({ initialSettings }: { initialSettings: Record
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                    <Label htmlFor="SMTP_HOST">Host SMTP</Label>
-                    <Input
-                        id="SMTP_HOST"
-                        name="SMTP_HOST"
-                        value={settings.SMTP_HOST}
-                        onChange={handleChange}
-                        placeholder="smtp.example.com"
-                    />
+                    <Label htmlFor="SMTP_HOST">{t('admin.emails.settings.host')}</Label>
+                    <Input id="SMTP_HOST" name="SMTP_HOST" value={settings.SMTP_HOST} onChange={handleChange} placeholder="smtp.office365.com" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="SMTP_PORT">Puerto SMTP</Label>
-                    <Input
-                        id="SMTP_PORT"
-                        name="SMTP_PORT"
-                        value={settings.SMTP_PORT}
-                        onChange={handleChange}
-                        placeholder="587"
-                    />
+                    <Label htmlFor="SMTP_PORT">{t('admin.emails.settings.port')}</Label>
+                    <Input id="SMTP_PORT" name="SMTP_PORT" value={settings.SMTP_PORT} onChange={handleChange} placeholder="587" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="SMTP_USER">Usuario SMTP</Label>
-                    <Input
-                        id="SMTP_USER"
-                        name="SMTP_USER"
-                        value={settings.SMTP_USER}
-                        onChange={handleChange}
-                        placeholder="usuario@dominio.com"
-                    />
+                    <Label htmlFor="SMTP_USER">{t('admin.emails.settings.user')}</Label>
+                    <Input id="SMTP_USER" name="SMTP_USER" value={settings.SMTP_USER} onChange={handleChange} placeholder="user@domain.com" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="SMTP_PASS">Contraseña SMTP</Label>
-                    <Input
-                        id="SMTP_PASS"
-                        name="SMTP_PASS"
-                        type="password"
-                        value={settings.SMTP_PASS}
-                        onChange={handleChange}
-                        placeholder="••••••••"
-                    />
+                    <Label htmlFor="SMTP_PASS">{t('admin.emails.settings.pass')}</Label>
+                    <Input id="SMTP_PASS" name="SMTP_PASS" type="password" value={settings.SMTP_PASS} onChange={handleChange} placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="SMTP_FROM">Remitente (Email)</Label>
-                    <Input
-                        id="SMTP_FROM"
-                        name="SMTP_FROM"
-                        value={settings.SMTP_FROM}
-                        onChange={handleChange}
-                        placeholder="no-reply@dominio.com"
-                    />
+                    <Label htmlFor="SMTP_FROM">{t('admin.emails.settings.from')}</Label>
+                    <Input id="SMTP_FROM" name="SMTP_FROM" value={settings.SMTP_FROM} onChange={handleChange} placeholder="no-reply@domain.com" />
                 </div>
             </div>
 
-            <div className="border-t pt-6">
-                <div className="space-y-2">
-                    <Label htmlFor="EMAIL_REDIRECT_GLOBAL" className="text-blue-600 font-bold">Email de Redirección Global (Override)</Label>
-                    <Input
-                        id="EMAIL_REDIRECT_GLOBAL"
-                        name="EMAIL_REDIRECT_GLOBAL"
-                        value={settings.EMAIL_REDIRECT_GLOBAL}
-                        onChange={handleChange}
-                        placeholder="Si se rellena, todos los correos irán aquí para pruebas"
-                        className="border-blue-200"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                        Si este campo tiene un valor, **ningún usuario real recibirá correos**. Todos los envíos se desviarán a esta dirección. Déjalo vacío para envíos reales.
-                    </p>
-                </div>
+            <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="EMAIL_REDIRECT_GLOBAL">{t('admin.emails.settings.redirect')}</Label>
+                <Input id="EMAIL_REDIRECT_GLOBAL" name="EMAIL_REDIRECT_GLOBAL" value={settings.EMAIL_REDIRECT_GLOBAL} onChange={handleChange} placeholder="test@domain.com" />
+                <p className="text-xs text-muted-foreground italic">
+                    {t('admin.emails.settings.redirectHelp')}
+                </p>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full md:w-auto">
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Guardar Configuración
+                {t('admin.emails.settings.save')}
             </Button>
         </form>
     );

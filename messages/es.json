@@ -287,6 +287,43 @@
             "viewAll": "Ver todas",
             "empty": "No hay reclamaciones pendientes",
             "from": "De: {name}"
+        },
+        "emails": {
+            "title": "Gestión de Emails",
+            "subtitle": "Configura el servidor de correo y consulta el historial de envíos.",
+            "tabs": {
+                "settings": "Configuración",
+                "logs": "Logs de Envío"
+            },
+            "settings": {
+                "title": "Configuración SMTP y Redirección",
+                "description": "Los valores guardados aquí prevalecen sobre el archivo .env",
+                "host": "Host SMTP",
+                "port": "Puerto SMTP",
+                "user": "Usuario SMTP",
+                "pass": "Contraseña SMTP",
+                "from": "Email Remitente",
+                "redirect": "Email de Redirección Global (Override)",
+                "redirectHelp": "Si se configura, TODOS los correos se enviarán aquí para pruebas.",
+                "save": "Guardar Configuración"
+            },
+            "logs": {
+                "title": "Historial de Envíos",
+                "description": "Últimos 50 correos electrónicos intentados desde la aplicación.",
+                "table": {
+                    "date": "Fecha",
+                    "to": "Destinatario",
+                    "subject": "Asunto",
+                    "status": "Estado",
+                    "actions": "Acciones"
+                },
+                "status": {
+                    "success": "Éxito",
+                    "failed": "Fallido",
+                    "simulated": "Simulado"
+                },
+                "clear": "Limpiar Logs"
+            }
         }
     },
     "help": {
@@ -819,7 +856,8 @@
         "settings": "Configuración",
         "documentation": "Documentación",
         "claims": "Reclamaciones",
-        "notifications": "Notificaciones"
+        "notifications": "Notificaciones",
+        "emails": "Gestión de Emails"
     },
     "errors": {
         "required": "{field} es obligatorio",

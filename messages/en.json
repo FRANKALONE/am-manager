@@ -261,6 +261,43 @@
             "empty": "No pending claims",
             "from": "From: {name}"
         },
+        "emails": {
+            "title": "Email Management",
+            "subtitle": "Configure SMTP server and view transmission logs.",
+            "tabs": {
+                "settings": "Configuration",
+                "logs": "Transmission Logs"
+            },
+            "settings": {
+                "title": "SMTP Configuration & Redirection",
+                "description": "Saved values here override .env file settings.",
+                "host": "SMTP Host",
+                "port": "SMTP Port",
+                "user": "SMTP User",
+                "pass": "SMTP Password",
+                "from": "Sender Email",
+                "redirect": "Global Redirect Email (Override)",
+                "redirectHelp": "If set, ALL outgoing emails will be sent here for testing.",
+                "save": "Save Configuration"
+            },
+            "logs": {
+                "title": "Transmission History",
+                "description": "Last 50 emails attempted from the application.",
+                "table": {
+                    "date": "Date",
+                    "to": "Recipient",
+                    "subject": "Subject",
+                    "status": "Status",
+                    "actions": "Actions"
+                },
+                "status": {
+                    "success": "Success",
+                    "failed": "Failed",
+                    "simulated": "Simulated"
+                },
+                "clear": "Clear Logs"
+            }
+        },
         "dashboard": {
             "title": "Panel de Control",
             "subtitle": "Bienvenido al Centro de Administración, {name}",
@@ -795,7 +832,8 @@
         "settings": "Settings",
         "documentation": "Documentation",
         "claims": "Claims",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "emails": "Email Management"
     },
     "errors": {
         "required": "{field} is required",
