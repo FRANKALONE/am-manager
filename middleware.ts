@@ -7,7 +7,8 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Public paths
-    if (pathname === '/login' || pathname === '/') {
+    const publicPaths = ['/login', '/', '/login/forgot-password', '/login/reset-password'];
+    if (publicPaths.includes(pathname)) {
         if (userId) {
             // If already logged in, redirect to appropriate home
             if (userRole === 'ADMIN') {

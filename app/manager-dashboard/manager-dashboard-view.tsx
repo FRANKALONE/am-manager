@@ -246,8 +246,8 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                                                             key={period.id}
                                                             onClick={() => setSelectedPeriodId(period.id)}
                                                             className={`flex-shrink-0 w-48 text-left p-4 rounded-xl border-2 transition-all hover:border-malachite/50 ${isSelected
-                                                                    ? 'border-malachite bg-malachite/5 ring-4 ring-malachite/10'
-                                                                    : 'border-slate-50 bg-slate-50/30'
+                                                                ? 'border-malachite bg-malachite/5 ring-4 ring-malachite/10'
+                                                                : 'border-slate-50 bg-slate-50/30'
                                                                 }`}
                                                         >
                                                             <div className="flex justify-between items-start mb-2">
@@ -286,10 +286,12 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                                                     <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Facturación</p>
                                                     <p className="text-sm text-slate-700 font-bold">{selectedWP.billingType}</p>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Base</p>
-                                                    <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rate.toFixed(2)}€ / {displayPeriod?.scopeUnit === 'HORAS' ? 'h' : 'u'}</p>
-                                                </div>
+                                                {permissions.view_costs && (
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Base</p>
+                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rate.toFixed(2)}€ / {displayPeriod?.scopeUnit === 'HORAS' ? 'h' : 'u'}</p>
+                                                    </div>
+                                                )}
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Volumen</p>
                                                     <p className="text-sm text-slate-700 font-bold">{displayPeriod?.totalQuantity} {displayPeriod?.scopeUnit}</p>
@@ -304,14 +306,18 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                                                         <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Excedentes</p>
                                                         <p className="text-sm text-slate-700 font-bold">{displayPeriod?.surplusStrategy || 'Estándar'}</p>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Evolutivo</p>
-                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rateEvolutivo ? `${displayPeriod.rateEvolutivo.toFixed(2)}€` : 'Misma tarifa'}</p>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Premium / Plus</p>
-                                                        <p className="text-sm text-slate-700 font-bold">{displayPeriod?.isPremium ? `Sí (${displayPeriod.premiumPrice}€)` : 'No'}</p>
-                                                    </div>
+                                                    {permissions.view_costs && (
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Tarifa Evolutivo</p>
+                                                            <p className="text-sm text-slate-700 font-bold">{displayPeriod?.rateEvolutivo ? `${displayPeriod.rateEvolutivo.toFixed(2)}€` : 'Misma tarifa'}</p>
+                                                        </div>
+                                                    )}
+                                                    {permissions.view_costs && (
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Premium / Plus</p>
+                                                            <p className="text-sm text-slate-700 font-bold">{displayPeriod?.isPremium ? `Sí (${displayPeriod.premiumPrice}€)` : 'No'}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

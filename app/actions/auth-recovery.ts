@@ -15,12 +15,27 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
 
     try {
         const user = await prisma.user.findUnique({
-            where: { email }
+            where: { email },
+            include: {
+                client: true
+            }
         });
 
-        // For security, don't reveal if user exists or not
-        if (!user) {
-            return { success: true, message: "Si el email existe en nuestra base de datos, recibirás un enlace de recuperación próximamente." };
+        // Check if user exists and if their role is active
+        // If user has no role (shouldn't happen) or role is inactive, we return generic success
+        let isEnabled = false;
+        if (user) {
+            const role = await prisma.role.findUnique({
+                where: { name: user.role }
+            });
+            if (role?.isActive) {
+                isEnabled = true;
+            }
+        }
+
+        // For security, don't reveal if user exists or is enabled
+        if (!user || !isEnabled) {
+            return { success: true, message: "Si el email existe en nuestra base de datos y está habilitado, recibirás un enlace de recuperación próximamente." };
         }
 
         // Generate token
