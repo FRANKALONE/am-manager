@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchTempoAccountId } from "@/lib/tempo-helper";
-import { getNow, getStartOfToday } from "@/lib/date-utils";
+import { getNow, getStartOfToday, formatDate } from "@/lib/date-utils";
 import { getTranslations } from "@/lib/get-translations";
+import { notifyRenewal } from "./notifications";
 // import { syncWorkPackage } from "./sync";
 
 export type WorkPackageFilters = {
@@ -459,6 +460,16 @@ export async function addValidityPeriod(
                 rateEvolutivo
             }
         });
+
+        const endDateFormat = formatDate(endDate, { year: 'numeric', month: '2-digit', day: '2-digit' });
+        await notifyRenewal(wpId, 'NEW_CONDITIONS', {
+            endDate: endDateFormat,
+            rate: rate.toFixed(2),
+            quantity: totalQuantity,
+            unit: scopeUnit,
+            startDate: formatDate(startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })
+        });
+
         revalidatePath(`/admin/work-packages/${wpId}/edit`);
         return { success: true };
     } catch (error) {

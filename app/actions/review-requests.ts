@@ -27,46 +27,22 @@ export async function createReviewRequest(
 
         console.log('[DEBUG] Review request created:', reviewRequest.id);
 
-        // Notify administrators
-        const admins = await prisma.user.findMany({
-            where: {
-                role: "ADMIN"
-            }
-        });
-
-        const wp = await prisma.workPackage.findUnique({
-            where: { id: wpId },
-            select: { name: true }
-        });
-
-        const { t } = await getTranslations();
-
-        for (const admin of admins) {
-            await createNotification(
-                admin.id,
-                "REVIEW_REQUEST_CREATED",
-                t('notifications.titles.reviewCreated'),
-                t('notifications.messages.reviewCreated', { count: worklogs.length, wp: wp?.name || wpId }),
-                reviewRequest.id
-            );
-        }
-
-        // Notify Manager if assigned
+        // Notify administrators and manager
         const wpFull = await prisma.workPackage.findUnique({
             where: { id: wpId },
             include: { client: true }
         });
-        const managerId = wpFull?.client.manager;
-        if (managerId && !admins.some(a => a.id === managerId)) {
-            const { t } = await getTranslations();
-            await createNotification(
-                managerId,
-                "REVIEW_REQUEST_CREATED",
-                t('notifications.titles.reviewCreatedAssigned'),
-                t('notifications.messages.reviewCreatedAssigned', { count: worklogs.length, wp: wp?.name || wpId }),
-                reviewRequest.id
-            );
-        }
+
+        await createNotification(
+            "REVIEW_REQUEST_CREATED",
+            {
+                count: worklogs.length,
+                wpName: wpFull?.name || wpId,
+                clientName: wpFull?.client.name || ''
+            },
+            reviewRequest.id,
+            wpFull?.clientId || undefined
+        );
 
         revalidatePath("/admin/review-requests");
         return { success: true, id: reviewRequest.id };
@@ -277,25 +253,28 @@ export async function approveReviewRequest(
         const { t } = await getTranslations();
         // 3. Notify the user
         await createNotification(
-            request.requestedBy,
             "REVIEW_APPROVED",
-            t('notifications.titles.reviewApproved'),
-            t('notifications.messages.reviewApproved', { count: approvedWorklogIds.length, notes }),
-            request.id
+            {
+                count: approvedWorklogIds.length,
+                notes
+            },
+            request.id,
+            currentRequest.workPackage.clientId || undefined,
+            request.requestedBy
         );
 
+        // 4. Notify Manager of decision
         if (currentRequest.workPackage.clientId) {
-            const client = await prisma.client.findUnique({ where: { id: currentRequest.workPackage.clientId } });
-            if (client?.manager) {
-                const { t } = await getTranslations();
-                await createNotification(
-                    client.manager,
-                    "REVIEW_DECIDED",
-                    t('notifications.titles.reviewDecidedApproved'),
-                    t('notifications.messages.reviewDecidedApproved', { wp: currentRequest.workPackage.name, notes }),
-                    request.id
-                );
-            }
+            await createNotification(
+                "REVIEW_DECIDED",
+                {
+                    wpName: currentRequest.workPackage.name,
+                    status: 'Aprobada',
+                    notes
+                },
+                request.id,
+                currentRequest.workPackage.clientId
+            );
         }
 
         revalidatePath("/admin/review-requests");
@@ -325,28 +304,30 @@ export async function rejectReviewRequest(id: string, reviewedBy: string, notes:
             }
         });
 
-        const { t } = await getTranslations();
+        // 1. Notify the requester
+        const wp = await prisma.workPackage.findFirst({
+            where: { reviewRequests: { some: { id } } }
+        });
+
         await createNotification(
-            request.requestedBy,
             "REVIEW_REJECTED",
-            t('notifications.titles.reviewRejected'),
-            t('notifications.messages.reviewRejected', { notes }),
-            request.id
+            { notes },
+            request.id,
+            wp?.clientId || undefined,
+            request.requestedBy
         );
 
-        // Notify Manager of the decision
-        const wp = await prisma.workPackage.findFirst({
-            where: { reviewRequests: { some: { id } } },
-            include: { client: true }
-        });
-        if (wp?.client.manager) {
-            const { t } = await getTranslations();
+        // 2. Notify Manager of decision
+        if (wp?.clientId) {
             await createNotification(
-                wp.client.manager,
                 "REVIEW_DECIDED",
-                t('notifications.titles.reviewDecidedRejected'),
-                t('notifications.messages.reviewDecidedRejected', { wp: wp.name, notes }),
-                request.id
+                {
+                    wpName: wp.name,
+                    status: 'Rechazada',
+                    notes
+                },
+                request.id,
+                wp.clientId
             );
         }
 

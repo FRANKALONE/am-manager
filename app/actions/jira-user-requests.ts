@@ -30,33 +30,21 @@ export async function createJiraUserRequest(data: {
 
         // Notify admins
         try {
-            const { t } = await getTranslations();
-            const admins = await prisma.user.findMany({
-                where: { role: "ADMIN" }
-            });
-
-            const title = t('notifications.titles.jiraUserRequestCreated');
-
             // Get client name for the message
             const client = await prisma.client.findUnique({
                 where: { id: data.clientId },
                 select: { name: true }
             });
 
-            const message = t('notifications.messages.jiraUserRequestCreated', {
-                type: data.type === 'CREATE' ? 'Creación' : 'Eliminación',
-                client: client?.name || data.clientId
-            });
-
-            for (const admin of admins) {
-                await createNotification(
-                    admin.id,
-                    "JIRA_USER_REQUEST_CREATED",
-                    title,
-                    message,
-                    request.id
-                );
-            }
+            await createNotification(
+                "JIRA_USER_REQUEST_CREATED",
+                {
+                    type: data.type === 'CREATE' ? 'Creación' : 'Eliminación',
+                    clientName: client?.name || data.clientId
+                },
+                request.id,
+                data.clientId
+            );
         } catch (notifyError) {
             console.error("Error notifying admins about JIRA request:", notifyError);
         }
@@ -150,20 +138,13 @@ export async function handleJiraUserRequest(
 
         // Notify the requester
         try {
-            const { t } = await getTranslations();
             const type = status === 'APPROVED' ? 'JIRA_USER_REQUEST_APPROVED' : 'JIRA_USER_REQUEST_REJECTED';
-            const title = status === 'APPROVED' ? t('notifications.titles.jiraUserRequestApproved') : t('notifications.titles.jiraUserRequestRejected');
-            const message = status === 'APPROVED'
-                ? t('notifications.messages.jiraUserRequestApproved', { notes: notes || '' })
-                : t('notifications.messages.jiraUserRequestRejected', { notes: notes || '' });
-
             await createNotification(
-                request.requestedBy,
                 type,
-                title,
-                message,
+                { notes: notes || '' },
                 request.id,
-                true // Send email alert
+                request.clientId,
+                request.requestedBy
             );
         } catch (notifyError) {
             console.error("Error notifying requester about JIRA request status:", notifyError);

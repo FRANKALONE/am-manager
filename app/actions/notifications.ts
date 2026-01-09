@@ -62,51 +62,108 @@ import { sendEmail } from "@/lib/mail";
 
 // Internal helper for other actions
 export async function createNotification(
-    userId: string,
     type: string,
-    title: string,
-    message: string,
+    data: Record<string, any>,
     relatedId?: string,
-    sendEmailAlert: boolean = false
+    clientId?: string,
+    recipientId?: string
 ) {
     try {
-        // Check if this notification type is enabled in general settings
+        // Fetch the notification setting
         const setting = await prisma.notificationSetting.findUnique({
             where: { type }
         });
 
-        if (setting && !setting.isEnabled) {
-            console.log(`[NOTIFICATIONS] Skipped ${type} as it is disabled in settings.`);
+        if (!setting || !setting.isEnabled) {
+            console.log(`[NOTIFICATIONS] Skipped ${type} as it is disabled or not found.`);
             return false;
         }
 
-        // Create the in-app notification
-        await prisma.notification.create({
-            data: {
-                userId,
-                type,
-                title,
-                message,
-                relatedId
-            }
-        });
+        let recipients: { id: string; email: string; name: string | null; role: string; }[] = [];
 
-        // Send email alert if requested
-        if (sendEmailAlert) {
+        if (recipientId) {
             const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { email: true, name: true }
+                where: { id: recipientId },
+                select: { id: true, email: true, name: true, role: true }
+            });
+            if (user) recipients.push(user);
+        } else {
+            // Determine recipients based on roles
+            const roleNames = setting.roles.split(',').map(r => r.trim());
+
+            // 1. All ADMINs (always receive unless roles setting excludes them)
+            // 2. If it's a client notification, include specific manager and users of that client IF their roles match the setting
+
+            let clientManagerId: string | undefined;
+            if (clientId) {
+                const client = await prisma.client.findUnique({
+                    where: { id: clientId },
+                    select: { manager: true }
+                });
+                clientManagerId = client?.manager || undefined;
+            }
+
+            const roleRecipients = await prisma.user.findMany({
+                where: {
+                    role: { in: roleNames },
+                    OR: [
+                        { role: 'ADMIN' },
+                        ...(clientId ? [
+                            { id: clientManagerId }, // Account manager
+                            { clientId: clientId }    // Client users
+                        ] : [])
+                    ]
+                },
+                select: { id: true, email: true, name: true, role: true }
+            });
+            recipients.push(...roleRecipients);
+        }
+
+        // Remove duplicates if any (could happen if manager is also admin)
+        const uniqueRecipients = Array.from(new Map(recipients.map(r => [r.id, r])).values());
+
+        // Filter if it's a client-specific notification and we have a relatedId
+        // In some cases we might need to filter by clientId. 
+        // For now, let's assume global by role unless specified.
+
+        for (const user of uniqueRecipients) {
+            // Process templates with dynamic data
+            let appMsg = setting.appMessage || "";
+            let emailSub = setting.emailSubject || setting.title;
+            let emailMsg = setting.emailMessage || "";
+
+            Object.entries(data).forEach(([key, val]) => {
+                const regex = new RegExp(`\\{${key}\\}`, 'g');
+                appMsg = appMsg.replace(regex, String(val));
+                emailSub = emailSub.replace(regex, String(val));
+                emailMsg = emailMsg.replace(regex, String(val));
             });
 
-            if (user?.email) {
+            // Handle Hola {name}
+            const userName = user.name || user.email.split('@')[0];
+            emailMsg = emailMsg.replace(/{name}/g, userName);
+
+            // Create in-app notification
+            await prisma.notification.create({
+                data: {
+                    userId: user.id,
+                    type,
+                    title: setting.title,
+                    message: appMsg,
+                    relatedId
+                }
+            });
+
+            // Send email if enabled
+            if (setting.sendEmail && user.email) {
                 await sendEmail({
                     to: user.email,
-                    subject: `${title} - AM Manager`,
+                    subject: `${emailSub} - AM Manager`,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                            <h2 style="color: #333;">${title}</h2>
-                            <p>Hola ${user.name},</p>
-                            <p>${message}</p>
+                            <h2 style="color: #333;">${emailSub}</h2>
+                            <p>Hola ${userName},</p>
+                            <p>${emailMsg}</p>
                             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                             <p style="color: #999; font-size: 12px;">Este es un aviso automático de AM Manager. Puedes gestionar tus notificaciones en la aplicación.</p>
                         </div>
@@ -129,19 +186,9 @@ export async function getNotificationSettings() {
         if (count === 0) {
             await prisma.notificationSetting.createMany({
                 data: [
-                    { type: 'LOW_BALANCE', title: 'Balance Bajo', description: 'Notifica a administradores cuando un WP tiene < 10% de balance.', group: 'CONTRACTS', roles: 'ADMIN' },
-                    { type: 'SURPLUS_DETECTED', title: 'Exceso Detectado', description: 'Notifica al gerente cuando se detecta un exceso de consumo en el cierre.', group: 'FINANCIAL', roles: 'GERENTE' },
-                    { type: 'REVIEW_REQUEST_CREATED', title: 'Nueva Reclamación', description: 'Notifica a administradores y gerentes cuando se crea una reclamación.', group: 'CLAIMS', roles: 'ADMIN,GERENTE' },
-                    { type: 'REVIEW_DECIDED', title: 'Resolución de Reclamación', description: 'Notifica al gerente cuando una reclamación es resuelta.', group: 'CLAIMS', roles: 'GERENTE' },
-                    { type: 'REVIEW_APPROVED', title: 'Reclamación Aprobada', description: 'Notifica al usuario que su reclamación ha sido aceptada.', group: 'CLAIMS', roles: 'USER' },
-                    { type: 'REVIEW_REJECTED', title: 'Reclamación Rechazada', description: 'Notifica al usuario que su reclamación ha sido rechazada.', group: 'CLAIMS', roles: 'USER' },
-                    { type: 'CONTRACT_ENDING', title: 'Vencimiento Próximo (Interno)', description: 'Aviso 45 días antes del fin de contrato.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
-                    { type: 'CONTRACT_ENDING_CLIENT', title: 'Vencimiento Próximo (Cliente)', description: 'Aviso al cliente sobre fin de contrato.', group: 'CONTRACTS', roles: 'USER' },
-                    { type: 'CONTRACT_RENEWED', title: 'Contrato Renovado', description: 'Notifica cuando un contrato ha sido renovado.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE' },
-                    { type: 'EVOLUTIVO_BILLED', title: 'Evolutivo Facturado', description: 'Notifica al gerente cuando un evolutivo es marcado como facturado.', group: 'FINANCIAL', roles: 'GERENTE' },
-                    { type: 'JIRA_USER_REQUEST_CREATED', title: 'Nueva Solicitud JIRA', description: 'Notifica a los administradores cuando un cliente solicita un cambio en usuarios JIRA.', group: 'SYSTEM', roles: 'ADMIN' },
-                    { type: 'JIRA_USER_REQUEST_APPROVED', title: 'Solicitud JIRA Aprobada', description: 'Notifica al usuario cuando su solicitud JIRA es aprobada.', group: 'SYSTEM', roles: 'USER' },
-                    { type: 'JIRA_USER_REQUEST_REJECTED', title: 'Solicitud JIRA Rechazada', description: 'Notifica al usuario cuando su solicitud JIRA es rechazada.', group: 'SYSTEM', roles: 'USER' }
+                    { type: 'LOW_BALANCE', title: 'Balance Bajo', description: 'Notifica cuando un WP tiene < 10% de balance.', group: 'CONTRACTS', roles: 'ADMIN', appMessage: 'Al WP {wpName} le queda poco balance ({balance} {unit}).', emailSubject: '⚠️ Balance Bajo: {clientName}', emailMessage: 'El contrato {wpName} tiene un balance crítico de {balance} {unit}. Por favor, revisadlo.' },
+                    { type: 'CONTRACT_RENEWED', title: 'Contrato Renovado', description: 'Notifica cuando un contrato ha sido renovado.', group: 'CONTRACTS', roles: 'ADMIN,GERENTE,COLABORADOR', appMessage: 'El contrato {wpName} se ha renovado hasta el {endDate}.', emailSubject: '✅ Contrato Renovado: {clientName}', emailMessage: 'Se ha formalizado la renovación de {wpName} hasta el {endDate}. Nuevas condiciones aplicadas.' },
+                    { type: 'JIRA_USER_REQUEST_CREATED', title: 'Nueva Solicitud JIRA', description: 'Notifica solicitudes de usuarios JIRA.', group: 'SYSTEM', roles: 'ADMIN', appMessage: 'Nueva solicitud {type} de JIRA para {clientName}.', emailSubject: 'Solicitud JIRA: {clientName}', emailMessage: 'El cliente {clientName} ha solicitado una {type} de usuario JIRA.' }
                 ]
             });
         }
@@ -155,11 +202,18 @@ export async function getNotificationSettings() {
     }
 }
 
-export async function updateNotificationSetting(id: string, isEnabled: boolean) {
+export async function updateNotificationSetting(id: string, data: {
+    isEnabled?: boolean;
+    sendEmail?: boolean;
+    roles?: string;
+    appMessage?: string;
+    emailSubject?: string;
+    emailMessage?: string;
+}) {
     try {
         await prisma.notificationSetting.update({
             where: { id },
-            data: { isEnabled }
+            data
         });
         revalidatePath("/admin/notifications");
         return { success: true };
@@ -237,12 +291,42 @@ export async function checkLowBalanceNotifications(wpId: string) {
             const message = `Al WP "${wp.name}" le quedan ${balance.toFixed(1)} ${candidate.unit} de las ${totalContractedValue.toFixed(1)} contratadas (menos del 10%). Por favor, gestionad la renovación o el PO con el cliente.`;
 
             for (const admin of admins) {
-                await createNotification(admin.id, 'LOW_BALANCE', title, message, wpId);
+                await createNotification('LOW_BALANCE', {
+                    wpName: wp.name,
+                    balance: balance.toFixed(1),
+                    unit: candidate.unit,
+                    clientName: wp.client.name
+                }, wpId);
             }
 
             console.log(`[NOTIFICATIONS] Sent low balance notification for ${wp.name} to ${admins.length} admins.`);
         }
     } catch (error) {
         console.error("Error checking low balance notifications:", error);
+    }
+}
+
+/**
+ * Specialized notification for renewals
+ */
+export async function notifyRenewal(wpId: string, renewalMode: 'IPC' | 'NEW_CONDITIONS', extraData: Record<string, any>) {
+    try {
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: { client: true }
+        });
+
+        if (!wp) return;
+
+        // Prepare data for templates
+        const data = {
+            wpName: wp.name,
+            clientName: wp.client.name,
+            ...extraData
+        };
+
+        await createNotification('CONTRACT_RENEWED', data, wpId);
+    } catch (error) {
+        console.error("Error in notifyRenewal:", error);
     }
 }

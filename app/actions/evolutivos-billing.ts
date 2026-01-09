@@ -38,11 +38,13 @@ export async function markEvolutivoAsBilled(issueKey: string, year: number, mont
             include: { client: true }
         });
 
-        if (wp?.client?.manager) {
-            const managerId = wp.client.manager;
-            const title = `🚀 Evolutivo Facturado: ${issueKey}`;
-            const message = `Se ha marcado como facturado el evolutivo ${issueKey} del cliente ${wp.client.name} para el periodo ${month}/${year}.`;
-            await createNotification(managerId, 'EVOLUTIVO_BILLED', title, message, issueKey);
+        if (wp?.client) {
+            await createNotification('EVOLUTIVO_BILLED', {
+                issueKey,
+                clientName: wp.client.name,
+                month,
+                year
+            }, issueKey, wp.clientId);
         }
 
         return { success: true };

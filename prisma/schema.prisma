@@ -274,8 +274,15 @@ model NotificationSetting {
   title       String
   description String?
   isEnabled   Boolean  @default(true)
+  sendEmail   Boolean  @default(false)
   roles       String   @default("ADMIN,GERENTE")
-  group       String   @default("GENERAL") // e.g., "FINANCIAL", "CONTRACTS", "SYSTEM"
+  group       String   @default("GENERAL")
+  
+  // Templates
+  appMessage     String?  @db.Text
+  emailSubject   String?  @db.Text
+  emailMessage   String?  @db.Text
+  
   updatedAt   DateTime @updatedAt
 }
 

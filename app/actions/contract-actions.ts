@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createNotification } from "./notifications";
+import { createNotification, notifyRenewal } from "./notifications";
 import { revalidatePath } from "next/cache";
 import { formatDate, getNow } from "@/lib/date-utils";
 
@@ -59,16 +59,20 @@ export async function checkContractExpirations() {
             }
 
             const title = `⚠️ Contrato por vencer: ${wp.client.name}`;
-            const message = `El Work Package "${wp.name}" finaliza el ${formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}. Por favor, gestionad la renovación.`;
-
             for (const user of recipients) {
-                await createNotification(user.id, "CONTRACT_ENDING", title, message, wp.id);
+                await createNotification("CONTRACT_ENDING", {
+                    wpName: wp.name,
+                    clientName: wp.client.name,
+                    endDate: formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })
+                }, wp.id);
             }
 
             // 2. Notify Client Users
-            const clientMessage = `Tu periodo de contrato para "${wp.name}" finalizará el ${formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}.`;
             for (const user of wp.client.users) {
-                await createNotification(user.id, "CONTRACT_ENDING_CLIENT", "Fin de periodo de contrato", clientMessage, wp.id);
+                await createNotification("CONTRACT_ENDING_CLIENT", {
+                    wpName: wp.name,
+                    endDate: formatDate(currentPeriod.endDate, { year: 'numeric', month: '2-digit', day: '2-digit' })
+                }, wp.id);
             }
         }
 
@@ -127,26 +131,13 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
             }
         });
 
-        // Notify Admins, Manager and Client
-        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
-        const managerId = wp.client.manager;
-        const staffRecipients = [...admins];
-        if (managerId && !admins.some(a => a.id === managerId)) {
-            const manager = await prisma.user.findUnique({ where: { id: managerId } });
-            if (manager) staffRecipients.push(manager);
-        }
+        const endDateFormat = formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' });
 
-        const staffTitle = `✅ Renovación Automática: ${wp.name}`;
-        const staffMsg = `Se ha renovado automáticamente el WP "${wp.name}" hasta el ${formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' })} con un incremento del ${ipcIncrement}% (Tarifa: ${newRate.toFixed(2)}€).`;
-
-        for (const user of staffRecipients) {
-            await createNotification(user.id, "CONTRACT_RENEWED", staffTitle, staffMsg, wp.id);
-        }
-
-        const clientMsg = `Se ha renovado el periodo de servicio para "${wp.name}" hasta el ${formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}.`;
-        for (const user of wp.client.users) {
-            await createNotification(user.id, "CONTRACT_RENEWED_CLIENT", "Contrato Renovado", clientMsg, wp.id);
-        }
+        await notifyRenewal(wpId, 'IPC', {
+            endDate: endDateFormat,
+            ipcValue: ipcIncrement,
+            newRate: newRate.toFixed(2)
+        });
 
         revalidatePath("/admin/renewals");
         revalidatePath("/admin/work-packages");

@@ -52,6 +52,31 @@ export default async function FixDBPage() {
             results.push("✅ Tabla SystemSetting creada.");
         }
 
+        // 4. Actualizar NotificationSetting
+        if (tableNames.includes('NotificationSetting')) {
+            results.push("Verificando columnas en NotificationSetting...");
+            const columns = await prisma.$queryRawUnsafe("SELECT column_name FROM information_schema.columns WHERE table_name = 'NotificationSetting'") as any[];
+            const colNames = columns.map((c: any) => c.column_name);
+
+            if (!colNames.includes('sendEmail')) {
+                results.push("Añadiendo columna 'sendEmail'...");
+                await prisma.$executeRawUnsafe('ALTER TABLE "NotificationSetting" ADD COLUMN "sendEmail" BOOLEAN DEFAULT false');
+            }
+            if (!colNames.includes('appMessage')) {
+                results.push("Añadiendo columna 'appMessage'...");
+                await prisma.$executeRawUnsafe('ALTER TABLE "NotificationSetting" ADD COLUMN "appMessage" TEXT');
+            }
+            if (!colNames.includes('emailSubject')) {
+                results.push("Añadiendo columna 'emailSubject'...");
+                await prisma.$executeRawUnsafe('ALTER TABLE "NotificationSetting" ADD COLUMN "emailSubject" TEXT');
+            }
+            if (!colNames.includes('emailMessage')) {
+                results.push("Añadiendo columna 'emailMessage'...");
+                await prisma.$executeRawUnsafe('ALTER TABLE "NotificationSetting" ADD COLUMN "emailMessage" TEXT');
+            }
+            results.push("✅ NotificationSetting actualizado.");
+        }
+
         results.push("🚀 Proceso completado con éxito.");
     } catch (error: any) {
         results.push(`❌ ERROR CRÍTICO: ${error.message}`);
