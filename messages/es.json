@@ -548,8 +548,10 @@
         "roles": {
             "ADMIN": "Administrador",
             "MANAGER": "Gestor",
+            "GESTOR": "Gestor",
             "VIEWER": "Consultor",
-            "CLIENT": "Cliente"
+            "CLIENT": "Cliente",
+            "CLIENTE": "Cliente"
         },
         "form": {
             "editTitle": "Editar Usuario",

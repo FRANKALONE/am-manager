@@ -102,8 +102,10 @@ export function UserFilters({ clients }: Props) {
                         <option value="ALL">{t('users.filters.allRoles')}</option>
                         <option value="ADMIN">{t('users.roles.ADMIN')}</option>
                         <option value="MANAGER">{t('users.roles.MANAGER')}</option>
+                        <option value="GESTOR">{t('users.roles.GESTOR')}</option>
                         <option value="VIEWER">{t('users.roles.VIEWER')}</option>
                         <option value="CLIENT">{t('users.roles.CLIENT')}</option>
+                        <option value="CLIENTE">{t('users.roles.CLIENTE')}</option>
                     </select>
                 </div>
 
