@@ -24,6 +24,8 @@ const PERMISSIONS: Permission[] = [
     { key: "view_dashboard", label: "Ver Dashboard de Consumos", section: "General" },
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
     { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },
+    { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
+
     { key: "manage_users", label: "Gestionar Usuarios (App)", section: "Administración" },
     { key: "manage_client_users", label: "Gestionar Usuarios (Empresa)", section: "Administración" },
     { key: "manage_clients", label: "Gestionar Clientes", section: "Administración" },
@@ -31,13 +33,14 @@ const PERMISSIONS: Permission[] = [
     { key: "manage_roles", label: "Gestionar Roles", section: "Administración" },
     { key: "view_renewals", label: "Gestión de Renovaciones", section: "Administración" },
     { key: "manage_jira_requests", label: "Gestionar Solicitudes JIRA", section: "Administración" },
-    { key: "view_all_clients", label: "Ver Todos los Clientes (Visibilidad Global)", section: "Administración" },
-    { key: "view_all_wps", label: "Ver Todos los WPs (Visibilidad Global)", section: "Administración" },
-    { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
-    { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },
-    { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
     { key: "manage_reviews", label: "Gestionar Reclamaciones (Admin)", section: "Administración" },
     { key: "view_reviews", label: "Ver Reclamaciones (Gerente)", section: "Administración" },
+
+    { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
+    { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },
+
+    { key: "view_all_clients", label: "Acceso Global: Ver Todos los Clientes", section: "Visibilidad" },
+    { key: "view_all_wps", label: "Acceso Global: Ver Todos los WPs", section: "Visibilidad" },
 ];
 
 type Props = {
@@ -62,7 +65,7 @@ export function RoleForm({ initialRole }: Props) {
     const [state, formAction] = useFormState(updateWithId as any, initialState);
 
     return (
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight mb-6">
                 {isEdit ? "Editar Rol" : "Nuevo Rol"}
             </h1>
@@ -79,9 +82,23 @@ export function RoleForm({ initialRole }: Props) {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nombre *</Label>
-                            <Input id="name" name="name" defaultValue={initialRole?.name} required placeholder="Ej: CLIENTE" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Nombre *</Label>
+                                <Input id="name" name="name" defaultValue={initialRole?.name} required placeholder="Ej: CLIENTE" />
+                            </div>
+                            <div className="flex items-center space-x-2 pt-8">
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    name="isActive"
+                                    defaultChecked={initialRole ? initialRole.isActive : true}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="isActive" className="font-normal cursor-pointer">
+                                    Rol activo
+                                </Label>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -94,28 +111,16 @@ export function RoleForm({ initialRole }: Props) {
                                 placeholder="Descripción del rol..."
                             />
                         </div>
-
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                id="isActive"
-                                name="isActive"
-                                defaultChecked={initialRole ? initialRole.isActive : true}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="isActive" className="font-normal cursor-pointer">
-                                Rol activo
-                            </Label>
-                        </div>
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-lg border-t-4 border-t-blue-500">
-                    <CardHeader>
-                        <CardTitle>Permisos y Accesos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ACCESOS POR SECCIÓN */}
+                    <Card className="shadow-lg border-t-4 border-t-blue-500">
+                        <CardHeader>
+                            <CardTitle>Permisos de Funciones</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
                             {["General", "Administración", "Finanzas"].map(section => (
                                 <div key={section} className="space-y-3">
                                     <h3 className="font-bold text-dark-green border-b pb-1 mb-4">{section}</h3>
@@ -137,9 +142,41 @@ export function RoleForm({ initialRole }: Props) {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+
+                    {/* ALCANCE DE VISIBILIDAD */}
+                    <Card className="shadow-lg border-t-4 border-t-amber-500">
+                        <CardHeader>
+                            <CardTitle>Alcance de Visibilidad</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="bg-amber-50 border border-amber-200 p-4 rounded-md text-sm text-amber-800 mb-4">
+                                <strong>Nota:</strong> Si no se activa el acceso global, el usuario solo verá los clientes y WPs que tenga asignados explícitamente.
+                            </div>
+
+                            <div className="space-y-4">
+                                {PERMISSIONS.filter(p => p.section === "Visibilidad").map(p => (
+                                    <div key={p.key} className="flex items-center space-x-3 p-3 bg-white border rounded shadow-sm">
+                                        <input
+                                            type="checkbox"
+                                            id={`perm_${p.key}`}
+                                            name={`perm_${p.key}`}
+                                            defaultChecked={currentPermissions[p.key]}
+                                            className="h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                        />
+                                        <div className="flex flex-col">
+                                            <Label htmlFor={`perm_${p.key}`} className="font-bold cursor-pointer">
+                                                {p.label}
+                                            </Label>
+                                            <span className="text-xs text-muted-foreground">Omitir restricciones por asignación</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Link href="/admin/roles">
