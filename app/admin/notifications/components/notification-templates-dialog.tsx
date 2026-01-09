@@ -115,7 +115,11 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
                                     placeholder="Ej: El contrato {wpName} ha sido renovado..."
                                     className="min-h-[100px] bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                 />
-                                <p className="text-[10px] text-slate-400">Este mensaje aparecerá en el panel de notificaciones del usuario.</p>
+                                <p className="text-[10px] text-slate-400">
+                                    Este mensaje aparecerá en el panel de notificaciones del usuario.
+                                    Puedes usar <code className="text-[9px] bg-slate-100 px-1 rounded">&lt;b&gt;texto&lt;/b&gt;</code> para negrita,{' '}
+                                    <code className="text-[9px] bg-slate-100 px-1 rounded">&lt;br/&gt;</code> para saltos de línea.
+                                </p>
                             </div>
                         </TabsContent>
 

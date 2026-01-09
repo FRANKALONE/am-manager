@@ -25,6 +25,26 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, Check } from "lucide-react";
 
+// Sanitize notification HTML to allow only safe tags
+function sanitizeNotificationHtml(html: string): string {
+    // Allow only specific safe tags: b, strong, i, em, br
+    const allowedTags = ['b', 'strong', 'i', 'em', 'br'];
+    let sanitized = html;
+
+    // Remove all HTML tags except allowed ones
+    sanitized = sanitized.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+        if (allowedTags.includes(tag.toLowerCase())) {
+            // For self-closing tags like br
+            if (tag.toLowerCase() === 'br') return '<br/>';
+            // For opening/closing tags, preserve them
+            return match.replace(/</g, '<').replace(/>/g, '>');
+        }
+        return ''; // Remove disallowed tags
+    });
+
+    return sanitized;
+}
+
 interface AdminNotificationsProps {
     userId: string;
 }
@@ -196,7 +216,12 @@ export function AdminNotifications({ userId }: AdminNotificationsProps) {
                                                     </button>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-slate-500 mb-2 line-clamp-3">{n.message}</p>
+                                            <p
+                                                className="text-xs text-slate-500 mb-2 line-clamp-3"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: sanitizeNotificationHtml(n.message)
+                                                }}
+                                            />
                                             <p className="text-[10px] text-slate-400 italic">
                                                 {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: dateLocale })}
                                             </p>

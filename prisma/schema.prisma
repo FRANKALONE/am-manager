@@ -115,6 +115,12 @@ model User {
   linkedJiraCustomer JiraCustomerUser?
   requestedJiraRequests JiraUserRequest[] @relation("RequestedJiraRequests")
   reviewedJiraRequests  JiraUserRequest[] @relation("ReviewedJiraRequests")
+  
+  // Mass emails and landings
+  createdMassEmails MassEmail[] @relation("MassEmailCreator")
+  massEmailRecipients MassEmailRecipient[] @relation("MassEmailRecipients")
+  createdLandings   TemporaryLanding[] @relation("LandingCreator")
+  landingViews      LandingView[] @relation("LandingViews")
 
   @@index([locale])
 }
@@ -416,4 +422,83 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 
   @@index([group])
+}
+
+model MassEmail {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  createdBy     String
+  creator       User     @relation("MassEmailCreator", fields: [createdBy], references: [id])
+  
+  subject       String
+  htmlBody      String   @db.Text
+  
+  // Filters
+  targetRoles   String?  // CSV: "ADMIN,GERENTE"
+  targetClients String?  // CSV of client IDs
+  targetWpTypes String?  // CSV: "BOLSA,BD,EVENTOS"
+  
+  status        String   @default("DRAFT") // DRAFT, SCHEDULED, SENT
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  
+  recipients    MassEmailRecipient[]
+}
+
+model MassEmailRecipient {
+  id          String   @id @default(cuid())
+  massEmailId String
+  massEmail   MassEmail @relation(fields: [massEmailId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation("MassEmailRecipients", fields: [userId], references: [id], onDelete: Cascade)
+  
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  
+  @@unique([massEmailId, userId])
+  @@index([massEmailId])
+  @@index([userId])
+}
+
+model TemporaryLanding {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  createdBy     String
+  creator       User     @relation("LandingCreator", fields: [createdBy], references: [id])
+  
+  slug          String   @unique // URL: /landing/{slug}
+  title         String
+  content       String   @db.Text // HTML content
+  
+  // Access control
+  allowedRoles  String   // CSV: "GERENTE,ADMIN"
+  allowedClients String? // CSV of client IDs (optional, for client-specific)
+  
+  // Scheduling
+  activeFrom    DateTime @default(now())
+  activeUntil   DateTime?
+  
+  isActive      Boolean  @default(true)
+  
+  // Display options
+  showInHeader  Boolean  @default(false) // Show link in main nav
+  priority      Int      @default(0)     // Order in nav
+  
+  views         LandingView[]
+}
+
+model LandingView {
+  id        String   @id @default(cuid())
+  landingId String
+  landing   TemporaryLanding @relation(fields: [landingId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation("LandingViews", fields: [userId], references: [id], onDelete: Cascade)
+  
+  viewedAt  DateTime @default(now())
+  
+  @@index([landingId])
+  @@index([userId])
 }

@@ -143,6 +143,9 @@ export async function createNotification(
             const userName = user.name || user.email.split('@')[0];
             emailMsg = emailMsg.replace(/{name}/g, userName);
 
+            // Convert line breaks to HTML for email
+            emailMsg = emailMsg.replace(/\n/g, '<br/>');
+
             // Create in-app notification
             await prisma.notification.create({
                 data: {
