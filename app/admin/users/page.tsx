@@ -1,5 +1,6 @@
 import { getUsers, deleteUser, UserFilters as FilterType } from "@/app/actions/users";
 import { getClients } from "@/app/actions/clients";
+import { getRoles } from "@/app/actions/roles";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
@@ -24,12 +25,21 @@ export default async function UsersPage({
 
     const users = await getUsers(filters);
     const clients = await getClients();
+    const roles = await getRoles();
     const { t, locale } = await getTranslations();
 
     async function deleteAction(id: string) {
         "use server";
         await deleteUser(id);
     }
+
+    // Helper to format role name: translate if exists, otherwise show name
+    const formatRole = (role: string) => {
+        const translationKey = `users.roles.${role}`;
+        const translated = t(translationKey);
+        // If translation is the key itself, it means it's missing
+        return translated === translationKey ? role : translated;
+    };
 
     return (
         <div className="space-y-6">
@@ -47,7 +57,7 @@ export default async function UsersPage({
                 </Link>
             </div>
 
-            <UserFilters clients={clients} />
+            <UserFilters clients={clients} roles={roles} />
 
             <div className="border rounded-md">
                 <Table>
@@ -70,7 +80,7 @@ export default async function UsersPage({
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
                                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                                        {t(`users.roles.${user.role}`)}
+                                        {formatRole(user.role)}
                                     </span>
                                 </TableCell>
                                 <TableCell>

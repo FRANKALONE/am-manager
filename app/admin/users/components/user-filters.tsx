@@ -10,9 +10,10 @@ import { Search, X } from "lucide-react";
 
 type Props = {
     clients: { id: string; name: string }[];
+    roles: { id: string; name: string }[];
 };
 
-export function UserFilters({ clients }: Props) {
+export function UserFilters({ clients, roles }: Props) {
     const { t } = useTranslations();
     const router = useRouter();
     const pathname = usePathname();
@@ -44,8 +45,6 @@ export function UserFilters({ clients }: Props) {
         if (lastLoginTo) params.set("lastLoginTo", lastLoginTo);
         else params.delete("lastLoginTo");
 
-        // Small debounce for email input could be added here if needed, 
-        // but for now let's keep it simple or use a manual Apply button if email causes too many refreshes.
         const timer = setTimeout(() => {
             router.replace(`${pathname}?${params.toString()}`);
         }, email ? 500 : 0);
@@ -100,12 +99,9 @@ export function UserFilters({ clients }: Props) {
                         onChange={(e) => setRole(e.target.value)}
                     >
                         <option value="ALL">{t('users.filters.allRoles')}</option>
-                        <option value="ADMIN">{t('users.roles.ADMIN')}</option>
-                        <option value="MANAGER">{t('users.roles.MANAGER')}</option>
-                        <option value="GESTOR">{t('users.roles.GESTOR')}</option>
-                        <option value="VIEWER">{t('users.roles.VIEWER')}</option>
-                        <option value="CLIENT">{t('users.roles.CLIENT')}</option>
-                        <option value="CLIENTE">{t('users.roles.CLIENTE')}</option>
+                        {roles.map(r => (
+                            <option key={r.id} value={r.name}>{r.name}</option>
+                        ))}
                     </select>
                 </div>
 
