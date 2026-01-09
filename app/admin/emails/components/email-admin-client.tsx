@@ -5,14 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailSettingsForm } from "./email-settings-form";
 import { EmailLogsTable } from "./email-logs-table";
+import { useTranslations } from "@/lib/use-translations";
 
 interface EmailAdminClientProps {
     settings: Record<string, string>;
     logs: any[];
-    t: any;
 }
 
-export function EmailAdminClient({ settings, logs, t }: EmailAdminClientProps) {
+export function EmailAdminClient({ settings, logs }: EmailAdminClientProps) {
+    const { t } = useTranslations();
     const [activeTab, setActiveTab] = useState<'settings' | 'logs'>('settings');
 
     return (
@@ -43,7 +44,7 @@ export function EmailAdminClient({ settings, logs, t }: EmailAdminClientProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <EmailSettingsForm initialSettings={settings} t={t} />
+                        <EmailSettingsForm initialSettings={settings} />
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -61,7 +62,7 @@ export function EmailAdminClient({ settings, logs, t }: EmailAdminClientProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <EmailLogsTable logs={logs} t={t} />
+                        <EmailLogsTable logs={logs} />
                     </CardContent>
                 </Card>
             </TabsContent>

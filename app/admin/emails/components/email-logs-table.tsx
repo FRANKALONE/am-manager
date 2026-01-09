@@ -10,8 +10,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { clearEmailLogs } from "@/app/actions/email-admin";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/use-translations";
 
-export function EmailLogsTable({ logs, t }: { logs: any[], t: any }) {
+export function EmailLogsTable({ logs }: { logs: any[] }) {
+    const { t } = useTranslations();
     const [loading, setLoading] = useState(false);
     const handleClear = async () => {
         if (!confirm(t('common.confirm'))) return;

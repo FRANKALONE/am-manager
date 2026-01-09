@@ -5,10 +5,15 @@ import { revalidatePath } from "next/cache";
 
 export async function getEmailLogs(limit: number = 50) {
     try {
-        return await prisma.emailLog.findMany({
+        const logs = await prisma.emailLog.findMany({
             orderBy: { createdAt: 'desc' },
             take: limit
         });
+
+        return logs.map(log => ({
+            ...log,
+            createdAt: log.createdAt.toISOString(),
+        }));
     } catch (error) {
         console.error("Error fetching email logs:", error);
         return [];

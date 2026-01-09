@@ -10,13 +10,13 @@ export default async function EmailAdminPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Gestión de Emails</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{t('admin.emails.title')}</h1>
                 <p className="text-muted-foreground">
-                    Configura el servidor de correo y consulta el historial de envíos.
+                    {t('admin.emails.subtitle')}
                 </p>
             </div>
 
-            <EmailAdminClient settings={settings} logs={logs} t={t} />
+            <EmailAdminClient settings={settings} logs={logs} />
         </div>
     );
 }

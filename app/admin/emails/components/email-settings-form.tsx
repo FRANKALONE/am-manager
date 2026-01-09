@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
+import { useTranslations } from "@/lib/use-translations";
 
-export function EmailSettingsForm({ initialSettings, t }: { initialSettings: Record<string, string>, t: any }) {
+export function EmailSettingsForm({ initialSettings }: { initialSettings: Record<string, string> }) {
+    const { t } = useTranslations();
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState({
         SMTP_HOST: initialSettings.SMTP_HOST || "",
