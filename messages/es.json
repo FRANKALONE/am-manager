@@ -908,5 +908,17 @@
         "types": {
             "return": "Devolución de horas"
         }
+    },
+    "parameters": {
+        "RENEWAL_TYPE": {
+            "AUTO": "Automática",
+            "BP": "Bajo Pedido",
+            "NONE": "No renueva"
+        },
+        "CONTRACT_TYPE": {
+            "B": "Bolsa de Horas",
+            "BD": "BD (Bolsa + Días)",
+            "E": "Eventos"
+        }
     }
 }

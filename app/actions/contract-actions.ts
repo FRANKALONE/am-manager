@@ -155,6 +155,26 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
     }
 }
 
+/**
+ * Marks a WP as not renewing by setting its renewalType to 'NONE'.
+ */
+export async function cancelWorkPackageRenewal(wpId: string) {
+    try {
+        await prisma.workPackage.update({
+            where: { id: wpId },
+            data: { renewalType: 'NONE' }
+        });
+
+        revalidatePath("/admin/renewals");
+        revalidatePath("/admin/work-packages");
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in cancelWorkPackageRenewal:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function getExpiringWPs(managerId?: string, filters?: { clientId?: string, contractType?: string, startDate?: Date, endDate?: Date }) {
     try {
         const today = new Date();
@@ -166,6 +186,7 @@ export async function getExpiringWPs(managerId?: string, filters?: { clientId?: 
         const queryEndDate = filters?.endDate || sixtyDaysOut;
 
         const where: any = {
+            renewalType: { not: 'NONE' },
             validityPeriods: {
                 some: {
                     endDate: {

@@ -472,7 +472,9 @@
         "evolutivosManagementDesc": "Track milestones, owners and planning",
         "administration": "Administration",
         "administrationDesc": "Manage users, clients and system configuration",
-        "accessModule": "Access module"
+        "accessModule": "Access module",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
     },
     "user": {
         "name": "Name",
@@ -574,7 +576,9 @@
             "ADMIN": "Administrator",
             "MANAGER": "Manager",
             "VIEWER": "Viewer",
-            "CLIENT": "Client"
+            "CLIENT": "Client",
+            "GESTOR": "Gestor",
+            "CLIENTE": "Cliente"
         },
         "form": {
             "editTitle": "Edit User",
@@ -596,6 +600,16 @@
             "cancel": "Cancel",
             "update": "Update User",
             "save": "Save User"
+        },
+        "filters": {
+            "email": "Filtrar por email",
+            "role": "Rol",
+            "client": "Cliente",
+            "lastLoginFrom": "Desde",
+            "lastLoginTo": "Hasta",
+            "clear": "Limpiar filtros",
+            "allRoles": "Todos los roles",
+            "allClients": "Todos los clientes"
         }
     },
     "workPackages": {
@@ -814,6 +828,16 @@
             "noUsers": "No JIRA users synced for your organization.",
             "contactAdmin": "Contact the administrator to sync users.",
             "total": "Total: {count} user{plural}"
+        },
+        "requests": {
+            "title": "Solicitudes JIRA",
+            "pending": "Solicitudes Pendientes",
+            "history": "Historial de Solicitudes",
+            "createRequest": "Solicitar Creación",
+            "deleteRequest": "Solicitar Eliminación",
+            "approve": "Aprobar",
+            "reject": "Rechazar",
+            "notes": "Notas"
         }
     },
     "sidebar": {
@@ -883,6 +907,18 @@
     "regularizations": {
         "types": {
             "return": "Hours refund"
+        }
+    },
+    "parameters": {
+        "RENEWAL_TYPE": {
+            "AUTO": "Automática",
+            "BP": "Bajo Pedido",
+            "NONE": "No renueva"
+        },
+        "CONTRACT_TYPE": {
+            "B": "Bolsa de Horas",
+            "BD": "BD (Bolsa + Días)",
+            "E": "Eventos"
         }
     }
 }

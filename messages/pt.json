@@ -287,6 +287,43 @@
             "parametrizationDesc": "Variables globales y factores",
             "reviewRequests": "Solicitantes de Revisión",
             "reviewRequestsDesc": "Aprobación de devoluciones"
+        },
+        "emails": {
+            "title": "Gestión de Emails",
+            "subtitle": "Configura el servidor de correo y consulta el historial de envíos.",
+            "tabs": {
+                "settings": "Configuración",
+                "logs": "Logs de Envío"
+            },
+            "settings": {
+                "title": "Configuración SMTP y Redirección",
+                "description": "Los valores guardados aquí prevalecen sobre el archivo .env",
+                "host": "Host SMTP",
+                "port": "Puerto SMTP",
+                "user": "Usuario SMTP",
+                "pass": "Contraseña SMTP",
+                "from": "Email Remitente",
+                "redirect": "Email de Redirección Global (Override)",
+                "redirectHelp": "Si se configura, TODOS los correos se enviarán aquí para pruebas.",
+                "save": "Guardar Configuración"
+            },
+            "logs": {
+                "title": "Historial de Envíos",
+                "description": "Últimos 50 correos electrónicos intentados desde la aplicación.",
+                "table": {
+                    "date": "Fecha",
+                    "to": "Destinatario",
+                    "subject": "Asunto",
+                    "status": "Estado",
+                    "actions": "Acciones"
+                },
+                "status": {
+                    "success": "Éxito",
+                    "failed": "Fallido",
+                    "simulated": "Simulado"
+                },
+                "clear": "Limpiar Logs"
+            }
         }
     },
     "help": {
@@ -435,7 +472,9 @@
         "evolutivosManagementDesc": "Acompanhamento de marcos e planejamento",
         "administration": "Administração",
         "administrationDesc": "Gestão de usuários e clientes",
-        "accessModule": "Acessar módulo"
+        "accessModule": "Acessar módulo",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
     },
     "user": {
         "name": "Nome",
@@ -537,7 +576,9 @@
             "ADMIN": "Administrador",
             "MANAGER": "Gestor",
             "VIEWER": "Consultor",
-            "CLIENT": "Cliente"
+            "CLIENT": "Cliente",
+            "GESTOR": "Gestor",
+            "CLIENTE": "Cliente"
         },
         "form": {
             "editTitle": "Editar Usuário",
@@ -559,6 +600,16 @@
             "cancel": "Cancelar",
             "update": "Atualizar Usuário",
             "save": "Salvar Usuário"
+        },
+        "filters": {
+            "email": "Filtrar por email",
+            "role": "Rol",
+            "client": "Cliente",
+            "lastLoginFrom": "Desde",
+            "lastLoginTo": "Hasta",
+            "clear": "Limpiar filtros",
+            "allRoles": "Todos los roles",
+            "allClients": "Todos los clientes"
         }
     },
     "workPackages": {
@@ -748,7 +799,8 @@
         "settings": "Configurações",
         "documentation": "Documentação",
         "claims": "Reclamações",
-        "notifications": "Notificações"
+        "notifications": "Notificações",
+        "emails": "Gestión de Emails"
     },
     "errors": {
         "required": "{field} é obrigatório",
@@ -778,7 +830,10 @@
             "reviewApproved": "Reclamação Aprovada",
             "reviewRejected": "Reclamação Rejeitada",
             "reviewDecidedApproved": "Reclamação Resolvida (Aprovada)",
-            "reviewDecidedRejected": "Reclamação Resolvida (Rejeitada)"
+            "reviewDecidedRejected": "Reclamação Resolvida (Rejeitada)",
+            "jiraUserRequestCreated": "Nueva solicitud JIRA",
+            "jiraUserRequestApproved": "Solicitud JIRA Aprobada",
+            "jiraUserRequestRejected": "Solicitud JIRA Rechazada"
         },
         "messages": {
             "reviewCreated": "O usuário solicitou a revisão de {count} lançamentos no WP {wp}.",
@@ -786,7 +841,10 @@
             "reviewApproved": "Sua reclamação de horas foi aprovada. {count} lançamentos foram devolvidos. Notas: {notes}",
             "reviewRejected": "Sua reclamação de horas foi rejeitada. Notas: {notes}",
             "reviewDecidedApproved": "Uma reclamação foi aprovada no WP {wp}. Notas: {notes}",
-            "reviewDecidedRejected": "Uma reclamação foi rejeitada no WP {wp}. Notas: {notes}"
+            "reviewDecidedRejected": "Uma reclamação foi rejeitada no WP {wp}. Notas: {notes}",
+            "jiraUserRequestCreated": "Se ha creado una nueva solicitud de usuario JIRA ({type}) para el cliente {client}.",
+            "jiraUserRequestApproved": "Tu solicitud de usuario JIRA ha sido aprobada. Notas: {notes}",
+            "jiraUserRequestRejected": "Tu solicitud de usuario JIRA ha sido rechazada. Notas: {notes}"
         }
     },
     "regularizations": {
@@ -839,6 +897,28 @@
             "noUsers": "No hay usuarios JIRA sincronizados para tu organización.",
             "contactAdmin": "Contacta con el administrador para sincronizar los usuarios.",
             "total": "Total: {count} usuario{plural}"
+        },
+        "requests": {
+            "title": "Solicitudes JIRA",
+            "pending": "Solicitudes Pendientes",
+            "history": "Historial de Solicitudes",
+            "createRequest": "Solicitar Creación",
+            "deleteRequest": "Solicitar Eliminación",
+            "approve": "Aprobar",
+            "reject": "Rechazar",
+            "notes": "Notas"
+        }
+    },
+    "parameters": {
+        "RENEWAL_TYPE": {
+            "AUTO": "Automática",
+            "BP": "Bajo Pedido",
+            "NONE": "No renueva"
+        },
+        "CONTRACT_TYPE": {
+            "B": "Bolsa de Horas",
+            "BD": "BD (Bolsa + Días)",
+            "E": "Eventos"
         }
     }
 }

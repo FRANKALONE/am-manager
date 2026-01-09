@@ -287,6 +287,43 @@
             "parametrizationDesc": "Variables globales y factores",
             "reviewRequests": "Solicitantes de Revisión",
             "reviewRequestsDesc": "Aprobación de devoluciones"
+        },
+        "emails": {
+            "title": "Gestión de Emails",
+            "subtitle": "Configura el servidor de correo y consulta el historial de envíos.",
+            "tabs": {
+                "settings": "Configuración",
+                "logs": "Logs de Envío"
+            },
+            "settings": {
+                "title": "Configuración SMTP y Redirección",
+                "description": "Los valores guardados aquí prevalecen sobre el archivo .env",
+                "host": "Host SMTP",
+                "port": "Puerto SMTP",
+                "user": "Usuario SMTP",
+                "pass": "Contraseña SMTP",
+                "from": "Email Remitente",
+                "redirect": "Email de Redirección Global (Override)",
+                "redirectHelp": "Si se configura, TODOS los correos se enviarán aquí para pruebas.",
+                "save": "Guardar Configuración"
+            },
+            "logs": {
+                "title": "Historial de Envíos",
+                "description": "Últimos 50 correos electrónicos intentados desde la aplicación.",
+                "table": {
+                    "date": "Fecha",
+                    "to": "Destinatario",
+                    "subject": "Asunto",
+                    "status": "Estado",
+                    "actions": "Acciones"
+                },
+                "status": {
+                    "success": "Éxito",
+                    "failed": "Fallido",
+                    "simulated": "Simulado"
+                },
+                "clear": "Limpiar Logs"
+            }
         }
     },
     "help": {
@@ -435,7 +472,9 @@
         "evolutivosManagementDesc": "Suivi des jalons, des responsables et planification",
         "administration": "Administration",
         "administrationDesc": "Gestion des utilisateurs, des clients et configuration du système",
-        "accessModule": "Accéder au module"
+        "accessModule": "Accéder au module",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
     },
     "user": {
         "name": "Nom",
@@ -537,7 +576,9 @@
             "ADMIN": "Administrateur",
             "MANAGER": "Gestionnaire",
             "VIEWER": "Consultant",
-            "CLIENT": "Client"
+            "CLIENT": "Client",
+            "GESTOR": "Gestor",
+            "CLIENTE": "Cliente"
         },
         "form": {
             "editTitle": "Modifier l'Utilisateur",
@@ -559,6 +600,16 @@
             "cancel": "Annuler",
             "update": "Mettre à jour l'Utilisateur",
             "save": "Enregistrer l'Utilisateur"
+        },
+        "filters": {
+            "email": "Filtrar por email",
+            "role": "Rol",
+            "client": "Cliente",
+            "lastLoginFrom": "Desde",
+            "lastLoginTo": "Hasta",
+            "clear": "Limpiar filtros",
+            "allRoles": "Todos los roles",
+            "allClients": "Todos los clientes"
         }
     },
     "workPackages": {
@@ -748,7 +799,8 @@
         "settings": "Paramètres",
         "documentation": "Documentation",
         "claims": "Réclamations",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "emails": "Gestión de Emails"
     },
     "errors": {
         "required": "{field} est obligatoire",
@@ -778,7 +830,10 @@
             "reviewApproved": "Réclamation Approuvée",
             "reviewRejected": "Réclamation Rejetée",
             "reviewDecidedApproved": "Réclamation Résolue (Approuvée)",
-            "reviewDecidedRejected": "Réclamation Résolue (Rejetée)"
+            "reviewDecidedRejected": "Réclamation Résolue (Rejetée)",
+            "jiraUserRequestCreated": "Nueva solicitud JIRA",
+            "jiraUserRequestApproved": "Solicitud JIRA Aprobada",
+            "jiraUserRequestRejected": "Solicitud JIRA Rechazada"
         },
         "messages": {
             "reviewCreated": "L'utilisateur a demandé de réviser {count} imputations dans le WP {wp}.",
@@ -786,7 +841,10 @@
             "reviewApproved": "Votre réclamation d'heures a été approuvée. {count} imputations ont été retournées. Notes : {notes}",
             "reviewRejected": "Votre réclamation d'heures a été rejetée. Notes : {notes}",
             "reviewDecidedApproved": "Une réclamation a été approuvée dans le WP {wp}. Notes : {notes}",
-            "reviewDecidedRejected": "Une réclamation a été rejetée dans le WP {wp}. Notes : {notes}"
+            "reviewDecidedRejected": "Une réclamation a été rejetée dans le WP {wp}. Notes : {notes}",
+            "jiraUserRequestCreated": "Se ha creado una nueva solicitud de usuario JIRA ({type}) para el cliente {client}.",
+            "jiraUserRequestApproved": "Tu solicitud de usuario JIRA ha sido aprobada. Notas: {notes}",
+            "jiraUserRequestRejected": "Tu solicitud de usuario JIRA ha sido rechazada. Notas: {notes}"
         }
     },
     "regularizations": {
@@ -839,6 +897,28 @@
             "noUsers": "No hay usuarios JIRA sincronizados para tu organización.",
             "contactAdmin": "Contacta con el administrador para sincronizar los usuarios.",
             "total": "Total: {count} usuario{plural}"
+        },
+        "requests": {
+            "title": "Solicitudes JIRA",
+            "pending": "Solicitudes Pendientes",
+            "history": "Historial de Solicitudes",
+            "createRequest": "Solicitar Creación",
+            "deleteRequest": "Solicitar Eliminación",
+            "approve": "Aprobar",
+            "reject": "Rechazar",
+            "notes": "Notas"
+        }
+    },
+    "parameters": {
+        "RENEWAL_TYPE": {
+            "AUTO": "Automática",
+            "BP": "Bajo Pedido",
+            "NONE": "No renueva"
+        },
+        "CONTRACT_TYPE": {
+            "B": "Bolsa de Horas",
+            "BD": "BD (Bolsa + Días)",
+            "E": "Eventos"
         }
     }
 }

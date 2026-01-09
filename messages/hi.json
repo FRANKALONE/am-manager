@@ -287,6 +287,43 @@
             "parametrizationDesc": "Variables globales y factores",
             "reviewRequests": "Solicitantes de Revisión",
             "reviewRequestsDesc": "Aprobación de devoluciones"
+        },
+        "emails": {
+            "title": "Gestión de Emails",
+            "subtitle": "Configura el servidor de correo y consulta el historial de envíos.",
+            "tabs": {
+                "settings": "Configuración",
+                "logs": "Logs de Envío"
+            },
+            "settings": {
+                "title": "Configuración SMTP y Redirección",
+                "description": "Los valores guardados aquí prevalecen sobre el archivo .env",
+                "host": "Host SMTP",
+                "port": "Puerto SMTP",
+                "user": "Usuario SMTP",
+                "pass": "Contraseña SMTP",
+                "from": "Email Remitente",
+                "redirect": "Email de Redirección Global (Override)",
+                "redirectHelp": "Si se configura, TODOS los correos se enviarán aquí para pruebas.",
+                "save": "Guardar Configuración"
+            },
+            "logs": {
+                "title": "Historial de Envíos",
+                "description": "Últimos 50 correos electrónicos intentados desde la aplicación.",
+                "table": {
+                    "date": "Fecha",
+                    "to": "Destinatario",
+                    "subject": "Asunto",
+                    "status": "Estado",
+                    "actions": "Acciones"
+                },
+                "status": {
+                    "success": "Éxito",
+                    "failed": "Fallido",
+                    "simulated": "Simulado"
+                },
+                "clear": "Limpiar Logs"
+            }
         }
     },
     "help": {
@@ -435,7 +472,9 @@
         "evolutivosManagementDesc": "मील के पत्थर, जिम्मेदार और योजना",
         "administration": "प्रशासन",
         "administrationDesc": "उपयोगकर्ता, ग्राहक और कॉन्फ़िगरेशन प्रबंधन",
-        "accessModule": "मॉड्यूल तक पहुंचें"
+        "accessModule": "मॉड्यूल तक पहुंचें",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
     },
     "user": {
         "name": "नाम",
@@ -537,7 +576,9 @@
             "ADMIN": "व्यवस्थापक",
             "MANAGER": "प्रबंधक",
             "VIEWER": "सलाहकार",
-            "CLIENT": "ग्राहक"
+            "CLIENT": "ग्राहक",
+            "GESTOR": "Gestor",
+            "CLIENTE": "Cliente"
         },
         "form": {
             "editTitle": "उपयोगकर्ता संपादित करें",
@@ -559,6 +600,16 @@
             "cancel": "रद्द करें",
             "update": "उपयोगकर्ता अपडेट करें",
             "save": "उपयोगकर्ता सहेजें"
+        },
+        "filters": {
+            "email": "Filtrar por email",
+            "role": "Rol",
+            "client": "Cliente",
+            "lastLoginFrom": "Desde",
+            "lastLoginTo": "Hasta",
+            "clear": "Limpiar filtros",
+            "allRoles": "Todos los roles",
+            "allClients": "Todos los clientes"
         }
     },
     "workPackages": {
@@ -748,7 +799,8 @@
         "settings": "सेटिंग्स",
         "documentation": "दस्तावेज़",
         "claims": "दावे",
-        "notifications": "सूचनाएं"
+        "notifications": "सूचनाएं",
+        "emails": "Gestión de Emails"
     },
     "errors": {
         "required": "{field} अनिवार्य है",
@@ -778,7 +830,10 @@
             "reviewApproved": "दावा स्वीकृत",
             "reviewRejected": "दावा अस्वीकृत",
             "reviewDecidedApproved": "दावा हल (स्वीकृत)",
-            "reviewDecidedRejected": "दावा हल (अस्वीकृत)"
+            "reviewDecidedRejected": "दावा हल (अस्वीकृत)",
+            "jiraUserRequestCreated": "Nueva solicitud JIRA",
+            "jiraUserRequestApproved": "Solicitud JIRA Aprobada",
+            "jiraUserRequestRejected": "Solicitud JIRA Rechazada"
         },
         "messages": {
             "reviewCreated": "उपयोगकर्ता ने WP {wp} में {count} प्रविष्टियों की समीक्षा करने का अनुरोध किया है।",
@@ -786,7 +841,10 @@
             "reviewApproved": "आपका घंटे दावा सफल रहा। {count} प्रविष्टियाँ लौटा दी गई हैं। नोट्स: {notes}",
             "reviewRejected": "आपका घंटे दावा अस्वीकृत कर दिया गया है। नोट्स: {notes}",
             "reviewDecidedApproved": "WP {wp} में एक दावा स्वीकृत हो गया है। नोट्स: {notes}",
-            "reviewDecidedRejected": "WP {wp} में एक दावा अस्वीकृत कर दिया गया है। नोट्स: {notes}"
+            "reviewDecidedRejected": "WP {wp} में एक दावा अस्वीकृत कर दिया गया है। नोट्स: {notes}",
+            "jiraUserRequestCreated": "Se ha creado una nueva solicitud de usuario JIRA ({type}) para el cliente {client}.",
+            "jiraUserRequestApproved": "Tu solicitud de usuario JIRA ha sido aprobada. Notas: {notes}",
+            "jiraUserRequestRejected": "Tu solicitud de usuario JIRA ha sido rechazada. Notas: {notes}"
         }
     },
     "regularizations": {
@@ -839,6 +897,28 @@
             "noUsers": "No hay usuarios JIRA sincronizados para tu organización.",
             "contactAdmin": "Contacta con el administrador para sincronizar los usuarios.",
             "total": "Total: {count} usuario{plural}"
+        },
+        "requests": {
+            "title": "Solicitudes JIRA",
+            "pending": "Solicitudes Pendientes",
+            "history": "Historial de Solicitudes",
+            "createRequest": "Solicitar Creación",
+            "deleteRequest": "Solicitar Eliminación",
+            "approve": "Aprobar",
+            "reject": "Rechazar",
+            "notes": "Notas"
+        }
+    },
+    "parameters": {
+        "RENEWAL_TYPE": {
+            "AUTO": "Automática",
+            "BP": "Bajo Pedido",
+            "NONE": "No renueva"
+        },
+        "CONTRACT_TYPE": {
+            "B": "Bolsa de Horas",
+            "BD": "BD (Bolsa + Días)",
+            "E": "Eventos"
         }
     }
 }

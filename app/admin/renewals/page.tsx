@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getMe } from "@/app/actions/users";
-import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations } from "@/app/actions/contract-actions";
+import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations, cancelWorkPackageRenewal } from "@/app/actions/contract-actions";
 import { getClients } from "@/app/actions/clients";
 import { getParametersByCategory } from "@/app/actions/parameters";
 import { Button } from "@/components/ui/button";
@@ -215,6 +215,16 @@ function RenewalRow({ wp }: { wp: any }) {
                         </div>
                     </form>
                 )}
+
+                <form action={async () => {
+                    "use server";
+                    await cancelWorkPackageRenewal(wp.id);
+                }}>
+                    <SubmitButton variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700">
+                        <X className="w-4 h-4 mr-2" />
+                        No renueva
+                    </SubmitButton>
+                </form>
 
                 <Link href={`/admin/work-packages/${wp.id}/edit?returnTo=/admin/renewals`}>
                     <Button size="sm" variant="outline" className="whitespace-nowrap">
