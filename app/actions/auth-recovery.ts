@@ -5,6 +5,7 @@ import { getPasswordResetTemplate, sendEmail } from "@/lib/mail";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 export async function requestPasswordReset(prevState: any, formData: FormData) {
     const email = formData.get("email") as string;
@@ -50,8 +51,12 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
             }
         });
 
-        // Send email (mock)
-        const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login/reset-password?token=${token}`;
+        // Send email
+        const host = headers().get("host") || "localhost:3000";
+        const protocol = host.includes("localhost") ? "http" : "https";
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+        const resetLink = `${baseUrl}/login/reset-password?token=${token}`;
+
         await sendEmail({
             to: email,
             subject: "Recuperación de contraseña - AM Manager",
