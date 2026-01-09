@@ -23,7 +23,8 @@ export default async function ClientUsersPage() {
 
     // Check for specific permission instead of hardcoded roles
     if (!userRole || !perms.manage_client_users) {
-        redirect('/dashboard');
+        const fallback = userRole === 'CLIENTE' ? '/client-dashboard' : '/dashboard';
+        redirect(fallback);
     }
 
     // Fallback: si no hay client_id en el usuario, intentar de cookies

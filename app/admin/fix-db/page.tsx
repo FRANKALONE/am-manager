@@ -77,6 +77,32 @@ export default async function FixDBPage() {
             results.push("✅ NotificationSetting actualizado.");
         }
 
+        // 5. Asegurar permisos del rol CLIENTE
+        results.push("Verificando permisos del rol CLIENTE...");
+        const clienteRole = await prisma.role.findUnique({ where: { name: 'CLIENTE' } });
+        if (clienteRole) {
+            let perms: Record<string, any> = {};
+            try {
+                perms = JSON.parse(clienteRole.permissions || '{}');
+            } catch (e) {
+                perms = {};
+            }
+
+            if (!perms['manage_client_users']) {
+                results.push("Añadiendo permiso 'manage_client_users' al rol CLIENTE...");
+                perms['manage_client_users'] = true;
+                await prisma.role.update({
+                    where: { id: clienteRole.id },
+                    data: { permissions: JSON.stringify(perms) }
+                });
+                results.push("✅ Permisos del rol CLIENTE actualizados.");
+            } else {
+                results.push("✅ El rol CLIENTE ya tiene los permisos correctos.");
+            }
+        } else {
+            results.push("⚠️ No se encontró el rol CLIENTE para actualizar.");
+        }
+
         results.push("🚀 Proceso completado con éxito.");
     } catch (error: any) {
         results.push(`❌ ERROR CRÍTICO: ${error.message}`);
