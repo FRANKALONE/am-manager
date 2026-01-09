@@ -1,9 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Home } from "lucide-react";
-import { cookies } from "next/headers";
-import { hasPermission } from "@/lib/permissions";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession, hasPermission } from "@/lib/auth";
 import { UserProfileDropdown } from "./user-profile-dropdown";
 import { AdminNotifications } from "@/app/admin/components/admin-notifications";
 import { NotificationPanel } from "@/app/dashboard/components/notification-panel";
@@ -14,9 +12,10 @@ interface SharedHeaderProps {
 }
 
 export async function SharedHeader({ title }: SharedHeaderProps) {
-    const userRole = cookies().get("user_role")?.value || "";
-    const user = await getMe();
-    const canSeeDashboard = await hasPermission(userRole, "view_dashboard");
+    const session = await getAuthSession();
+    const userRole = session?.userRole || "";
+    const user = await getCurrentUser();
+    const canSeeDashboard = await hasPermission("view_dashboard");
     const { t } = await getTranslations();
 
     // Determine home link based on role and permissions

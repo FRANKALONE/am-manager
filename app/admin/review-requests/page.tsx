@@ -1,20 +1,16 @@
 import { getPendingReviewRequests, getReviewRequestsHistory } from "@/app/actions/review-requests";
 import { ReviewRequestClient } from "./components/review-request-client";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function ReviewRequestsPage() {
-    const user = await getMe();
-    if (!user) redirect("/login");
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
-    const isGerente = user.role === "GERENTE";
-    let pendingRequests = await getPendingReviewRequests();
-    let historyRequests = await getReviewRequestsHistory();
+    if (!user || !session) redirect("/login");
 
-    if (isGerente) {
-        pendingRequests = pendingRequests.filter(r => r.workPackage?.client?.manager === user.id);
-        historyRequests = historyRequests.filter(r => r.workPackage?.client?.manager === user.id);
-    }
+    const pendingRequests = await getPendingReviewRequests();
+    const historyRequests = await getReviewRequestsHistory();
 
     return (
         <div className="space-y-6">

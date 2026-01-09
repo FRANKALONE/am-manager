@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { getTranslations } from "@/lib/get-translations";
+import { getVisibilityFilter, getHomeUrl, getCurrentUser, hasPermission } from "@/lib/auth";
 
 export interface UserFilters {
     email?: string;
@@ -17,7 +18,18 @@ export interface UserFilters {
 
 export async function getUsers(filters?: UserFilters) {
     try {
+        const authFilter = await getVisibilityFilter();
         const where: any = {};
+
+        if (!authFilter.isGlobal) {
+            if (authFilter.clientIds && authFilter.clientIds.length > 0) {
+                where.clientId = { in: authFilter.clientIds };
+            } else if (authFilter.managerId) {
+                where.client = { manager: authFilter.managerId };
+            } else {
+                return [];
+            }
+        }
 
         if (filters?.email) {
             where.email = { contains: filters.email, mode: 'insensitive' };
@@ -34,7 +46,6 @@ export async function getUsers(filters?: UserFilters) {
                 where.lastLoginAt.gte = new Date(filters.lastLoginFrom);
             }
             if (filters.lastLoginTo) {
-                // To include the whole day, we set to end of day if it's just a date
                 const toDate = new Date(filters.lastLoginTo);
                 toDate.setHours(23, 59, 59, 999);
                 where.lastLoginAt.lte = toDate;
@@ -57,15 +68,31 @@ export async function getUsers(filters?: UserFilters) {
 
 export async function getEligibleManagers() {
     try {
+        // Find roles that should be treated as managers (have view_dashboard permission)
+        const roles = await prisma.role.findMany({
+            where: { isActive: true }
+        });
+
+        const managerRoleNames = roles
+            .filter(role => {
+                try {
+                    const perms = JSON.parse(role.permissions);
+                    return perms.view_dashboard === true || role.name === 'ADMIN';
+                } catch (e) {
+                    return false;
+                }
+            })
+            .map(role => role.name);
+
         const users = await prisma.user.findMany({
             where: {
-                role: { in: ['ADMIN', 'GERENTE', 'DIRECTOR'] }
+                role: { in: managerRoleNames }
             },
             orderBy: { name: 'asc' }
         });
         return users;
     } catch (error) {
-        console.error("Failed to fetch eligible managers:", error);
+        console.error("Error fetching eligible managers:", error);
         return [];
     }
 }
@@ -84,22 +111,14 @@ export async function getUserById(id: string) {
 }
 
 export async function getMe() {
-    const userId = cookies().get("user_id")?.value;
-    if (!userId) return null;
-
-    try {
-        return await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                client: true
-            }
-        });
-    } catch (error) {
-        return null;
-    }
+    return await getCurrentUser();
 }
 
 export async function createUser(prevState: any, formData: FormData) {
+    if (!await hasPermission('manage_users')) {
+        return { error: "No autorizado" };
+    }
+
     const name = formData.get("name") as string;
     const surname = formData.get("surname") as string;
     const email = formData.get("email") as string;
@@ -141,6 +160,10 @@ export async function createUser(prevState: any, formData: FormData) {
 }
 
 export async function updateUser(id: string, prevState: any, formData: FormData) {
+    if (!await hasPermission('manage_users')) {
+        return { error: "No autorizado" };
+    }
+
     const name = formData.get("name") as string;
     const surname = formData.get("surname") as string;
     const email = formData.get("email") as string;
@@ -179,6 +202,10 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
 }
 
 export async function deleteUser(id: string) {
+    if (!await hasPermission('manage_users')) {
+        return { success: false, error: "No autorizado" };
+    }
+
     try {
         await prisma.user.delete({ where: { id } });
         revalidatePath("/admin/users");
@@ -190,6 +217,10 @@ export async function deleteUser(id: string) {
 }
 
 export async function resetUserPassword(id: string, newPassword: string) {
+    if (!await hasPermission('manage_users')) {
+        return { success: false, error: "No autorizado" };
+    }
+
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
@@ -243,8 +274,7 @@ export async function authenticate(prevState: any, formData: FormData) {
             return { error: "Credenciales inválidas" };
         }
 
-        // Set session cookie (simplistic implementation for now)
-        // In a real app we'd use a better session store or JWT
+        // Set session cookie
         cookies().set("user_id", user.id, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -291,6 +321,16 @@ export async function authenticate(prevState: any, formData: FormData) {
             });
         }
 
+        // Set permissions cookie
+        const { getPermissionsByRoleName } = await import("@/lib/permissions");
+        const permissions = await getPermissionsByRoleName(user.role);
+        cookies().set("user_permissions", JSON.stringify(permissions), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 60 * 60 * 24, // 1 day
+            path: "/",
+        });
+
         // Update last login
         await prisma.user.update({
             where: { id: user.id },
@@ -302,14 +342,9 @@ export async function authenticate(prevState: any, formData: FormData) {
             return { redirect: "/change-password" };
         }
 
-        // Determine redirect target
-        if (user.role === "ADMIN") {
-            return { redirect: "/admin-home" };
-        } else if (user.role === "GERENTE") {
-            return { redirect: "/manager-dashboard" };
-        } else {
-            return { redirect: "/client-dashboard" };
-        }
+        // Determine redirect target based on automated helper
+        const homeUrl = await getHomeUrl();
+        return { redirect: homeUrl };
 
     } catch (error) {
         console.error(error);
@@ -362,7 +397,8 @@ export async function logout() {
     cookieStore.set("user_id", "", { path: "/", expires: new Date(0) });
     cookieStore.set("user_role", "", { path: "/", expires: new Date(0) });
     cookieStore.set("client_id", "", { path: "/", expires: new Date(0) });
+    cookieStore.set("user_permissions", "", { path: "/", expires: new Date(0) });
+    cookieStore.set("user_email", "", { path: "/", expires: new Date(0) });
     console.log("[AUTH] Cookies cleared, redirecting to login");
     redirect("/login");
 }
-

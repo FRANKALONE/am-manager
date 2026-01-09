@@ -19,22 +19,30 @@ export type WorkPackageFilters = {
     year?: number;
 };
 
+import { getVisibilityFilter, canAccessWP, canAccessClient } from "@/lib/auth";
+
 export async function getWorkPackages(filters?: WorkPackageFilters) {
     try {
-        const { cookies } = await import("next/headers");
-        const { getPermissionsByRoleName } = await import("@/lib/permissions");
-
-        const userRole = cookies().get("user_role")?.value || "";
-        const perms = await getPermissionsByRoleName(userRole);
-
+        const authFilter = await getVisibilityFilter();
         const where: any = {};
 
-        // If not admin/global view, and being called for a manager, we'd need managerId.
-        // However, this action is usually called from admin pages where filters.clientId is used.
-        // We'll add a check that if they don't have view_all_wps, they might be restricted.
-        // For now, the existing filters cover the clientId if passed from the dashboard.
+        if (!authFilter.isGlobal) {
+            where.OR = [];
+            if (authFilter.clientIds && authFilter.clientIds.length > 0) {
+                where.OR.push({ clientId: { in: authFilter.clientIds } });
+            }
+            if (authFilter.wpIds && authFilter.wpIds.length > 0) {
+                where.OR.push({ id: { in: authFilter.wpIds } });
+            }
+            if (authFilter.managerId) {
+                where.OR.push({ client: { manager: authFilter.managerId } });
+            }
+            if (where.OR.length === 0) return [];
+        }
 
         if (filters?.clientId) {
+            // If we already have a visibility filter, we must intersect it.
+            // Prisma's AND will handle this correctly.
             where.clientId = filters.clientId;
         }
         if (filters?.contractType) {
@@ -108,6 +116,7 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
 }
 
 export async function getWorkPackageById(id: string) {
+    if (!await canAccessWP(id)) return null;
     try {
         return await prisma.workPackage.findUnique({
             where: { id },
@@ -179,6 +188,10 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     if (!id || id.length > 20) return { error: t('errors.maxLength', { field: 'ID', count: 20 }) };
     if (!name) return { error: t('errors.required', { field: t('common.name') }) };
     if (!clientId) return { error: t('errors.required', { field: t('dashboard.client') }) };
+
+    if (!await canAccessClient(clientId)) {
+        return { error: "No autorizado para este cliente" };
+    }
 
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) return { error: t('errors.notFound', { item: t('dashboard.client') }) };
@@ -257,6 +270,9 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
 }
 
 export async function updateWorkPackage(id: string, prevState: any, formData: FormData) {
+    if (!await canAccessWP(id)) {
+        return { error: "No autorizado" };
+    }
     console.log("updateWorkPackage called for ID:", id);
 
     // WorkPackage fields
@@ -418,6 +434,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
 
 
 export async function deleteWorkPackage(id: string) {
+    if (!await canAccessWP(id)) {
+        return { success: false, error: "No autorizado" };
+    }
     try {
         await prisma.workPackage.delete({ where: { id } });
         revalidatePath("/admin/work-packages");

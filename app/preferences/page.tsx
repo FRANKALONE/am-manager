@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser } from "@/lib/auth";
 import { UserPreferencesForm } from "@/app/components/user-preferences-form";
 import { SharedHeader } from "@/app/components/shared-header";
 import { getTranslations } from "@/lib/get-translations";
 
 export default async function PreferencesPage() {
-    const user = await getMe();
+    const user = await getCurrentUser();
     const { t } = await getTranslations();
 
     if (!user) {

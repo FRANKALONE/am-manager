@@ -1,15 +1,14 @@
 import { getClients } from "@/app/actions/clients";
 import { getWorkPackages } from "@/app/actions/work-packages";
 import { ClientDashboard } from "./client-dashboard-view";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getPermissionsByRoleName } from "@/lib/permissions";
-import { SharedHeader } from "@/app/components/shared-header";
 
 export default async function ClientDashboardPage() {
-    const user = await getMe();
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
-    if (!user) {
+    if (!user || !session) {
         redirect("/login");
     }
 
@@ -18,11 +17,11 @@ export default async function ClientDashboardPage() {
 
     // Fetch WPs for the user's client
     const workPackages = await getWorkPackages({
-        clientId: user.clientId || undefined,
+        clientId: user.clientId || session.clientId || undefined,
         status: "all" // Dashboard can show historical WPs too
     });
 
-    const permissions = await getPermissionsByRoleName(user.role);
+    const permissions = session.permissions;
 
     return (
         <ClientDashboard

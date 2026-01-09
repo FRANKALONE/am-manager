@@ -6,6 +6,16 @@ export function middleware(request: NextRequest) {
     const userRole = request.cookies.get('user_role')?.value;
     const { pathname } = request.nextUrl;
 
+    const userPermissions = (() => {
+        const perms = request.cookies.get('user_permissions')?.value;
+        if (!perms) return {};
+        try {
+            return JSON.parse(decodeURIComponent(perms));
+        } catch (e) {
+            return {};
+        }
+    })();
+
     // Public paths
     const publicPaths = ['/login', '/', '/login/forgot-password', '/login/reset-password'];
     if (publicPaths.includes(pathname)) {
@@ -13,7 +23,7 @@ export function middleware(request: NextRequest) {
             // If already logged in, redirect to appropriate home
             if (userRole === 'ADMIN') {
                 return NextResponse.redirect(new URL('/admin-home', request.url));
-            } else if (userRole === 'GERENTE') {
+            } else if (userPermissions.view_dashboard) {
                 return NextResponse.redirect(new URL('/manager-dashboard', request.url));
             } else {
                 return NextResponse.redirect(new URL('/client-dashboard', request.url));
@@ -24,34 +34,33 @@ export function middleware(request: NextRequest) {
 
     // Protected paths check
     if (!userId) {
-        // Redirigir al login si no hay sesión
+        // Redirigir al login si no hay sesin
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // Role-based access control
-    // Admin only sections
+    // Permission-based access control
+    // Admin/Management sections
     if (pathname.startsWith('/admin') || pathname.startsWith('/cierres')) {
-        if (userRole === 'ADMIN') {
-            // Admin has full access
-        } else if (userRole === 'GERENTE') {
-            // GERENTE only receives notifications, cannot access admin management sections
-            return NextResponse.redirect(new URL('/manager-dashboard', request.url));
-        } else {
-            // Regular users cannot access admin sections
-            return NextResponse.redirect(new URL('/client-dashboard', request.url));
+        const hasAdminPermission = userRole === 'ADMIN' ||
+            userPermissions.manage_administration ||
+            userPermissions.manage_users ||
+            userPermissions.manage_roles ||
+            userPermissions.view_cierres;
+
+        if (!hasAdminPermission) {
+            if (userPermissions.view_dashboard) {
+                return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+            } else {
+                return NextResponse.redirect(new URL('/client-dashboard', request.url));
+            }
         }
     }
 
-    // Manager dashboard - only GERENTE and ADMIN
+    // Manager dashboard
     if (pathname.startsWith('/manager-dashboard')) {
-        if (userRole !== 'GERENTE' && userRole !== 'ADMIN') {
+        if (userRole !== 'ADMIN' && !userPermissions.view_dashboard) {
             return NextResponse.redirect(new URL('/client-dashboard', request.url));
         }
-    }
-
-    // Client sections (Admins can also see them for support/testing)
-    if (pathname.startsWith('/client-dashboard')) {
-        // No specific restriction other than being logged in
     }
 
     // Security headers

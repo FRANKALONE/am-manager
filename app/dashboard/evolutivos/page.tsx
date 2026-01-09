@@ -1,4 +1,4 @@
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { getClientsWithEvolutivos, getEvolutivosByClient } from "@/app/actions/evolutivos";
 import { EvolutivosView } from "./evolutivos-view";
 import { redirect } from "next/navigation";
@@ -6,19 +6,20 @@ import { SharedHeader } from "@/app/components/shared-header";
 import { Footer } from "@/app/components/footer";
 
 export default async function EvolutivosPage() {
-    const user = await getMe();
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
-    if (!user) {
+    if (!user || !session) {
         redirect("/login");
     }
 
-    const isAdmin = user.role === "ADMIN";
-    const isGerente = user.role === "GERENTE";
-    const initialClientId = isAdmin || isGerente ? "" : (user.clientId || "");
+    const isAdmin = session.userRole === "ADMIN";
+    const canViewAll = isAdmin || session.permissions.view_all_clients;
 
-    const clients = (isAdmin || isGerente)
-        ? await getClientsWithEvolutivos(isGerente ? user.id : undefined)
-        : [];
+    // For clients, the initialClientId is their own. For others, it's empty initially.
+    const initialClientId = canViewAll ? "" : (user.clientId || "");
+
+    const clients = await getClientsWithEvolutivos();
 
     let initialData: any = { evolutivos: [], hitos: [], workPackages: [] };
     if (initialClientId) {

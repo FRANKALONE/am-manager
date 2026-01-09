@@ -8,21 +8,18 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { getAuthSession } from '@/lib/auth';
 
 /**
  * Obtener usuario actual desde cookies (helper interno)
  */
 async function getCurrentUserInfo() {
-    const userId = cookies().get('user_id')?.value;
-    const userRole = cookies().get('user_role')?.value;
-    const clientId = cookies().get('client_id')?.value;
-
-    if (!userId || !userRole || !clientId) {
+    const session = await getAuthSession();
+    if (!session || !session.clientId) {
         return null;
     }
 
-    return { id: userId, role: userRole, clientId };
+    return { id: session.userId, role: session.userRole, clientId: session.clientId, permissions: session.permissions };
 }
 
 /**
@@ -79,9 +76,9 @@ export async function linkJiraUserForClient(jiraUserId: string, appUserId: strin
             return { success: false, error: 'No autenticado' };
         }
 
-        // Solo usuarios CLIENTE pueden vincular
-        if (currentUser.role !== 'CLIENTE') {
-            return { success: false, error: 'Solo usuarios CLIENTE pueden vincular usuarios' };
+        // Verificar permisos
+        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No tienes permiso para gestionar usuarios de empresa' };
         }
 
         // Verificar que pertenece al cliente
@@ -142,9 +139,9 @@ export async function createAppUserForClient(
             return { success: false, error: 'No autenticado' };
         }
 
-        // Solo usuarios CLIENTE pueden crear
-        if (currentUser.role !== 'CLIENTE') {
-            return { success: false, error: 'Solo usuarios CLIENTE pueden crear usuarios' };
+        // Verificar permisos
+        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No tienes permiso para crear usuarios de empresa' };
         }
 
         // Verificar que pertenece al cliente
@@ -219,9 +216,9 @@ export async function createAppUserFromJiraForClient(
             return { success: false, error: 'No autenticado' };
         }
 
-        // Solo usuarios CLIENTE pueden crear
-        if (currentUser.role !== 'CLIENTE') {
-            return { success: false, error: 'Solo usuarios CLIENTE pueden crear usuarios' };
+        // Verificar permisos
+        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No tienes permiso para crear usuarios de empresa' };
         }
 
         // Verificar que pertenece al cliente
@@ -296,9 +293,9 @@ export async function deleteAppUserForClient(userId: string, clientId: string) {
             return { success: false, error: 'No autenticado' };
         }
 
-        // Solo usuarios CLIENTE pueden eliminar
-        if (currentUser.role !== 'CLIENTE') {
-            return { success: false, error: 'Solo usuarios CLIENTE pueden eliminar usuarios' };
+        // Verificar permisos
+        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No tienes permiso para eliminar usuarios de empresa' };
         }
 
         // Verificar que pertenece al cliente

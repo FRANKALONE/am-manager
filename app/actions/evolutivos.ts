@@ -4,12 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { fetchJira } from "@/lib/jira";
 import { fetchTempo } from "@/lib/tempo";
 import { revalidatePath } from "next/cache";
+import { getVisibilityFilter, canAccessClient } from "@/lib/auth";
 
 // Sync constant for Evolutivo issue types
 const EVOLUTIVO_TYPES = ["Evolutivo", "Hitos Evolutivos"];
 const EVOLUTIVO_BILLING_MODES = ["T&M contra bolsa", "Bolsa de Horas", "T&M Facturable", "Facturable"];
 
 export async function getEvolutivosByClient(clientId: string) {
+    if (!await canAccessClient(clientId)) {
+        return { evolutivos: [], hitos: [], workPackages: [], proposals: [] };
+    }
     try {
         // Find all work packages for this client
         const workPackages = await prisma.workPackage.findMany({
@@ -43,7 +47,6 @@ export async function getEvolutivosByClient(clientId: string) {
 
             // Check if T&M
             const isTM = evo.billingMode === "T&M contra bolsa" || evo.billingMode === "T&M Facturable";
-            const isBolsaOrFacturable = evo.billingMode === "Bolsa de Horas" || evo.billingMode === "Facturable";
 
             if (isTM) {
                 detail.accumulatedHours = await getAccumulatedHoursWithCorrection(evo.issueKey);
@@ -99,11 +102,6 @@ async function getAccumulatedHoursWithCorrection(issueKey: string) {
         }
 
         // Fetch worklogs from Tempo
-        // We need to find the internal Jira Issue ID for this key first, or search by key if supported
-        // Tempo v4 /worklogs/search supports issueId or JQL (via some interpretations)
-        // Let's use a simple search by issue key if we can, or just fetch and filter.
-
-        // Step 1: Get Issue ID from Jira
         const jiraIssue = await fetchJira(`/issue/${issueKey}?fields=id`);
         const issueId = parseInt(jiraIssue.id);
 
@@ -114,7 +112,7 @@ async function getAccumulatedHoursWithCorrection(issueKey: string) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 issueId: [issueId],
-                from: "2020-01-01", // Sufficiently back in time
+                from: "2020-01-01",
                 to: new Date().toISOString().split('T')[0],
                 limit: 1000
             })
@@ -129,12 +127,22 @@ async function getAccumulatedHoursWithCorrection(issueKey: string) {
     }
 }
 
-export async function syncTotalEvolutivos(managerId?: string) {
+export async function syncTotalEvolutivos() {
     try {
+        const filter = await getVisibilityFilter();
         const where: any = {};
-        if (managerId) {
-            where.manager = managerId;
+
+        if (!filter.isGlobal) {
+            where.OR = [];
+            if (filter.clientIds) {
+                where.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.OR.push({ manager: filter.managerId });
+            }
+            if (where.OR.length === 0) return { success: false, message: "No tienes clientes asignados para sincronizar" };
         }
+
         const clients = await prisma.client.findMany({
             where,
             include: { workPackages: true }
@@ -171,6 +179,9 @@ export async function syncTotalEvolutivos(managerId?: string) {
 }
 
 export async function syncClientEvolutivos(clientId: string) {
+    if (!await canAccessClient(clientId)) {
+        return { success: false, message: "No autorizado para este cliente" };
+    }
     try {
         const client = await prisma.client.findUnique({
             where: { id: clientId },
@@ -212,9 +223,6 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
     try {
         if (projectKeys.length === 0) return { success: false, message: "No hay proyectos que sincronizar" };
 
-        // 2. Jira Search - Split into two queries to avoid pagination issues
-        // IMPORTANT: Sync Evolutivos and Hitos separately because when combined,
-        // Hitos (more numerous) crowd out Evolutivos from the 1000 result limit
         const projectList = projectKeys.map(k => `"${k}"`).join(',');
 
         // First: Fetch all Evolutivos
@@ -228,11 +236,6 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
             })
         });
 
-        console.log(`[EVOLUTIVOS SYNC] Jira returned ${evolutivosRes.issues?.length || 0} Evolutivos (total: ${evolutivosRes.total || 'unknown'})`);
-        if (evolutivosRes.total && evolutivosRes.total > (evolutivosRes.issues?.length || 0)) {
-            console.log(`[EVOLUTIVOS SYNC] ⚠️ WARNING: ${evolutivosRes.total - (evolutivosRes.issues?.length || 0)} Evolutivos not fetched due to pagination`);
-        }
-
         // Second: Fetch all Hitos
         const hitosJql = `project IN (${projectList}) AND issuetype = "Hitos Evolutivos" ORDER BY created DESC`;
         const hitosRes = await fetchJira(`/search/jql`, {
@@ -244,9 +247,6 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
             })
         });
 
-        console.log(`[EVOLUTIVOS SYNC] Jira returned ${hitosRes.issues?.length || 0} Hitos (total: ${hitosRes.total || 'unknown'})`);
-
-        // Combine results
         const allIssues = [...(evolutivosRes.issues || []), ...(hitosRes.issues || [])];
         if (allIssues.length === 0) return { success: false, message: "No se encontraron tickets en JIRA" };
 
@@ -258,18 +258,13 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
             const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || null;
             const parentKey = fields.parent?.key || null;
 
-            // Find matching Work Package (first one that matches project key)
             const projectKey = issue.key.split('-')[0];
             const wp = await prisma.workPackage.findFirst({
                 where: { jiraProjectKeys: { contains: projectKey } }
             });
 
-            if (!wp) {
-                console.log(`[SYNC] Skipping ${issue.key} - no WP found for project ${projectKey}`);
-                continue;
-            }
+            if (!wp) continue;
 
-            console.log(`[SYNC] Processing ${issue.key} (${issueType}) for WP ${wp.id}`);
             await (prisma.ticket as any).upsert({
                 where: {
                     workPackageId_issueKey: {
@@ -303,7 +298,7 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
                     year: new Date(fields.created).getFullYear(),
                     month: new Date(fields.created).getMonth() + 1,
                     originalEstimate: fields.timeoriginalestimate ? fields.timeoriginalestimate / 3600 : null,
-                    reporter: 'Jira Sync' // Adding required field or default
+                    reporter: 'Jira Sync'
                 }
             });
             upsertedCount++;
@@ -317,13 +312,22 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
     }
 }
 
-export async function getClientsWithEvolutivos(managerId?: string) {
+export async function getClientsWithEvolutivos() {
     try {
+        const filter = await getVisibilityFilter();
         const where: any = {};
-        if (managerId) {
-            where.manager = managerId;
+
+        if (!filter.isGlobal) {
+            where.OR = [];
+            if (filter.clientIds) {
+                where.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.OR.push({ manager: filter.managerId });
+            }
+            if (where.OR.length === 0) return [];
         }
-        // Return all clients to allow sync or selection even if they don't have evolutivos yet
+
         return await prisma.client.findMany({
             where,
             select: { id: true, name: true, jiraProjectKey: true, portalUrl: true } as any,

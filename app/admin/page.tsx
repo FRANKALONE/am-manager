@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, Briefcase, BarChart3, RefreshCw, ShieldCheck, UserCheck, ArrowRight, LayoutDashboard, Zap, Activity, Database, Settings, Mail } from "lucide-react";
 import Link from "next/link";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
 
 export default async function AdminDashboardPage() {
     const { t } = await getTranslations();
-    const user = await getMe();
+    const user = await getCurrentUser();
     const clients = await getClients();
     const wps = await getWorkPackages({ status: "all" });
     const usersCount = await prisma.user.count();

@@ -3,23 +3,23 @@ import { DashboardView } from "./components/dashboard-view";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
-import { getPermissionsByRoleName } from "@/lib/permissions";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession, getHomeUrl } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
 
 import { SharedHeader } from "@/app/components/shared-header";
 import { Footer } from "@/app/components/footer";
 
 export default async function DashboardPage() {
-    const user = await getMe();
-    const isManager = user?.role === 'GERENTE';
-    const isAdmin = user?.role === 'ADMIN';
-    const clients = await getDashboardClients(isManager ? user?.id : undefined);
-    const perms = await getPermissionsByRoleName(user?.role || "");
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
+    const perms = session?.permissions || {};
+    const isAdmin = session?.userRole === 'ADMIN';
+
+    const clients = await getDashboardClients();
     const { t } = await getTranslations();
 
-    // Determine home URL based on role
-    const homeUrl = isAdmin ? '/admin-home' : (isManager ? '/manager-dashboard' : '/client-dashboard');
+    // Determine home URL based on role/permissions
+    const homeUrl = await getHomeUrl();
 
     return (
         <>

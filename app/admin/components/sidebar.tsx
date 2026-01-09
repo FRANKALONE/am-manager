@@ -1,12 +1,13 @@
 import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
-import { cookies } from "next/headers";
-import { getPermissionsByRoleName } from "@/lib/permissions";
+import { getAuthSession } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
 
 export async function AdminSidebar() {
-    const userRole = cookies().get("user_role")?.value || "";
-    const perms = await getPermissionsByRoleName(userRole);
+    const session = await getAuthSession();
+    if (!session) return null;
+
+    const perms = session.permissions;
     const { t } = await getTranslations();
 
     return (

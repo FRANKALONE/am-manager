@@ -5,12 +5,18 @@ import { revalidatePath } from "next/cache";
 import { createNotification } from "./notifications";
 import { getTranslations } from "@/lib/get-translations";
 
+import { getVisibilityFilter, canAccessWP } from "@/lib/auth";
+
 export async function createReviewRequest(
     wpId: string,
     requestedBy: string,
     worklogs: any[],
     reason: string
 ) {
+    if (!await canAccessWP(wpId)) {
+        const { t } = await getTranslations();
+        return { success: false, error: "No autorizado para este Work Package" };
+    }
     try {
         console.log('[DEBUG] Creating review request with worklog snapshots:', worklogs.length);
 
@@ -70,10 +76,30 @@ export async function getMyReviewRequests(userId: string) {
     }
 }
 
+
+
 export async function getPendingReviewRequests() {
     try {
+        const filter = await getVisibilityFilter();
+        const where: any = { status: "PENDING" };
+
+        if (!filter.isGlobal) {
+            where.workPackage = {
+                client: {
+                    OR: []
+                }
+            };
+            if (filter.clientIds) {
+                where.workPackage.client.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.workPackage.client.OR.push({ manager: filter.managerId });
+            }
+            if (where.workPackage.client.OR.length === 0) return [];
+        }
+
         return await prisma.reviewRequest.findMany({
-            where: { status: "PENDING" },
+            where,
             orderBy: { createdAt: 'desc' },
             include: {
                 requestedByUser: {
@@ -92,12 +118,30 @@ export async function getPendingReviewRequests() {
 
 export async function getReviewRequestsHistory() {
     try {
-        return await prisma.reviewRequest.findMany({
-            where: {
-                status: {
-                    in: ["APPROVED", "REJECTED"]
+        const filter = await getVisibilityFilter();
+        const where: any = {
+            status: {
+                in: ["APPROVED", "REJECTED"]
+            }
+        };
+
+        if (!filter.isGlobal) {
+            where.workPackage = {
+                client: {
+                    OR: []
                 }
-            },
+            };
+            if (filter.clientIds) {
+                where.workPackage.client.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.workPackage.client.OR.push({ manager: filter.managerId });
+            }
+            if (where.workPackage.client.OR.length === 0) return [];
+        }
+
+        return await prisma.reviewRequest.findMany({
+            where,
             orderBy: { reviewedAt: 'desc' },
             include: {
                 requestedByUser: {
@@ -129,12 +173,13 @@ export async function getReviewRequestDetail(id: string) {
                     select: { name: true, surname: true }
                 },
                 workPackage: {
-                    select: { name: true, clientName: true }
+                    select: { name: true, clientName: true, id: true }
                 }
             }
         });
 
         if (!request) return null;
+        if (!await canAccessWP(request.workPackage.id)) return null;
 
         // Parse worklog storage (could be IDs or full objects)
         const storedData = JSON.parse(request.worklogIds);
@@ -179,8 +224,6 @@ export async function approveReviewRequest(
     notes: string,
     approvedWorklogIds: number[]
 ) {
-    console.log(`[APPROVE_ACTION] Starting for ID: ${id}, By: ${reviewedBy}`);
-    console.log(`[APPROVE_ACTION] Approved Worklogs:`, approvedWorklogIds);
     try {
         const currentRequest = await prisma.reviewRequest.findUnique({
             where: { id },
@@ -190,6 +233,10 @@ export async function approveReviewRequest(
         if (!currentRequest) {
             const { t } = await getTranslations();
             return { success: false, error: t('errors.notFound', { item: t('admin.settings.claims') }) };
+        }
+
+        if (!await canAccessWP(currentRequest.workPackageId)) {
+            return { success: false, error: "No autorizado" };
         }
 
         // 1. Update the review request status
@@ -292,8 +339,16 @@ export async function approveReviewRequest(
 }
 
 export async function rejectReviewRequest(id: string, reviewedBy: string, notes: string) {
-    console.log(`[REJECT_ACTION] Starting for ID: ${id}, By: ${reviewedBy}`);
     try {
+        const checkRequest = await prisma.reviewRequest.findUnique({
+            where: { id },
+            select: { workPackageId: true }
+        });
+
+        if (!checkRequest || !await canAccessWP(checkRequest.workPackageId)) {
+            return { success: false, error: "No autorizado" };
+        }
+
         const request = await prisma.reviewRequest.update({
             where: { id },
             data: {

@@ -1,10 +1,8 @@
 import { getAppUsersByClient } from '@/app/actions/client-users';
 import { getJiraCustomerUsersByClient } from '@/app/actions/jira-customers';
-import { getMe } from '@/app/actions/users';
-import { cookies } from 'next/headers';
+import { getCurrentUser, getAuthSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { UsersPortal } from './components/users-portal';
-import { getPermissionsByRoleName } from '@/lib/permissions';
 
 export const metadata = {
     title: 'Gestión de Usuarios - Portal Cliente',
@@ -14,22 +12,18 @@ import { SharedHeader } from '@/app/components/shared-header';
 import { Footer } from '@/app/components/footer';
 
 export default async function ClientUsersPage() {
-    // Obtener información del usuario actual
-    const user = await getMe();
-    const userRole = user?.role;
-    let clientId = user?.clientId;
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
-    const perms = await getPermissionsByRoleName(userRole || "");
+    if (!user || !session) redirect("/login");
+
+    const userRole = session.userRole;
+    let clientId = user.clientId || session.clientId;
 
     // Check for specific permission instead of hardcoded roles
-    if (!userRole || !perms.manage_client_users) {
+    if (!session.permissions.manage_client_users) {
         const fallback = userRole === 'CLIENTE' ? '/client-dashboard' : '/dashboard';
         redirect(fallback);
-    }
-
-    // Fallback: si no hay client_id en el usuario, intentar de cookies
-    if (!clientId) {
-        clientId = cookies().get('client_id')?.value;
     }
 
     if (!clientId) {

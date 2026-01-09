@@ -80,7 +80,7 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                        {(isAdmin || user.role === 'GERENTE') && (
+                        {(isAdmin || user.permissions?.view_all_clients) && clients.length > 0 && (
                             <div className="space-y-2">
                                 <Label htmlFor="client-select" className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex justify-between items-center">
                                     Cliente

@@ -5,17 +5,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
 
-export async function getClients(managerId?: string) {
+import { getVisibilityFilter, canAccessClient } from "@/lib/auth";
+
+export async function getClients() {
     try {
-        const { cookies } = await import("next/headers");
-        const { getPermissionsByRoleName } = await import("@/lib/permissions");
-
-        const userRole = cookies().get("user_role")?.value || "";
-        const perms = await getPermissionsByRoleName(userRole);
-
+        const filter = await getVisibilityFilter();
         const where: any = {};
-        if (managerId && !perms.view_all_clients) {
-            where.manager = managerId;
+
+        if (!filter.isGlobal) {
+            where.OR = [];
+            if (filter.clientIds) {
+                where.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.OR.push({ manager: filter.managerId });
+            }
+            if (where.OR.length === 0) return [];
         }
 
         const clients = await prisma.client.findMany({
@@ -35,6 +40,7 @@ export async function getClients(managerId?: string) {
 }
 
 export async function getClientById(id: string) {
+    if (!await canAccessClient(id)) return null;
     try {
         return await prisma.client.findUnique({
             where: { id },
@@ -104,6 +110,9 @@ export async function createClient(prevState: any, formData: FormData) {
 }
 
 export async function updateClient(id: string, prevState: any, formData: FormData) {
+    if (!await canAccessClient(id)) {
+        return { error: "No autorizado para este cliente" };
+    }
     const name = formData.get("name") as string;
     const manager = formData.get("manager") as string;
     const amOnboardingDateStr = formData.get("amOnboardingDate") as string;
@@ -157,6 +166,9 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
 }
 
 export async function deleteClient(id: string) {
+    if (!await canAccessClient(id)) {
+        return { success: false, error: "No autorizado" };
+    }
     try {
         await prisma.client.delete({
             where: { id }

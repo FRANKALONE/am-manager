@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { getPendingJiraUserRequests, getJiraUserRequestsHistory } from '@/app/actions/jira-user-requests';
-import { getMe } from '@/app/actions/users';
+import { getCurrentUser, getAuthSession } from '@/lib/auth';
 import { JiraRequestsTable } from './components/jira-requests-table';
 import { redirect } from 'next/navigation';
 
@@ -9,8 +9,10 @@ export const metadata = {
 };
 
 export default async function JiraRequestsPage() {
-    const user = await getMe();
-    if (!user || user.role !== 'ADMIN') {
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
+
+    if (!user || !session || (session.userRole !== 'ADMIN' && !session.permissions.manage_jira_requests)) {
         redirect('/dashboard');
     }
 

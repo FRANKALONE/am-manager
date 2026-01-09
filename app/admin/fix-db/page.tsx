@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function FixDBPage() {
-    const user = await getMe();
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
     // Seguridad: Solo ADMIN puede ejecutar esto
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !session || session.userRole !== 'ADMIN') {
         redirect('/dashboard');
     }
 

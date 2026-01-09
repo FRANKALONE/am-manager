@@ -2,14 +2,16 @@ import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users } from "lucide-react";
-import { cookies } from "next/headers";
-import { getPermissionsByRoleName } from "@/lib/permissions";
+import { getAuthSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
 import { cn } from "@/lib/utils";
 
 export default async function AdminHomePage() {
-    const userRole = cookies().get("user_role")?.value || "";
-    const perms = await getPermissionsByRoleName(userRole);
+    const session = await getAuthSession();
+    if (!session) redirect("/login");
+
+    const perms = session.permissions;
     const { t } = await getTranslations();
 
     const options = [
@@ -193,4 +195,3 @@ export default async function AdminHomePage() {
         </div>
     );
 }
-

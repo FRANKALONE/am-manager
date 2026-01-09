@@ -78,47 +78,66 @@ async function getTicketCountFromJira(projectKeys: string, month: number, year: 
     }
 }
 
-export async function getDashboardClients(managerId?: string) {
+import { getVisibilityFilter } from "@/lib/auth";
+
+export async function getDashboardClients() {
     try {
-        const { cookies } = await import("next/headers");
-        const { getPermissionsByRoleName } = await import("@/lib/permissions");
-
-        const userRole = cookies().get("user_role")?.value || "";
-        const perms = await getPermissionsByRoleName(userRole);
-
+        const filter = await getVisibilityFilter();
         const where: any = {};
-        // If they don't have view_all_clients, filter by managerId
-        if (managerId && !perms.view_all_clients) {
-            where.manager = managerId;
+
+        if (!filter.isGlobal) {
+            where.OR = [];
+            if (filter.clientIds) {
+                where.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.OR.push({ manager: filter.managerId });
+            }
+            if (where.OR.length === 0) return [];
         }
+
         return await prisma.client.findMany({
             where,
             orderBy: { name: 'asc' },
             select: { id: true, name: true }
         });
     } catch (error) {
+        console.error("Error loading dashboard clients:", error);
         return [];
     }
 }
 
-export async function getDashboardWPs(clientId: string, managerId?: string) {
+export async function getDashboardWPs(clientId: string) {
     if (!clientId) return [];
     try {
-        const { cookies } = await import("next/headers");
-        const { getPermissionsByRoleName } = await import("@/lib/permissions");
-
-        const userRole = cookies().get("user_role")?.value || "";
-        const perms = await getPermissionsByRoleName(userRole);
-
+        const filter = await getVisibilityFilter();
         const where: any = { clientId };
-        // If they don't have view_all_wps, filter by manager of the client
-        if (managerId && !perms.view_all_wps) {
-            where.client = { manager: managerId };
+
+        if (!filter.isGlobal) {
+            if (filter.wpIds) {
+                // If they have specific WPs assigned, they can only see those
+                where.id = { in: filter.wpIds };
+            } else {
+                // Otherwise they see based on client access (OR assigned via managerId)
+                where.client = {
+                    OR: []
+                };
+
+                if (filter.clientIds) {
+                    where.client.OR.push({ id: { in: filter.clientIds } });
+                }
+                if (filter.managerId) {
+                    where.client.OR.push({ manager: filter.managerId });
+                }
+
+                if (where.client.OR.length === 0) return [];
+            }
         }
+
         return await prisma.workPackage.findMany({
             where,
             orderBy: { name: 'asc' },
-            select: { id: true, name: true }
+            select: { id: true, name: true, contractType: true }
         });
     } catch (error) {
         console.error("Error loading WPs:", error);

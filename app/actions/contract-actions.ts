@@ -175,8 +175,11 @@ export async function cancelWorkPackageRenewal(wpId: string) {
     }
 }
 
-export async function getExpiringWPs(managerId?: string, filters?: { clientId?: string, contractType?: string, startDate?: Date, endDate?: Date }) {
+import { getVisibilityFilter } from "@/lib/auth";
+
+export async function getExpiringWPs(filters?: { clientId?: string, contractType?: string, startDate?: Date, endDate?: Date }) {
     try {
+        const filter = await getVisibilityFilter();
         const today = new Date();
         const sixtyDaysOut = new Date();
         sixtyDaysOut.setDate(today.getDate() + 60);
@@ -197,8 +200,17 @@ export async function getExpiringWPs(managerId?: string, filters?: { clientId?: 
             }
         };
 
-        if (managerId) {
-            where.client = { manager: managerId };
+        if (!filter.isGlobal) {
+            where.client = {
+                OR: []
+            };
+            if (filter.clientIds) {
+                where.client.OR.push({ id: { in: filter.clientIds } });
+            }
+            if (filter.managerId) {
+                where.client.OR.push({ manager: filter.managerId });
+            }
+            if (where.client.OR.length === 0) return [];
         }
 
         if (filters?.clientId) {

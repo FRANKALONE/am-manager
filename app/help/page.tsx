@@ -1,15 +1,15 @@
-import { getMe } from "@/app/actions/users";
-import { getPermissionsByRoleName } from "@/lib/permissions";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { HelpView } from "./help-view";
 import { SharedHeader } from "@/app/components/shared-header";
 import { getTranslations } from "@/lib/get-translations";
 
 export default async function HelpPage() {
-    const user = await getMe();
-    if (!user) redirect("/login");
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
 
-    const permissions = await getPermissionsByRoleName(user.role);
+    if (!user || !session) redirect("/login");
+
     const { t } = await getTranslations();
 
     return (
@@ -18,7 +18,7 @@ export default async function HelpPage() {
                 <SharedHeader title={t('help.title')} />
             </div>
             <main className="flex-1">
-                <HelpView permissions={permissions} userName={user.name} />
+                <HelpView permissions={session.permissions} userName={user.name} />
             </main>
         </div>
     );

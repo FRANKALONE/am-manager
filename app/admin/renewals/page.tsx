@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
-import { getMe } from "@/app/actions/users";
+import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations, cancelWorkPackageRenewal } from "@/app/actions/contract-actions";
 import { getClients } from "@/app/actions/clients";
 import { getParametersByCategory } from "@/app/actions/parameters";
@@ -21,22 +21,23 @@ import {
 } from "@/components/ui/select";
 
 export default async function RenewalsPage({ searchParams }: { searchParams: { client?: string, type?: string, from?: string, to?: string } }) {
-    const user = await getMe();
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'GERENTE')) {
+    const user = await getCurrentUser();
+    const session = await getAuthSession();
+
+    if (!user || !session || (session.userRole !== 'ADMIN' && !session.permissions.view_renewals)) {
         redirect("/login");
     }
 
     const { client, type, from, to } = searchParams;
-    const isGerente = user.role === 'GERENTE';
 
     const [expiringWPs, clients, contractTypes] = await Promise.all([
-        getExpiringWPs(isGerente ? user.id : undefined, {
+        getExpiringWPs({
             clientId: client,
             contractType: type,
             startDate: from ? new Date(from) : undefined,
             endDate: to ? new Date(to) : undefined
         }),
-        getClients(isGerente ? user.id : undefined),
+        getClients(),
         getParametersByCategory("CONTRACT_TYPE")
     ]);
 
