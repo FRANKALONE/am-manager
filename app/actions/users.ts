@@ -59,7 +59,7 @@ export async function getEligibleManagers() {
     try {
         const users = await prisma.user.findMany({
             where: {
-                role: { in: ['ADMIN', 'GERENTE'] }
+                role: { in: ['ADMIN', 'GERENTE', 'DIRECTOR'] }
             },
             orderBy: { name: 'asc' }
         });
