@@ -76,11 +76,11 @@ export function JiraRequestsTable({ pendingRequests, historyRequests, currentUse
                         requests.map((request) => (
                             <TableRow key={request.id}>
                                 <TableCell className="whitespace-nowrap">
-                                    {format(new Date(request.createdAt), 'dd MMM yyyy HH:mm', { locale: es })}
+                                    {request.createdAt ? format(new Date(request.createdAt), 'dd MMM yyyy HH:mm', { locale: es }) : '---'}
                                 </TableCell>
-                                <TableCell className="font-medium">{request.client.name}</TableCell>
+                                <TableCell className="font-medium">{request.client?.name || 'Cliente desconocido'}</TableCell>
                                 <TableCell>
-                                    {request.requestedByUser.name} {request.requestedByUser.surname}
+                                    {request.requestedByUser ? `${request.requestedByUser.name} ${request.requestedByUser.surname || ''}` : 'Usuario desconocido'}
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant={request.type === 'CREATE' ? 'default' : 'destructive'} className="text-[10px]">
@@ -139,7 +139,7 @@ export function JiraRequestsTable({ pendingRequests, historyRequests, currentUse
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span className="text-sm">
-                                                {request.reviewedByUser?.name} {request.reviewedByUser?.surname}
+                                                {request.reviewedByUser ? `${request.reviewedByUser.name} ${request.reviewedByUser.surname || ''}` : '---'}
                                             </span>
                                             {request.reviewNotes && (
                                                 <span className="text-[10px] text-gray-500 italic truncate max-w-[150px]">
