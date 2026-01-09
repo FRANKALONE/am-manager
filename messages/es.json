@@ -283,7 +283,7 @@
         "evolutivos": "Gestión de Evolutivos",
         "evolutivosDesc": "Seguimiento detallado de hitos y planificación de evolutivos.",
         "notifications": {
-            "title": "Nuevas Reclamaciones",
+            "title": "Notificaciones",
             "viewAll": "Ver todas",
             "empty": "No hay reclamaciones pendientes",
             "from": "De: {name}"

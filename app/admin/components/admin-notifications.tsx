@@ -16,86 +16,196 @@ import { formatDistanceToNow } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import { useTranslations } from "@/lib/use-translations";
 
-export function AdminNotifications() {
+import {
+    getMyNotifications,
+    getUnreadNotificationsCount,
+    markNotificationAsRead
+} from "@/app/actions/notifications";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bell, Check } from "lucide-react";
+
+interface AdminNotificationsProps {
+    userId: string;
+}
+
+export function AdminNotifications({ userId }: AdminNotificationsProps) {
     const { t, locale } = useTranslations();
     const [requests, setRequests] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState("requests");
 
     const dateLocale = locale === 'es' ? es : enGB;
 
-    const fetchRequests = async () => {
+    const fetchData = async () => {
         try {
-            const data = await getPendingReviewRequests();
-            setRequests(data);
+            const [reqData, notifData, count] = await Promise.all([
+                getPendingReviewRequests(),
+                getMyNotifications(userId),
+                getUnreadNotificationsCount(userId)
+            ]);
+            setRequests(reqData);
+            setNotifications(notifData);
+            setUnreadCount(count);
         } catch (error) {
-            console.error("Error fetching admin notifications:", error);
+            console.error("Error fetching admin data:", error);
         }
     };
 
     useEffect(() => {
-        fetchRequests();
-        const interval = setInterval(fetchRequests, 60000); // Poll every minute
-        return () => clearInterval(interval);
-    }, []);
+        if (userId) {
+            fetchData();
+            const interval = setInterval(fetchData, 60000);
+            return () => clearInterval(interval);
+        }
+    }, [userId]);
+
+    const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await markNotificationAsRead(id);
+        fetchData();
+    };
+
+    const totalCount = requests.length + unreadCount;
 
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
-                    <MessageSquare className="h-5 w-5" />
-                    {requests.length > 0 && (
+                    <Bell className="h-5 w-5" />
+                    {totalCount > 0 && (
                         <Badge
                             variant="destructive"
                             className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] rounded-full border-2 border-background"
                         >
-                            {requests.length}
+                            {totalCount}
                         </Badge>
                     )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-0">
-                <div className="flex items-center justify-between p-4 border-b">
-                    <h4 className="font-semibold text-sm">{t('admin.notifications.title')}</h4>
-                    <Link href="/admin/review-requests" onClick={() => setIsOpen(false)}>
-                        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent">
-                            {t('admin.notifications.viewAll')}
-                        </Button>
-                    </Link>
+            <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b bg-slate-50/50">
+                    <h4 className="font-bold text-sm text-slate-800">{t('admin.notifications.title')}</h4>
                 </div>
-                <ScrollArea className="h-64">
-                    {requests.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                            <MessageSquare className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-                            <p className="text-sm text-muted-foreground">{t('admin.notifications.empty')}</p>
+
+                <Tabs className="w-full">
+                    <TabsList className="w-full grid grid-cols-2 rounded-none h-10 bg-slate-100/50">
+                        <TabsTrigger
+                            value="requests"
+                            active={activeTab === 'requests'}
+                            onClick={() => setActiveTab('requests')}
+                            className="text-xs relative"
+                        >
+                            Reclamaciones
+                            {requests.length > 0 && (
+                                <span className="ml-1.5 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">
+                                    {requests.length}
+                                </span>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="system"
+                            active={activeTab === 'system'}
+                            onClick={() => setActiveTab('system')}
+                            className="text-xs relative"
+                        >
+                            Sistema
+                            {unreadCount > 0 && (
+                                <span className="ml-1.5 px-1.5 py-0.5 bg-malachite/20 text-malachite-dark rounded-full text-[10px] font-bold">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="requests" active={activeTab === 'requests'} className="m-0 border-none outline-none">
+                        <ScrollArea className="h-80">
+                            {requests.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center p-8 text-center h-40">
+                                    <MessageSquare className="h-8 w-8 text-slate-200 mb-2" />
+                                    <p className="text-xs text-slate-400">{t('admin.notifications.empty')}</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {requests.map((r) => (
+                                        <Link
+                                            key={r.id}
+                                            href="/admin/review-requests"
+                                            onClick={() => setIsOpen(false)}
+                                            className="p-4 border-b last:border-0 transition-colors hover:bg-slate-50 block"
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+                                                    {r.workPackage.clientName}
+                                                </p>
+                                                <p className="text-[10px] text-slate-400">
+                                                    {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true, locale: dateLocale })}
+                                                </p>
+                                            </div>
+                                            <p className="text-xs font-semibold text-slate-700 mb-1">
+                                                {r.workPackage.name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 line-clamp-2 italic bg-slate-50 p-2 rounded border border-slate-100">
+                                                "{r.reason}"
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 mt-2">
+                                                {t('admin.notifications.from', { name: `${r.requestedByUser.name} ${r.requestedByUser.surname}` })}
+                                            </p>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </ScrollArea>
+                        <div className="p-2 bg-slate-50 border-t">
+                            <Link href="/admin/review-requests" onClick={() => setIsOpen(false)}>
+                                <Button variant="ghost" size="sm" className="w-full text-[11px] font-bold text-slate-500 hover:text-indigo-600">
+                                    {t('admin.notifications.viewAll')}
+                                </Button>
+                            </Link>
                         </div>
-                    ) : (
-                        <div className="flex flex-col">
-                            {requests.map((r) => (
-                                <Link
-                                    key={r.id}
-                                    href="/admin/review-requests"
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-4 border-b last:border-0 transition-colors hover:bg-muted/30"
-                                >
-                                    <p className="text-xs font-semibold text-primary mb-1">
-                                        {r.workPackage.clientName} - {r.workPackage.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2 italic">
-                                        "{r.reason}"
-                                    </p>
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-[10px] text-muted-foreground">
-                                            {t('admin.notifications.from', { name: `${r.requestedByUser.name} ${r.requestedByUser.surname}` })}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground italic">
-                                            {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true, locale: dateLocale })}
-                                        </p>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="system" active={activeTab === 'system'} className="m-0 border-none outline-none">
+                        <ScrollArea className="h-80">
+                            {notifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center p-8 text-center h-40">
+                                    <Bell className="h-8 w-8 text-slate-200 mb-2" />
+                                    <p className="text-xs text-slate-400">No hay avisos del sistema</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {notifications.map((n) => (
+                                        <div
+                                            key={n.id}
+                                            className={`p-4 border-b last:border-0 transition-colors hover:bg-slate-50 ${!n.isRead ? 'bg-malachite/5' : ''}`}
+                                        >
+                                            <div className="flex justify-between gap-2 mb-1">
+                                                <p className={`text-xs font-bold ${!n.isRead ? 'text-malachite-dark' : 'text-slate-700'}`}>
+                                                    {n.title}
+                                                </p>
+                                                {!n.isRead && (
+                                                    <button
+                                                        onClick={(e) => handleMarkAsRead(n.id, e)}
+                                                        className="text-slate-400 hover:text-malachite transition-colors"
+                                                        title="Marcar como leída"
+                                                    >
+                                                        <Check className="h-3.5 w-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-500 mb-2 line-clamp-3">{n.message}</p>
+                                            <p className="text-[10px] text-slate-400 italic">
+                                                {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: dateLocale })}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </TabsContent>
+                </Tabs>
             </DropdownMenuContent>
         </DropdownMenu>
     );

@@ -53,7 +53,7 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
 
                 {/* Notifications based on role */}
                 {userRole === "ADMIN" ? (
-                    <AdminNotifications />
+                    <AdminNotifications userId={user?.id || ""} />
                 ) : user ? (
                     <NotificationPanel userId={user.id} />
                 ) : null}

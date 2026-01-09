@@ -325,7 +325,7 @@ export async function notifyRenewal(wpId: string, renewalMode: 'IPC' | 'NEW_COND
             ...extraData
         };
 
-        await createNotification('CONTRACT_RENEWED', data, wpId);
+        await createNotification('CONTRACT_RENEWED', data, wpId, wp.clientId);
     } catch (error) {
         console.error("Error in notifyRenewal:", error);
     }
