@@ -112,7 +112,11 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
         newStartDate.setDate(newStartDate.getDate() + 1);
 
         const newEndDate = new Date(newStartDate.getTime() + durationMs);
-        const newRate = lastPeriod.rate * (1 + (ipcIncrement / 100));
+
+        const ipcFactor = 1 + (ipcIncrement / 100);
+        const newRate = lastPeriod.rate * ipcFactor;
+        const newRateEvolutivo = lastPeriod.rateEvolutivo ? lastPeriod.rateEvolutivo * ipcFactor : null;
+        const newRegularizationRate = lastPeriod.regularizationRate ? lastPeriod.regularizationRate * ipcFactor : null;
 
         // Create new validity period
         const newPeriod = await prisma.validityPeriod.create({
@@ -122,10 +126,11 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
                 endDate: newEndDate,
                 totalQuantity: lastPeriod.totalQuantity,
                 rate: newRate,
+                rateEvolutivo: newRateEvolutivo,
                 isPremium: lastPeriod.isPremium,
                 premiumPrice: lastPeriod.premiumPrice,
                 scopeUnit: lastPeriod.scopeUnit,
-                regularizationRate: lastPeriod.regularizationRate,
+                regularizationRate: newRegularizationRate,
                 regularizationType: lastPeriod.regularizationType,
                 surplusStrategy: lastPeriod.surplusStrategy
             }
