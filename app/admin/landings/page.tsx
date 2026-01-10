@@ -1,14 +1,17 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LandingsView } from "./components/landings-view";
 
 export default async function LandingsPage() {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
 
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session) {
+        redirect('/login');
+    }
+
+    if (!session.permissions.manage_landings) {
         redirect('/');
     }
 
-    return <LandingsView userId={session.user.id} />;
+    return <LandingsView userId={session.userId} />;
 }

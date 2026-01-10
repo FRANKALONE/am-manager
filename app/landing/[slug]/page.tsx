@@ -1,29 +1,29 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthSession, getCurrentUser } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getLandingBySlug, trackLandingView } from "@/app/actions/landings";
 import { LandingPageView } from "./components/landing-page-view";
 
 export default async function LandingPage({ params }: { params: { slug: string } }) {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
+    const user = await getCurrentUser();
 
-    if (!session?.user) {
+    if (!session || !user) {
         redirect('/login');
     }
 
-    const landing = await getLandingBySlug(params.slug, session.user.id);
+    const landing = await getLandingBySlug(params.slug, session.userId);
 
     if (!landing) {
         notFound();
     }
 
     // Track view
-    await trackLandingView(landing.id, session.user.id);
+    await trackLandingView(landing.id, session.userId);
 
     return (
         <LandingPageView
             landing={landing}
-            userName={session.user.name}
+            userName={user.name || ''}
         />
     );
 }

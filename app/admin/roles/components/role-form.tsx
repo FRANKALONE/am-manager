@@ -39,6 +39,9 @@ const PERMISSIONS: Permission[] = [
     { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
     { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },
 
+    { key: "manage_mass_emails", label: "Gestionar Emails Masivos", section: "Comunicación" },
+    { key: "manage_landings", label: "Gestionar Landing Pages", section: "Comunicación" },
+
     { key: "view_all_clients", label: "Acceso Global: Ver Todos los Clientes", section: "Visibilidad" },
     { key: "view_all_wps", label: "Acceso Global: Ver Todos los WPs", section: "Visibilidad" },
 ];
@@ -121,7 +124,7 @@ export function RoleForm({ initialRole }: Props) {
                             <CardTitle>Permisos de Funciones</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-8">
-                            {["General", "Administración", "Finanzas"].map(section => (
+                            {["General", "Administración", "Finanzas", "Comunicación"].map(section => (
                                 <div key={section} className="space-y-3">
                                     <h3 className="font-bold text-dark-green border-b pb-1 mb-4">{section}</h3>
                                     <div className="space-y-3">

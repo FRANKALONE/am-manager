@@ -459,53 +459,78 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     // Standardize JQL using field IDs for robustness
                     const jql = `project IN (${projectKeys.join(',')}) AND issuetype = "Evolutivo" AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
 
-                    const bodyData = JSON.stringify({
-                        jql,
-                        maxResults: 1000,
-                        fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'status', 'issuetype', 'assignee', 'duedate', 'parent']
-                    });
-
                     const jiraUrl = process.env.JIRA_URL?.trim();
                     const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
                     const jiraToken = process.env.JIRA_API_TOKEN?.trim();
                     const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
 
-                    const evolutivosRes: any = await new Promise((resolve, reject) => {
-                        const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Basic ${auth}`,
-                                'Content-Type': 'application/json'
-                            }
-                        }, (res: any) => {
-                            let data = '';
-                            res.on('data', (c: any) => data += c);
-                            res.on('end', () => {
-                                try {
-                                    if (res.statusCode === 200) {
-                                        resolve(JSON.parse(data));
-                                    } else {
-                                        addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
-                                        resolve({ issues: [] });
-                                    }
-                                } catch (e) {
-                                    addLog(`[ERROR] Failed to parse Evolutivos response`);
-                                    resolve({ issues: [] });
+                    // Fetch all Evolutivos with pagination
+                    let startAt = 0;
+                    const maxResults = 100; // Reduced batch size for better performance
+                    let hasMore = true;
+                    const allEvolutivos: any[] = [];
+
+                    addLog(`[INFO] Starting paginated fetch of Evolutivos...`);
+
+                    while (hasMore) {
+                        const bodyData = JSON.stringify({
+                            jql,
+                            maxResults,
+                            startAt,
+                            // Include SLA fields in initial query for optimization
+                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority']
+                        });
+
+                        const evolutivosRes: any = await new Promise((resolve, reject) => {
+                            const req = https.request(`${jiraUrl}/rest/api/3/search/jql`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Basic ${auth}`,
+                                    'Content-Type': 'application/json'
                                 }
+                            }, (res: any) => {
+                                let data = '';
+                                res.on('data', (c: any) => data += c);
+                                res.on('end', () => {
+                                    try {
+                                        if (res.statusCode === 200) {
+                                            resolve(JSON.parse(data));
+                                        } else {
+                                            addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
+                                            resolve({ issues: [], total: 0 });
+                                        }
+                                    } catch (e) {
+                                        addLog(`[ERROR] Failed to parse Evolutivos response`);
+                                        resolve({ issues: [], total: 0 });
+                                    }
+                                });
                             });
+                            req.on('error', (err: any) => {
+                                addLog(`[ERROR] Evolutivos request error: ${err.message}`);
+                                resolve({ issues: [], total: 0 });
+                            });
+                            req.write(bodyData);
+                            req.end();
                         });
-                        req.on('error', (err: any) => {
-                            addLog(`[ERROR] Evolutivos request error: ${err.message}`);
-                            resolve({ issues: [] });
-                        });
-                        req.write(bodyData);
-                        req.end();
-                    });
 
-                    if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
-                        addLog(`[INFO] Found ${evolutivosRes.issues.length} Evolutivos matching criteria`);
+                        if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
+                            allEvolutivos.push(...evolutivosRes.issues);
+                            addLog(`[INFO] Fetched ${evolutivosRes.issues.length} Evolutivos (startAt ${startAt}, total so far: ${allEvolutivos.length})`);
 
-                        evolutivosRes.issues.forEach((issue: any) => {
+                            // Check if there are more results
+                            hasMore = evolutivosRes.total > (startAt + evolutivosRes.issues.length);
+                            startAt += maxResults;
+                        } else {
+                            hasMore = false;
+                        }
+                    }
+
+                    addLog(`[INFO] Completed paginated fetch: ${allEvolutivos.length} total Evolutivos found`);
+
+                    if (allEvolutivos.length > 0) {
+                        addLog(`[INFO] Processing ${allEvolutivos.length} Evolutivos with SLA data`);
+
+                        allEvolutivos.forEach((issue: any) => {
                             const billingModeRaw = issue.fields.customfield_10121;
                             const billingMode = (typeof billingModeRaw === 'object' ? billingModeRaw?.value : billingModeRaw) || 'Bolsa de Horas';
 
@@ -525,6 +550,32 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 addLog(`[INFO] Identified T&M Evolutivo for worklog sync: ${issue.key} (ID: ${issue.id}, Mode: ${billingMode})`);
                             }
 
+                            // Extract SLA information
+                            const getSlaInfo = (field: any) => {
+                                if (!field) return { status: null, time: null };
+
+                                let status = null;
+                                let elapsed = null;
+
+                                if (field.ongoingCycle) {
+                                    elapsed = field.ongoingCycle.elapsedTime?.friendly || null;
+                                    if (field.ongoingCycle.breached) {
+                                        status = "Incumplido";
+                                    } else {
+                                        status = field.ongoingCycle.remainingTime?.friendly || "En plazo";
+                                    }
+                                } else if (field.completedCycles && field.completedCycles.length > 0) {
+                                    const last = field.completedCycles[field.completedCycles.length - 1];
+                                    elapsed = last.elapsedTime?.friendly || null;
+                                    status = last.breached ? "Incumplido" : "Cumplido";
+                                }
+
+                                return { status, time: elapsed };
+                            };
+
+                            const resSla = getSlaInfo(issue.fields.customfield_10065);
+                            const resolSla = getSlaInfo(issue.fields.customfield_10064);
+
                             issueDetails.set(issue.id, {
                                 id: issue.id,
                                 key: issue.key,
@@ -534,9 +585,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 created: issue.fields.created,
                                 estimate: issue.fields.timeoriginalestimate,
                                 status: issue.fields.status?.name || 'Unknown',
+                                priority: issue.fields.priority?.name || 'Media',
                                 assignee: issue.fields.assignee?.displayName || null,
                                 dueDate: issue.fields.duedate || null,
-                                parentKey: issue.fields.parent?.key || null
+                                parentKey: issue.fields.parent?.key || null,
+                                slaResponse: resSla.status,
+                                slaResponseTime: resSla.time,
+                                slaResolution: resolSla.status,
+                                slaResolutionTime: resolSla.time
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {

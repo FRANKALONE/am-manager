@@ -83,12 +83,16 @@ export async function AdminSidebar() {
                     <SidebarLink href="/admin/emails" label={t('sidebar.emails')}>
                         <Mail className="h-4 w-4" />
                     </SidebarLink>
-                    <SidebarLink href="/admin/mass-emails" label="Emails Masivos">
-                        <Mail className="h-4 w-4" />
-                    </SidebarLink>
-                    <SidebarLink href="/admin/landings" label="Landing Pages">
-                        <Globe className="h-4 w-4" />
-                    </SidebarLink>
+                    {perms.manage_mass_emails && (
+                        <SidebarLink href="/admin/mass-emails" label="Emails Masivos">
+                            <Mail className="h-4 w-4" />
+                        </SidebarLink>
+                    )}
+                    {perms.manage_landings && (
+                        <SidebarLink href="/admin/landings" label="Landing Pages">
+                            <Globe className="h-4 w-4" />
+                        </SidebarLink>
+                    )}
                     <SidebarLink href="/admin/maintenance" label={t('sidebar.maintenance')}>
                         <Database className="h-4 w-4" />
                     </SidebarLink>
