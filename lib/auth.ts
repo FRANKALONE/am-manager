@@ -147,8 +147,6 @@ export async function canAccessWP(wpId: string): Promise<boolean> {
  * Checks if the user should be redirected to a landing page
  */
 export async function getLandingRedirect(userId: string, userRole: string): Promise<string | null> {
-    if (userRole === 'ADMIN') return null;
-
     try {
         const { getActiveLandingsForUser } = await import("@/app/actions/landings");
         const landings = await getActiveLandingsForUser(userId);
