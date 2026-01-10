@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckCircle2, ChevronDown, MousePointer2, Plus as PlusIcon, Minus as MinusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
