@@ -857,7 +857,12 @@
         "documentation": "Documentación",
         "claims": "Reclamaciones",
         "notifications": "Notificaciones",
-        "emails": "Gestión de Emails"
+        "emails": "Gestión de Emails",
+        "massEmails": "Emails Masivos",
+        "landings": "Landing Pages",
+        "communications": "Comunicaciones",
+        "jiraUsers": "Usuarios JIRA",
+        "jiraRequests": "Solicitudes JIRA"
     },
     "errors": {
         "required": "{field} es obligatorio",

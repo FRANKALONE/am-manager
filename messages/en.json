@@ -830,14 +830,14 @@
             "total": "Total: {count} user{plural}"
         },
         "requests": {
-            "title": "Solicitudes JIRA",
-            "pending": "Solicitudes Pendientes",
-            "history": "Historial de Solicitudes",
-            "createRequest": "Solicitar Creación",
-            "deleteRequest": "Solicitar Eliminación",
-            "approve": "Aprobar",
-            "reject": "Rechazar",
-            "notes": "Notas"
+            "title": "JIRA Requests",
+            "pending": "Pending Requests",
+            "history": "Request History",
+            "createRequest": "Request Creation",
+            "deleteRequest": "Request Deletion",
+            "approve": "Approve",
+            "reject": "Reject",
+            "notes": "Notes"
         }
     },
     "sidebar": {
@@ -857,7 +857,12 @@
         "documentation": "Documentation",
         "claims": "Claims",
         "notifications": "Notifications",
-        "emails": "Email Management"
+        "emails": "Email Management",
+        "massEmails": "Mass Emails",
+        "landings": "Landing Pages",
+        "communications": "Communications",
+        "jiraUsers": "JIRA Users",
+        "jiraRequests": "JIRA Requests"
     },
     "errors": {
         "required": "{field} is required",
@@ -911,14 +916,14 @@
     },
     "parameters": {
         "RENEWAL_TYPE": {
-            "AUTO": "Automática",
-            "BP": "Bajo Pedido",
-            "NONE": "No renueva"
+            "AUTO": "Automatic",
+            "BP": "On Demand",
+            "NONE": "No renewal"
         },
         "CONTRACT_TYPE": {
-            "B": "Bolsa de Horas",
-            "BD": "BD (Bolsa + Días)",
-            "E": "Eventos"
+            "B": "Hours Package",
+            "BD": "BD (Package + Days)",
+            "E": "Events"
         }
     }
 }

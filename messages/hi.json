@@ -800,7 +800,12 @@
         "documentation": "दस्तावेज़",
         "claims": "दावे",
         "notifications": "सूचनाएं",
-        "emails": "Gestión de Emails"
+        "emails": "ईमेल प्रबंधन",
+        "massEmails": "सामूहिक ईमेल",
+        "landings": "लैंडिंग पृष्ठ",
+        "communications": "संचार",
+        "jiraUsers": "JIRA उपयोगकर्ता",
+        "jiraRequests": "JIRA अनुरोध"
     },
     "errors": {
         "required": "{field} अनिवार्य है",

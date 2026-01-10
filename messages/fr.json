@@ -800,7 +800,12 @@
         "documentation": "Documentation",
         "claims": "Réclamations",
         "notifications": "Notifications",
-        "emails": "Gestión de Emails"
+        "emails": "Gestion des E-mails",
+        "massEmails": "E-mails en masse",
+        "landings": "Pages d'atterrissage",
+        "communications": "Communications",
+        "jiraUsers": "Utilisateurs JIRA",
+        "jiraRequests": "Demandes JIRA"
     },
     "errors": {
         "required": "{field} est obligatoire",
