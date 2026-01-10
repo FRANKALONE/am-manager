@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe, Send, History, Layout } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { getAuthSession } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
@@ -80,17 +80,20 @@ export async function AdminSidebar() {
                     <SidebarLink href="/admin/notifications" label={t('sidebar.notifications')}>
                         <Bell className="h-4 w-4" />
                     </SidebarLink>
+
+                    <div className="h-2" />
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-1">Comunicaciones</div>
                     <SidebarLink href="/admin/emails" label={t('sidebar.emails')}>
-                        <Mail className="h-4 w-4" />
+                        <History className="h-4 w-4" />
                     </SidebarLink>
                     {perms.manage_mass_emails && (
                         <SidebarLink href="/admin/mass-emails" label="Emails Masivos">
-                            <Mail className="h-4 w-4" />
+                            <Send className="h-4 w-4" />
                         </SidebarLink>
                     )}
                     {perms.manage_landings && (
                         <SidebarLink href="/admin/landings" label="Landing Pages">
-                            <Globe className="h-4 w-4" />
+                            <Layout className="h-4 w-4" />
                         </SidebarLink>
                     )}
                     <SidebarLink href="/admin/maintenance" label={t('sidebar.maintenance')}>

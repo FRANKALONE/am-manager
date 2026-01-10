@@ -79,12 +79,12 @@ export async function createNotification(
             return false;
         }
 
-        let recipients: { id: string; email: string; name: string | null; role: string; }[] = [];
+        let recipients: { id: string; email: string; name: string | null; role: string; locale: string; }[] = [];
 
         if (recipientId) {
             const user = await prisma.user.findUnique({
                 where: { id: recipientId },
-                select: { id: true, email: true, name: true, role: true }
+                select: { id: true, email: true, name: true, role: true, locale: true }
             });
             if (user) recipients.push(user);
         } else {
@@ -114,7 +114,7 @@ export async function createNotification(
                         ] : [])
                     ]
                 },
-                select: { id: true, email: true, name: true, role: true }
+                select: { id: true, email: true, name: true, role: true, locale: true }
             });
             recipients.push(...roleRecipients);
         }
@@ -127,10 +127,34 @@ export async function createNotification(
         // For now, let's assume global by role unless specified.
 
         for (const user of uniqueRecipients) {
+            const userLocale = user.locale || 'es';
+
+            // Resolve template based on locale with fallback: Locale -> EN -> ES
+            const getTemplateValue = (field: 'appMessage' | 'emailSubject' | 'emailMessage') => {
+                const rawValue = setting[field];
+                if (!rawValue) return "";
+
+                try {
+                    const translations = JSON.parse(rawValue);
+                    // 1. Try requested locale
+                    if (translations[userLocale]) return translations[userLocale];
+                    // 2. Try English
+                    if (translations['en']) return translations['en'];
+                    // 3. Try Spanish
+                    if (translations['es']) return translations['es'];
+                    // 4. Fallback to first available or empty
+                    const firstKey = Object.keys(translations)[0];
+                    return firstKey ? translations[firstKey] : "";
+                } catch (e) {
+                    // Backwards compatibility for plain text
+                    return rawValue;
+                }
+            };
+
             // Process templates with dynamic data
-            let appMsg = setting.appMessage || "";
-            let emailSub = setting.emailSubject || setting.title;
-            let emailMsg = setting.emailMessage || "";
+            let appMsg = getTemplateValue('appMessage');
+            let emailSub = getTemplateValue('emailSubject') || setting.title;
+            let emailMsg = getTemplateValue('emailMessage');
 
             Object.entries(data).forEach(([key, val]) => {
                 const regex = new RegExp(`\\{${key}\\}`, 'g');

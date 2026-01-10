@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Mail, AppWindow, Code, ShieldCheck } from "lucide-react";
+import { Info, Mail, AppWindow, Code, ShieldCheck, Languages } from "lucide-react";
+import { RichTextEditor } from "../../components/rich-text-editor";
 
 interface TemplateData {
     id: string;
@@ -30,6 +31,13 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
     const [formData, setFormData] = useState<Partial<TemplateData>>({});
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("app");
+    const [selectedLang, setSelectedLang] = useState<"es" | "en" | "it">("es");
+
+    const languages = [
+        { id: "es", label: "Español", flag: "🇪🇸" },
+        { id: "en", label: "English", flag: "🇬🇧" },
+        { id: "it", label: "Italiano", flag: "🇮🇹" }
+    ];
 
     useEffect(() => {
         if (template) {
@@ -49,6 +57,34 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
             onClose();
         } finally {
             setLoading(false);
+        }
+    };
+
+    const updateNestedField = (field: string, lang: string, value: string) => {
+        setFormData(prev => {
+            const currentRaw = prev[field as keyof TemplateData] || "{}";
+            let trans: any = {};
+            try {
+                trans = JSON.parse(currentRaw as string);
+            } catch (e) {
+                // If it was plain text, put it in 'es'
+                trans = { es: currentRaw };
+            }
+            trans[lang] = value;
+            return {
+                ...prev,
+                [field]: JSON.stringify(trans)
+            };
+        });
+    };
+
+    const getFieldValue = (field: string, lang: string) => {
+        const raw = formData[field as keyof TemplateData] || "";
+        try {
+            const trans = JSON.parse(raw as string);
+            return trans[lang] || "";
+        } catch (e) {
+            return lang === 'es' ? raw as string : "";
         }
     };
 
@@ -106,40 +142,52 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
                             </TabsTrigger>
                         </TabsList>
 
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b mb-4">
+                            {languages.map(lang => (
+                                <Button
+                                    key={lang.id}
+                                    type="button"
+                                    variant={selectedLang === lang.id ? "default" : "outline"}
+                                    size="sm"
+                                    className={`h-8 rounded-full text-xs gap-1.5 ${selectedLang === lang.id ? 'bg-indigo-600' : 'text-slate-500 hover:text-indigo-600'}`}
+                                    onClick={() => setSelectedLang(lang.id as any)}
+                                >
+                                    <span>{lang.flag}</span>
+                                    {lang.label}
+                                </Button>
+                            ))}
+                        </div>
+
                         <TabsContent value="app" active={activeTab === 'app'} className="space-y-4 pt-4 border-none shadow-none">
                             <div className="space-y-2">
-                                <Label className="text-slate-700 font-bold">Mensaje en la App</Label>
-                                <Textarea
-                                    value={formData.appMessage}
-                                    onChange={e => setFormData(prev => ({ ...prev, appMessage: e.target.value }))}
+                                <Label className="text-slate-700 font-bold">Mensaje en la App ({selectedLang.toUpperCase()})</Label>
+                                <RichTextEditor
+                                    value={getFieldValue('appMessage', selectedLang)}
+                                    onChange={val => updateNestedField('appMessage', selectedLang, val)}
                                     placeholder="Ej: El contrato {wpName} ha sido renovado..."
-                                    className="min-h-[100px] bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                 />
                                 <p className="text-[10px] text-slate-400">
                                     Este mensaje aparecerá en el panel de notificaciones del usuario.
-                                    Puedes usar <code className="text-[9px] bg-slate-100 px-1 rounded">&lt;b&gt;texto&lt;/b&gt;</code> para negrita,{' '}
-                                    <code className="text-[9px] bg-slate-100 px-1 rounded">&lt;br/&gt;</code> para saltos de línea.
                                 </p>
                             </div>
                         </TabsContent>
 
                         <TabsContent value="email" active={activeTab === 'email'} className="space-y-4 pt-4 border-none shadow-none">
                             <div className="space-y-2">
-                                <Label className="text-slate-700 font-bold">Asunto del Email</Label>
+                                <Label className="text-slate-700 font-bold">Asunto del Email ({selectedLang.toUpperCase()})</Label>
                                 <Input
-                                    value={formData.emailSubject}
-                                    onChange={e => setFormData(prev => ({ ...prev, emailSubject: e.target.value }))}
+                                    value={getFieldValue('emailSubject', selectedLang)}
+                                    onChange={e => updateNestedField('emailSubject', selectedLang, e.target.value)}
                                     placeholder="Ej: ✅ Renovación: {clientName}"
                                     className="bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-slate-700 font-bold">Cuerpo del Email</Label>
-                                <Textarea
-                                    value={formData.emailMessage}
-                                    onChange={e => setFormData(prev => ({ ...prev, emailMessage: e.target.value }))}
+                                <Label className="text-slate-700 font-bold">Cuerpo del Email ({selectedLang.toUpperCase()})</Label>
+                                <RichTextEditor
+                                    value={getFieldValue('emailMessage', selectedLang)}
+                                    onChange={val => updateNestedField('emailMessage', selectedLang, val)}
                                     placeholder="Hola {name}, te informamos que..."
-                                    className="min-h-[150px] bg-slate-50/50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                 />
                                 <p className="text-[10px] text-slate-400">El sistema añadirá automáticamente el saludo "Hola [Nombre]" y un pie de página estándar.</p>
                             </div>
