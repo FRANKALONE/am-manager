@@ -144,11 +144,34 @@ export async function canAccessWP(wpId: string): Promise<boolean> {
 }
 
 /**
+ * Checks if the user should be redirected to a landing page
+ */
+export async function getLandingRedirect(userId: string, userRole: string): Promise<string | null> {
+    if (userRole === 'ADMIN') return null;
+
+    try {
+        const { getActiveLandingsForUser } = await import("@/app/actions/landings");
+        const landings = await getActiveLandingsForUser(userId);
+        const firstUnread = landings.find(l => l.isNew);
+        if (firstUnread) {
+            return `/landing/${firstUnread.slug}`;
+        }
+    } catch (e) {
+        console.error("Error checking unread landings:", e);
+    }
+    return null;
+}
+
+/**
  * Helper to determine the home URL for the current user
  */
 export async function getHomeUrl(): Promise<string> {
     const session = await getAuthSession();
     if (!session) return "/login";
+
+    const landingRedirect = await getLandingRedirect(session.userId, session.userRole);
+    if (landingRedirect) return landingRedirect;
+
     if (session.userRole === 'ADMIN') return "/admin-home";
     if (session.permissions.view_dashboard) return "/manager-dashboard";
     return "/client-dashboard";

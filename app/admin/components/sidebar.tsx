@@ -77,12 +77,11 @@ export async function AdminSidebar() {
                         <Settings className="h-4 w-4" />
                     </SidebarLink>
 
+                    <div className="h-2" />
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-1">Comunicaciones</div>
                     <SidebarLink href="/admin/notifications" label={t('sidebar.notifications')}>
                         <Bell className="h-4 w-4" />
                     </SidebarLink>
-
-                    <div className="h-2" />
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-1">Comunicaciones</div>
                     <SidebarLink href="/admin/emails" label={t('sidebar.emails')}>
                         <History className="h-4 w-4" />
                     </SidebarLink>

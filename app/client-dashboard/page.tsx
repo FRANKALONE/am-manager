@@ -12,6 +12,13 @@ export default async function ClientDashboardPage() {
         redirect("/login");
     }
 
+    // Check for unread landings to redirect
+    const { getLandingRedirect } = await import("@/lib/auth");
+    const landingRedirect = await getLandingRedirect(session.userId, session.userRole);
+    if (landingRedirect) {
+        redirect(landingRedirect);
+    }
+
     // Only fetch clients if admin, but here we just need the user's client potentially
     const clients = await getClients();
 

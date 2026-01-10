@@ -13,6 +13,13 @@ export default async function ManagerDashboardPage() {
         redirect("/login");
     }
 
+    // Check for unread landings to redirect
+    const { getLandingRedirect } = await import("@/lib/auth");
+    const landingRedirect = await getLandingRedirect(session.userId, session.userRole);
+    if (landingRedirect) {
+        redirect(landingRedirect);
+    }
+
     if (!session.permissions.view_dashboard) {
         redirect("/client-dashboard");
     }
