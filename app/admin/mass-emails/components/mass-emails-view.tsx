@@ -55,7 +55,9 @@ export function MassEmailsView({ userId }: MassEmailsViewProps) {
 
         const result = await sendMassEmail(id);
         if (result.success) {
-            alert(`Email enviado a ${result.sent} destinatarios. ${result.errors > 0 ? `${result.errors} errores.` : ''}`);
+            const sent = (result as any).sent || 0;
+            const errors = (result as any).errors || 0;
+            alert(`Email enviado a ${sent} destinatarios. ${errors > 0 ? `${errors} errores.` : ''}`);
             fetchEmails();
         } else {
             alert("Error al enviar el email: " + result.error);
