@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { getAuthSession } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
@@ -82,6 +82,12 @@ export async function AdminSidebar() {
                     </SidebarLink>
                     <SidebarLink href="/admin/emails" label={t('sidebar.emails')}>
                         <Mail className="h-4 w-4" />
+                    </SidebarLink>
+                    <SidebarLink href="/admin/mass-emails" label="Emails Masivos">
+                        <Mail className="h-4 w-4" />
+                    </SidebarLink>
+                    <SidebarLink href="/admin/landings" label="Landing Pages">
+                        <Globe className="h-4 w-4" />
                     </SidebarLink>
                     <SidebarLink href="/admin/maintenance" label={t('sidebar.maintenance')}>
                         <Database className="h-4 w-4" />
