@@ -84,6 +84,7 @@ export async function createMassEmail(data: {
     targetRoles?: string;
     targetClients?: string;
     targetWpTypes?: string;
+    selectedUserIds?: string[];
     createdBy: string;
 }) {
     try {
@@ -108,12 +109,19 @@ export async function createMassEmail(data: {
 
         // Create recipient records
         if (recipients.length > 0) {
-            await prisma.massEmailRecipient.createMany({
-                data: recipients.map(user => ({
-                    massEmailId: massEmail.id,
-                    userId: user.id
-                }))
-            });
+            // If selectedUserIds is provided, filter the recipients
+            const finalRecipients = data.selectedUserIds
+                ? recipients.filter(r => data.selectedUserIds?.includes(r.id))
+                : recipients;
+
+            if (finalRecipients.length > 0) {
+                await prisma.massEmailRecipient.createMany({
+                    data: finalRecipients.map(user => ({
+                        massEmailId: massEmail.id,
+                        userId: user.id
+                    }))
+                });
+            }
         }
 
         revalidatePath('/admin/mass-emails');
@@ -130,6 +138,7 @@ export async function updateMassEmail(id: string, data: {
     targetRoles?: string;
     targetClients?: string;
     targetWpTypes?: string;
+    selectedUserIds?: string[];
 }) {
     try {
         await prisma.massEmail.update({
@@ -163,12 +172,19 @@ export async function updateMassEmail(id: string, data: {
 
                 // Create new recipient records
                 if (recipients.length > 0) {
-                    await prisma.massEmailRecipient.createMany({
-                        data: recipients.map(user => ({
-                            massEmailId: id,
-                            userId: user.id
-                        }))
-                    });
+                    // If selectedUserIds is provided, filter the recipients
+                    const finalRecipients = data.selectedUserIds
+                        ? recipients.filter(r => data.selectedUserIds?.includes(r.id))
+                        : recipients;
+
+                    if (finalRecipients.length > 0) {
+                        await prisma.massEmailRecipient.createMany({
+                            data: finalRecipients.map(user => ({
+                                massEmailId: id,
+                                userId: user.id
+                            }))
+                        });
+                    }
                 }
             }
         }
@@ -318,6 +334,7 @@ export async function getMassEmails() {
                 recipients: {
                     select: {
                         id: true,
+                        userId: true,
                         sentAt: true,
                         openedAt: true
                     }

@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, Send, Loader2 } from "lucide-react";
+import { Users, FileText, Send, Loader2, CheckSquare, Square } from "lucide-react";
 import { createMassEmail, updateMassEmail, getEligibleRecipients } from "@/app/actions/mass-emails";
 import { RecipientsFilter } from "./recipients-filter";
+import { RichTextEditor } from "../../components/rich-text-editor";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ComposeDialogProps {
     isOpen: boolean;
@@ -23,6 +25,7 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
     const [activeTab, setActiveTab] = useState("recipients");
     const [loading, setLoading] = useState(false);
     const [previewRecipients, setPreviewRecipients] = useState<any[]>([]);
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         subject: "",
@@ -41,6 +44,16 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                 targetClients: editingEmail.targetClients || "",
                 targetWpTypes: editingEmail.targetWpTypes || ""
             });
+            if (editingEmail.recipients) {
+                setSelectedUserIds(editingEmail.recipients.map((r: any) => r.userId));
+
+                // Also fetch full recipients for preview
+                getEligibleRecipients({
+                    targetRoles: editingEmail.targetRoles,
+                    targetClients: editingEmail.targetClients,
+                    targetWpTypes: editingEmail.targetWpTypes
+                }).then(setPreviewRecipients);
+            }
         } else {
             setFormData({
                 subject: "",
@@ -49,6 +62,8 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                 targetClients: "",
                 targetWpTypes: ""
             });
+            setSelectedUserIds([]);
+            setPreviewRecipients([]);
         }
         setActiveTab("recipients");
     }, [editingEmail, isOpen]);
@@ -63,13 +78,35 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
         // Fetch preview
         const recipients = await getEligibleRecipients(filters);
         setPreviewRecipients(recipients);
+
+        // Select all by default when filters change
+        setSelectedUserIds(recipients.map(r => r.id));
+    };
+
+    const toggleUserSelection = (userId: string) => {
+        setSelectedUserIds(prev =>
+            prev.includes(userId)
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedUserIds.length === previewRecipients.length && previewRecipients.length > 0) {
+            setSelectedUserIds([]);
+        } else {
+            setSelectedUserIds(previewRecipients.map(r => r.id));
+        }
     };
 
     const handleSaveDraft = async () => {
         setLoading(true);
         try {
             if (editingEmail) {
-                const result = await updateMassEmail(editingEmail.id, formData);
+                const result = await updateMassEmail(editingEmail.id, {
+                    ...formData,
+                    selectedUserIds
+                });
                 if (result.success) {
                     onSave();
                     onClose();
@@ -77,6 +114,7 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
             } else {
                 const result = await createMassEmail({
                     ...formData,
+                    selectedUserIds,
                     createdBy: userId
                 });
                 if (result.success) {
@@ -90,7 +128,7 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
     };
 
     const isFormValid = formData.subject.trim() && formData.htmlBody.trim() &&
-        (formData.targetRoles || formData.targetClients || formData.targetWpTypes);
+        selectedUserIds.length > 0;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -126,21 +164,49 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
 
                         {previewRecipients.length > 0 && (
                             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm font-bold text-blue-900 mb-2">
-                                    {previewRecipients.length} destinatario{previewRecipients.length > 1 ? 's' : ''} recibirán este email
-                                </p>
-                                <div className="max-h-40 overflow-y-auto">
-                                    {previewRecipients.slice(0, 10).map((user, idx) => (
-                                        <div key={idx} className="text-xs text-blue-700 py-1">
-                                            {user.name} {user.surname} ({user.email}) - {user.role}
-                                            {user.client && <span className="text-blue-500"> @ {user.client.name}</span>}
+                                <div className="flex items-center justify-between mb-4 pb-2 border-b border-blue-100">
+                                    <p className="text-sm font-bold text-blue-900">
+                                        {selectedUserIds.length} destinatario{selectedUserIds.length !== 1 ? 's' : ''} seleccionado{selectedUserIds.length !== 1 ? 's' : ''}
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs bg-white"
+                                        onClick={toggleSelectAll}
+                                    >
+                                        {selectedUserIds.length === previewRecipients.length
+                                            ? "Desmarcar Todos"
+                                            : "Seleccionar Todos"}
+                                    </Button>
+                                </div>
+
+                                <div className="max-h-60 overflow-y-auto space-y-1 pr-2">
+                                    {previewRecipients.map((user, idx) => (
+                                        <div
+                                            key={user.id}
+                                            className={`flex items-center gap-3 p-2 rounded-md transition-colors ${selectedUserIds.includes(user.id) ? 'bg-white shadow-sm' : 'opacity-60'
+                                                }`}
+                                        >
+                                            <Checkbox
+                                                id={`user-${user.id}`}
+                                                checked={selectedUserIds.includes(user.id)}
+                                                onCheckedChange={() => toggleUserSelection(user.id)}
+                                            />
+                                            <label
+                                                htmlFor={`user-${user.id}`}
+                                                className="flex-1 text-xs text-blue-800 cursor-pointer select-none"
+                                            >
+                                                <span className="font-bold">{user.name} {user.surname}</span>
+                                                <span className="mx-1 text-blue-400">({user.email})</span>
+                                                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-[10px] ml-1 uppercase font-bold text-blue-600">
+                                                    {user.role}
+                                                </span>
+                                                {user.client && (
+                                                    <span className="text-blue-500 ml-2">@ {user.client.name}</span>
+                                                )}
+                                            </label>
                                         </div>
                                     ))}
-                                    {previewRecipients.length > 10 && (
-                                        <p className="text-xs text-blue-500 mt-1">
-                                            ... y {previewRecipients.length - 10} más
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -156,7 +222,7 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                         <div className="flex justify-end mt-4">
                             <Button
                                 onClick={() => setActiveTab("content")}
-                                disabled={previewRecipients.length === 0}
+                                disabled={selectedUserIds.length === 0}
                             >
                                 Siguiente: Contenido
                             </Button>
@@ -174,19 +240,14 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Cuerpo del Email (HTML)</Label>
-                            <Textarea
+                            <Label>Cuerpo del Email (Editor Visual)</Label>
+                            <RichTextEditor
                                 value={formData.htmlBody}
-                                onChange={e => setFormData(prev => ({ ...prev, htmlBody: e.target.value }))}
-                                className="min-h-[300px] font-mono text-sm"
-                                placeholder={`<h2>Título del email</h2>
-<p>Hola {name},</p>
-<p>Te escribimos para informarte de...</p>
-<p><strong>Punto importante:</strong> Recuerda que...</p>
-<p>Un saludo,<br/>El equipo de AM Manager</p>`}
+                                onChange={html => setFormData(prev => ({ ...prev, htmlBody: html }))}
+                                placeholder="Escribe tu mensaje aquí..."
                             />
                             <p className="text-xs text-slate-500">
-                                Puedes usar HTML y la variable <code className="bg-slate-100 px-1 rounded">{'{name}'}</code> que se reemplazará con el nombre del destinatario.
+                                Usa la barra de herramientas para dar formato. La variable <code className="bg-slate-100 px-1 rounded">{'{name}'}</code> se reemplazará con el nombre del destinatario.
                             </p>
                         </div>
 
