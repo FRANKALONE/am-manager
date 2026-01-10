@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { X, Loader2 } from "lucide-react";
 import { createLanding, updateLanding } from "@/app/actions/landings";
 import { LandingBuilder } from "./landing-builder";
+import { LandingPageView } from "@/app/landing/[slug]/components/landing-page-view";
+import { Eye } from "lucide-react";
 
 interface LandingFormDialogProps {
     isOpen: boolean;
@@ -22,6 +24,7 @@ interface LandingFormDialogProps {
 
 export function LandingFormDialog({ isOpen, onClose, onSave, userId, editingLanding }: LandingFormDialogProps) {
     const [loading, setLoading] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         slug: "",
@@ -151,12 +154,47 @@ export function LandingFormDialog({ isOpen, onClose, onSave, userId, editingLand
                     </div>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button onClick={handleSave} disabled={!isValid || loading}>
-                        {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : "Guardar"}
+                <DialogFooter className="flex items-center justify-between gap-2 border-t pt-4">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-indigo-600 font-bold gap-2"
+                        onClick={() => setPreviewOpen(true)}
+                        disabled={!formData.content}
+                    >
+                        <Eye className="w-4 h-4" />
+                        Previsualizar
                     </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+                        <Button onClick={handleSave} disabled={!isValid || loading}>
+                            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : "Guardar"}
+                        </Button>
+                    </div>
                 </DialogFooter>
+
+                {/* Preview Modal */}
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                    <DialogContent className="max-w-5xl h-[90vh] overflow-y-auto p-0 border-none bg-slate-50">
+                        <div className="sticky top-0 right-0 p-4 flex justify-end z-[60]">
+                            <Button size="sm" variant="secondary" onClick={() => setPreviewOpen(false)} className="rounded-full shadow-lg">
+                                <X className="w-4 h-4 mr-2" />
+                                Cerrar Vista Previa
+                            </Button>
+                        </div>
+                        <div className="-mt-12">
+                            <LandingPageView
+                                landing={{
+                                    content: formData.content,
+                                    slug: formData.slug || "vista-previa",
+                                    title: formData.title || "Tu Título",
+                                    creator: { name: "Admin", surname: "" }
+                                }}
+                                userName="Tu Nombre"
+                            />
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </DialogContent>
         </Dialog>
     );

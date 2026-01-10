@@ -31,12 +31,15 @@ export function NotificationTemplatesDialog({ isOpen, onClose, onSave, template 
     const [formData, setFormData] = useState<Partial<TemplateData>>({});
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("app");
-    const [selectedLang, setSelectedLang] = useState<"es" | "en" | "it">("es");
+    const [selectedLang, setSelectedLang] = useState<string>("es");
 
     const languages = [
         { id: "es", label: "Español", flag: "🇪🇸" },
         { id: "en", label: "English", flag: "🇬🇧" },
-        { id: "it", label: "Italiano", flag: "🇮🇹" }
+        { id: "it", label: "Italiano", flag: "🇮🇹" },
+        { id: "fr", label: "Français", flag: "🇫🇷" },
+        { id: "pt", label: "Português", flag: "🇵🇹" },
+        { id: "hi", label: "हिन्दी", flag: "🇮🇳" }
     ];
 
     useEffect(() => {
