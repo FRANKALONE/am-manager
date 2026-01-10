@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mail, Plus, Send, Calendar, Trash2, Eye, BarChart } from "lucide-react";
+import { Mail, Plus, Send, Calendar, Trash2, Eye, BarChart, RefreshCcw } from "lucide-react";
 import { getMassEmails, deleteMassEmail, sendMassEmail } from "@/app/actions/mass-emails";
 import { ComposeDialog } from "./compose-dialog";
 import { StatsDialog } from "./stats-dialog";
@@ -94,16 +94,28 @@ export function MassEmailsView({ userId }: MassEmailsViewProps) {
                         <p className="text-sm text-slate-500">Envía comunicaciones a usuarios filtrados</p>
                     </div>
                 </div>
-                <Button
-                    onClick={() => {
-                        setEditingEmail(null);
-                        setComposeOpen(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nuevo Email Masivo
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={fetchEmails}
+                        disabled={loading}
+                        className="h-10 w-10 hover:bg-slate-50"
+                        title="Refrescar"
+                    >
+                        <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setEditingEmail(null);
+                            setComposeOpen(true);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Nuevo Email Masivo
+                    </Button>
+                </div>
             </div>
 
             {loading ? (

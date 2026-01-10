@@ -86,6 +86,7 @@ export async function createMassEmail(data: {
     targetWpTypes?: string;
     selectedUserIds?: string[];
     createdBy: string;
+    attachments?: any[];
 }) {
     try {
         const massEmail = await prisma.massEmail.create({
@@ -96,6 +97,7 @@ export async function createMassEmail(data: {
                 targetClients: data.targetClients,
                 targetWpTypes: data.targetWpTypes,
                 createdBy: data.createdBy,
+                attachments: data.attachments ? JSON.stringify(data.attachments) : null,
                 status: 'DRAFT'
             }
         });
@@ -139,11 +141,15 @@ export async function updateMassEmail(id: string, data: {
     targetClients?: string;
     targetWpTypes?: string;
     selectedUserIds?: string[];
+    attachments?: any[];
 }) {
     try {
         await prisma.massEmail.update({
             where: { id },
-            data
+            data: {
+                ...data,
+                attachments: data.attachments ? JSON.stringify(data.attachments) : undefined
+            }
         });
 
         // If filters changed, update recipients
@@ -250,22 +256,50 @@ export async function sendMassEmail(id: string) {
             try {
                 const userName = recipient.user.name + (recipient.user.surname ? ' ' + recipient.user.surname : '');
 
+                // Parse attachments if any
+                const massEmailAttachments = massEmail.attachments ? JSON.parse(massEmail.attachments) : [];
+                const nodemailerAttachments = [
+                    {
+                        filename: 'logo-altim.png',
+                        path: './public/logo-altim.png',
+                        cid: 'altimlogo'
+                    },
+                    ...massEmailAttachments.map((att: any) => ({
+                        filename: att.name,
+                        path: att.url // This should be the URL from Vercel Blob
+                    }))
+                ];
+
                 // Replace {name} placeholder if exists
                 let personalizedBody = massEmail.htmlBody.replace(/{name}/g, userName);
+
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
                 await sendEmail({
                     to: recipient.user.email,
                     subject: massEmail.subject,
                     html: `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                            ${personalizedBody}
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; color: #333;">
+                            <div style="margin-bottom: 20px;">
+                                ${personalizedBody}
+                            </div>
                             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                            <p style="color: #999; font-size: 12px;">
-                                Este es un email de AM Manager. 
-                                <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/track/email/open/${recipient.id}" style="opacity: 0; font-size: 1px;">.</a>
-                            </p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align: middle;">
+                                        <p style="color: #666; font-size: 13px; margin: 0;">
+                                            Este es un email de <strong>Manager AM de altim</strong>.
+                                        </p>
+                                    </td>
+                                    <td style="text-align: right; vertical-align: middle;">
+                                        <img src="cid:altimlogo" alt="Altim Logo" style="height: 30px; width: auto;">
+                                    </td>
+                                </tr>
+                            </table>
+                            ${baseUrl ? `<img src="${baseUrl}/api/track/email/open/${recipient.id}" width="1" height="1" style="display:none;" />` : ''}
                         </div>
-                    `
+                    `,
+                    attachments: nodemailerAttachments
                 });
 
                 // Mark as sent

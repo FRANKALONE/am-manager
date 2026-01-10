@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { X, Loader2 } from "lucide-react";
 import { createLanding, updateLanding } from "@/app/actions/landings";
+import { LandingBuilder } from "./landing-builder";
 
 interface LandingFormDialogProps {
     isOpen: boolean;
@@ -104,9 +105,15 @@ export function LandingFormDialog({ isOpen, onClose, onSave, userId, editingLand
                         </div>
                     </div>
 
-                    <div>
-                        <Label>Contenido HTML</Label>
-                        <Textarea value={formData.content} onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))} className="min-h-[200px] font-mono text-sm" placeholder="<h1>Título</h1>\n<p>Contenido...</p>" />
+                    <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Diseño de la Página (Bloques)</Label>
+                        <LandingBuilder
+                            value={formData.content}
+                            onChange={val => setFormData(prev => ({ ...prev, content: val }))}
+                        />
+                        <p className="text-[10px] text-slate-400">
+                            Construye tu página añadiendo bloques modulares. Cada bloque tiene su propio diseño profesional.
+                        </p>
                     </div>
 
                     <div>

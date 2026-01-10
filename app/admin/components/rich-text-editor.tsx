@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
     Bold, Italic, Underline, List,
-    Type, UserPlus, Code
+    Type, UserPlus, Code, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -131,6 +131,63 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
                                     <span className="text-lg font-bold">24px</span>
                                 </Button>
                             </TooltipTrigger>
+                        </Tooltip>
+                    </div>
+
+                    <div className="flex items-center gap-1 pr-2 border-r mr-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        id="img-upload"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+
+                                            try {
+                                                const res = await fetch('/api/upload-attachment', {
+                                                    method: 'POST',
+                                                    body: formData
+                                                });
+                                                const data = await res.json();
+                                                if (data.success) {
+                                                    execCommand('insertImage', data.url);
+                                                    // Style the image slightly after insertion
+                                                    if (editorRef.current) {
+                                                        const imgs = editorRef.current.getElementsByTagName('img');
+                                                        const lateImg = imgs[imgs.length - 1];
+                                                        if (lateImg) {
+                                                            lateImg.style.maxWidth = '100%';
+                                                            lateImg.style.height = 'auto';
+                                                            lateImg.style.borderRadius = '8px';
+                                                        }
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        asChild
+                                    >
+                                        <label htmlFor="img-upload" className="cursor-pointer flex items-center justify-center">
+                                            <ImageIcon className="h-4 w-4 text-purple-600" />
+                                        </label>
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Insertar Imagen</TooltipContent>
                         </Tooltip>
                     </div>
 

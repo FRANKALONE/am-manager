@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, Send, Loader2, CheckSquare, Square } from "lucide-react";
+import { Users, FileText, Send, Loader2, CheckSquare, Square, Paperclip, X, Trash2, Image as ImageIcon } from "lucide-react";
 import { createMassEmail, updateMassEmail, getEligibleRecipients } from "@/app/actions/mass-emails";
 import { RecipientsFilter } from "./recipients-filter";
 import { RichTextEditor } from "../../components/rich-text-editor";
@@ -26,6 +26,8 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
     const [loading, setLoading] = useState(false);
     const [previewRecipients, setPreviewRecipients] = useState<any[]>([]);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [attachments, setAttachments] = useState<any[]>([]);
+    const [uploading, setUploading] = useState(false);
 
     const [formData, setFormData] = useState({
         subject: "",
@@ -44,6 +46,15 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                 targetClients: editingEmail.targetClients || "",
                 targetWpTypes: editingEmail.targetWpTypes || ""
             });
+            if (editingEmail.attachments) {
+                try {
+                    setAttachments(JSON.parse(editingEmail.attachments));
+                } catch (e) {
+                    setAttachments([]);
+                }
+            } else {
+                setAttachments([]);
+            }
             if (editingEmail.recipients) {
                 setSelectedUserIds(editingEmail.recipients.map((r: any) => r.userId));
 
@@ -99,13 +110,57 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
         }
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        setUploading(true);
+        const newAttachments = [...attachments];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload-attachment', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    newAttachments.push({
+                        name: file.name,
+                        url: result.url,
+                        type: file.type,
+                        size: file.size
+                    });
+                } else {
+                    alert(`Error subiendo ${file.name}: ${result.error}`);
+                }
+            } catch (error) {
+                console.error("Upload error:", error);
+                alert(`Error de red al subir ${file.name}`);
+            }
+        }
+
+        setAttachments(newAttachments);
+        setUploading(false);
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSaveDraft = async () => {
         setLoading(true);
         try {
             if (editingEmail) {
                 const result = await updateMassEmail(editingEmail.id, {
                     ...formData,
-                    selectedUserIds
+                    selectedUserIds,
+                    attachments
                 });
                 if (result.success) {
                     onSave();
@@ -115,7 +170,8 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                 const result = await createMassEmail({
                     ...formData,
                     selectedUserIds,
-                    createdBy: userId
+                    createdBy: userId,
+                    attachments
                 });
                 if (result.success) {
                     onSave();
@@ -237,6 +293,50 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                                 onChange={e => setFormData(prev => ({ ...prev, subject: e.target.value }))}
                                 placeholder="Ej: Actualización importante de AM Manager"
                             />
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <Label className="flex items-center gap-2">
+                                <Paperclip className="w-4 h-4 text-slate-500" />
+                                Archivos Adjuntos (PDF, Excel, Imágenes...)
+                            </Label>
+
+                            <div className="flex flex-wrap gap-2">
+                                {attachments.map((att, i) => (
+                                    <div key={i} className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 group">
+                                        <span className="text-xs font-medium text-slate-600 truncate max-w-[150px]">{att.name}</span>
+                                        <button
+                                            onClick={() => removeAttachment(i)}
+                                            className="text-slate-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <div className="relative">
+                                    <Input
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        id="attachment-upload"
+                                        onChange={handleFileUpload}
+                                        disabled={uploading}
+                                    />
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={uploading}
+                                        className="h-8 rounded-full border-dashed"
+                                    >
+                                        <label htmlFor="attachment-upload" className="cursor-pointer">
+                                            {uploading ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Paperclip className="w-3 h-3 mr-2" />}
+                                            Subir Archivo
+                                        </label>
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-2">

@@ -442,6 +442,7 @@ model MassEmail {
   scheduledFor  DateTime?
   sentAt        DateTime?
   
+  attachments   String?  @db.Text // JSON: [{ name, url, type, size }]
   recipients    MassEmailRecipient[]
 }
 

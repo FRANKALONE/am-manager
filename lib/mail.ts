@@ -5,7 +5,17 @@ import nodemailer from "nodemailer";
  * Utility for sending emails.
  * Uses SMTP configuration from environment variables or database settings.
  */
-export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+export async function sendEmail({
+    to,
+    subject,
+    html,
+    attachments
+}: {
+    to: string;
+    subject: string;
+    html: string;
+    attachments?: any[];
+}) {
     // 1. Fetch dynamic settings from DB
     const settings = await prisma.systemSetting.findMany({
         where: { group: 'EMAIL' }
@@ -73,6 +83,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
             to: finalTo,
             subject,
             html,
+            attachments
         });
 
         // 3. Log success
