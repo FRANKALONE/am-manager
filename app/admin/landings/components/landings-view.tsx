@@ -61,6 +61,37 @@ export function LandingsView({ userId }: LandingsViewProps) {
                 </Button>
             </div>
 
+            {/* Guía de uso rápido */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2 text-purple-700">
+                        <Badge className="bg-purple-200 text-purple-800 hover:bg-purple-200 border-none">1</Badge>
+                        <span className="font-bold text-sm">Crea el Contenido</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                        Usa el botón "Nueva Landing Page" para definir el título y el <strong>Slug</strong> (ej: "bienvenida"). La página será accesible en <code>/landing/tu-slug</code>.
+                    </p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2 text-purple-700">
+                        <Badge className="bg-purple-200 text-purple-800 hover:bg-purple-200 border-none">2</Badge>
+                        <span className="font-bold text-sm">Configura el Acceso</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                        Selecciona qué <strong>Roles</strong> o <strong>Clientes</strong> específicos pueden verla. Solo los usuarios que cumplan el filtro podrán entrar.
+                    </p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2 text-purple-700">
+                        <Badge className="bg-purple-200 text-purple-800 hover:bg-purple-200 border-none">3</Badge>
+                        <span className="font-bold text-sm">Publica y Difunde</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                        Marca <strong>"Mostrar en Cabecera"</strong> para que aparezca en su menú principal, o envía el enlace por email masivo.
+                    </p>
+                </div>
+            </div>
+
             {loading ? (
                 <div className="text-center py-12"><p className="text-slate-400">Cargando...</p></div>
             ) : landings.length === 0 ? (

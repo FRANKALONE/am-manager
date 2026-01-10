@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+// import { prisma } from "@/lib/prisma"; // Removed: Prisma is server-only
 
 interface RecipientsFilterProps {
     initialFilters: {
@@ -24,24 +24,36 @@ export function RecipientsFilter({ initialFilters, onChange }: RecipientsFilterP
     const availableRoles = ["ADMIN", "GERENTE", "DIRECTOR", "COLABORADOR", "USER"];
     const availableWpTypes = ["BOLSA", "BD", "EVENTOS", "MANTENIMIENTO"];
 
+    // Initialize state from props only once when mounting or when props change significantly
     useEffect(() => {
-        if (initialFilters.targetRoles) {
-            setSelectedRoles(initialFilters.targetRoles.split(','));
+        if (initialFilters.targetRoles !== undefined) {
+            const roles = initialFilters.targetRoles ? initialFilters.targetRoles.split(',').filter(Boolean) : [];
+            setSelectedRoles(roles);
         }
-        if (initialFilters.targetClients) {
-            setSelectedClients(initialFilters.targetClients.split(','));
+        if (initialFilters.targetClients !== undefined) {
+            const clients = initialFilters.targetClients ? initialFilters.targetClients.split(',').filter(Boolean) : [];
+            setSelectedClients(clients);
         }
-        if (initialFilters.targetWpTypes) {
-            setSelectedWpTypes(initialFilters.targetWpTypes.split(','));
+        if (initialFilters.targetWpTypes !== undefined) {
+            const types = initialFilters.targetWpTypes ? initialFilters.targetWpTypes.split(',').filter(Boolean) : [];
+            setSelectedWpTypes(types);
         }
-    }, [initialFilters]);
+    }, []); // Only run once on mount to avoid loops with onChange
 
+    // Use a separate effect to notify parent of changes ONLY when local state changes
     useEffect(() => {
-        onChange({
+        const filters = {
             targetRoles: selectedRoles.join(','),
             targetClients: selectedClients.join(','),
             targetWpTypes: selectedWpTypes.join(',')
-        });
+        };
+
+        // Deep comparison to prevent notifying if no actual change
+        if (filters.targetRoles !== initialFilters.targetRoles ||
+            filters.targetClients !== initialFilters.targetClients ||
+            filters.targetWpTypes !== initialFilters.targetWpTypes) {
+            onChange(filters);
+        }
     }, [selectedRoles, selectedClients, selectedWpTypes]);
 
     const toggleRole = (role: string) => {
