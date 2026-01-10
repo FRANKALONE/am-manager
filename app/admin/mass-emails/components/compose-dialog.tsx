@@ -102,19 +102,19 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                     </DialogTitle>
                 </DialogHeader>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <Tabs defaultValue="recipients" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="recipients">
+                        <TabsTrigger value="recipients" active={activeTab === 'recipients'} onClick={() => setActiveTab('recipients')}>
                             <Users className="w-4 h-4 mr-2" />
                             1. Destinatarios
                         </TabsTrigger>
-                        <TabsTrigger value="content">
+                        <TabsTrigger value="content" active={activeTab === 'content'} onClick={() => setActiveTab('content')}>
                             <FileText className="w-4 h-4 mr-2" />
                             2. Contenido
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="recipients" className="space-y-4 mt-4">
+                    <TabsContent value="recipients" active={activeTab === 'recipients'} className="space-y-4 mt-4">
                         <RecipientsFilter
                             initialFilters={{
                                 targetRoles: formData.targetRoles,
@@ -163,7 +163,7 @@ export function ComposeDialog({ isOpen, onClose, onSave, userId, editingEmail }:
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="content" className="space-y-4 mt-4">
+                    <TabsContent value="content" active={activeTab === 'content'} className="space-y-4 mt-4">
                         <div className="space-y-2">
                             <Label>Asunto del Email</Label>
                             <Input
