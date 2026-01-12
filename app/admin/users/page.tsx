@@ -67,6 +67,7 @@ export default async function UsersPage({
                             <TableHead>{t('users.table.email')}</TableHead>
                             <TableHead>{t('users.table.role')}</TableHead>
                             <TableHead>{t('users.table.client')}</TableHead>
+                            <TableHead>{t('users.table.access')}</TableHead>
                             <TableHead>{t('users.table.lastLogin')}</TableHead>
                             <TableHead className="text-right">{t('users.table.actions')}</TableHead>
                         </TableRow>
@@ -85,6 +86,17 @@ export default async function UsersPage({
                                 </TableCell>
                                 <TableCell>
                                     {user.client?.name || "-"}
+                                </TableCell>
+                                <TableCell>
+                                    {(user as any).isPremium ? (
+                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700">
+                                            ⭐ Premium
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-gray-200 bg-gray-50 text-gray-600">
+                                            Estándar
+                                        </span>
+                                    )}
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
                                     {user.lastLoginAt ? formatDate(user.lastLoginAt) : t('users.never')}

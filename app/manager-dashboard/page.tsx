@@ -25,6 +25,7 @@ export default async function ManagerDashboardPage() {
     }
 
     const clients = await getDashboardClients();
+    const isAdmin = session.userRole === 'ADMIN' || session.userRole === 'GERENTE';
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -34,6 +35,7 @@ export default async function ManagerDashboardPage() {
                     user={user as any}
                     clients={clients}
                     permissions={session.permissions}
+                    isAdmin={isAdmin}
                 />
             </main>
             <Footer />

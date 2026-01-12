@@ -105,7 +105,10 @@
             "regularizationsTitle": "Regularizaciones y Ajustes",
             "type": "Tipo",
             "description": "Descripción",
-            "quantity": "Cantidad"
+            "quantity": "Cantidad",
+            "exportExcel": "Descargar Excel Detalle",
+            "selectAll": "Seleccionar Todos",
+            "selectTicket": "Seleccionar"
         },
         "ticketsReport": {
             "title": "Consumo por Ticket",

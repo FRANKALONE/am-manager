@@ -1119,6 +1119,9 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             return true;
         });
 
+        // Determine if the selected period is premium
+        const isPremium = selectedPeriod.isPremium || false;
+
         // Get ticket statuses from Ticket model
         const ticketKeys = Array.from(new Set(filteredWorklogs.map(w => w.issueKey).filter((key): key is string => key !== null)));
         const ticketStatuses = await prisma.ticket.findMany({
@@ -1233,6 +1236,7 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             totalTickets: tickets.length,
             totalHours: tickets.reduce((sum: number, t: any) => sum + t.totalHours, 0),
             portalUrl: wp.client?.portalUrl || null,
+            isPremium,
             periodLabel: `${formatDate(selectedPeriod.startDate, { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${formatDate(selectedPeriod.endDate, { day: '2-digit', month: '2-digit', year: 'numeric' })}`
         };
     } catch (error) {
@@ -1240,3 +1244,124 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
         return null;
     }
 }
+
+/**
+ * Get detailed worklogs for a specific ticket within a validity period (Premium only)
+ */
+export async function getTicketWorklogs(wpId: string, issueKey: string, validityPeriodId?: number) {
+    "use server";
+
+    try {
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: {
+                validityPeriods: true
+            }
+        });
+
+        if (!wp) return [];
+
+        let selectedPeriod = null;
+        if (validityPeriodId) {
+            selectedPeriod = wp.validityPeriods.find(p => p.id === validityPeriodId);
+        }
+
+        if (!selectedPeriod) {
+            const now = new Date();
+            selectedPeriod = wp.validityPeriods.find(p => {
+                const start = new Date(p.startDate);
+                const end = new Date(p.endDate);
+                return now >= start && now <= end;
+            }) || wp.validityPeriods[0];
+        }
+
+        if (!selectedPeriod) return [];
+
+        const startDate = new Date(selectedPeriod.startDate);
+        const endDate = new Date(selectedPeriod.endDate);
+
+        const worklogs = await prisma.worklogDetail.findMany({
+            where: {
+                workPackageId: wpId,
+                issueKey,
+                year: { gte: startDate.getFullYear(), lte: endDate.getFullYear() }
+            },
+            orderBy: { startDate: 'asc' }
+        });
+
+        // Filter by exact period dates
+        return worklogs.filter(w => {
+            const d = new Date(w.startDate);
+            return d >= startDate && d <= endDate;
+        });
+    } catch (error) {
+        console.error("Error fetching ticket worklogs:", error);
+        return [];
+    }
+}
+
+/**
+ * Get bulk worklogs for multiple tickets for professional Excel export
+ */
+export async function getBulkWorklogsForExport(wpId: string, ticketKeys: string[], validityPeriodId?: number) {
+    "use server";
+
+    try {
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: {
+                validityPeriods: true
+            }
+        });
+
+        if (!wp) return {};
+
+        let selectedPeriod = null;
+        if (validityPeriodId) {
+            selectedPeriod = wp.validityPeriods.find(p => p.id === validityPeriodId);
+        }
+
+        if (!selectedPeriod) {
+            const now = new Date();
+            selectedPeriod = wp.validityPeriods.find(p => {
+                const start = new Date(p.startDate);
+                const end = new Date(p.endDate);
+                return now >= start && now <= end;
+            }) || wp.validityPeriods[0];
+        }
+
+        if (!selectedPeriod) return {};
+
+        const startDate = new Date(selectedPeriod.startDate);
+        const endDate = new Date(selectedPeriod.endDate);
+
+        const worklogs = await prisma.worklogDetail.findMany({
+            where: {
+                workPackageId: wpId,
+                issueKey: { in: ticketKeys },
+                year: { gte: startDate.getFullYear(), lte: endDate.getFullYear() }
+            },
+            orderBy: [
+                { issueKey: 'asc' },
+                { startDate: 'asc' }
+            ]
+        });
+
+        // Filter by exact period dates and group by issueKey
+        const grouped: Record<string, any[]> = {};
+        worklogs.filter(w => {
+            const d = new Date(w.startDate);
+            return d >= startDate && d <= endDate;
+        }).forEach(w => {
+            if (!w.issueKey) return;
+            if (!grouped[w.issueKey]) grouped[w.issueKey] = [];
+            grouped[w.issueKey].push(w);
+        });
+
+        return grouped;
+    } catch (error) {
+        console.error("Error fetching bulk worklogs:", error);
+        return {};
+    }
+}
+

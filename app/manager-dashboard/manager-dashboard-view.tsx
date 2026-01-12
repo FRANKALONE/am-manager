@@ -17,9 +17,10 @@ type Props = {
     user: any;
     clients: any[];
     permissions: Record<string, boolean>;
+    isAdmin?: boolean;
 };
 
-export function ManagerDashboardView({ user, clients, permissions }: Props) {
+export function ManagerDashboardView({ user, clients, permissions, isAdmin = false }: Props) {
     const [selectedClientId, setSelectedClientId] = useState<string>("");
     const [selectedWpId, setSelectedWpId] = useState<string>("");
     const [showDashboard, setShowDashboard] = useState(false);
@@ -125,6 +126,7 @@ export function ManagerDashboardView({ user, clients, permissions }: Props) {
                     initialClientId={selectedClientId}
                     initialWpId={selectedWP.id}
                     readOnly={true}
+                    isAdmin={isAdmin}
                 />
             </div>
         );

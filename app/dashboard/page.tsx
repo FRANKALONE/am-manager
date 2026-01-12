@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     const user = await getCurrentUser();
     const session = await getAuthSession();
     const perms = session?.permissions || {};
-    const isAdmin = session?.userRole === 'ADMIN';
+    const isAdmin = session?.userRole === 'ADMIN' || session?.userRole === 'GERENTE';
 
     const clients = await getDashboardClients();
     const { t } = await getTranslations();

@@ -55,11 +55,46 @@ export async function getUsers(filters?: UserFilters) {
         const users = await prisma.user.findMany({
             where,
             include: {
-                client: true
+                client: {
+                    include: {
+                        workPackages: {
+                            include: {
+                                validityPeriods: {
+                                    where: {
+                                        startDate: { lte: new Date() },
+                                        endDate: { gte: new Date() }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             },
             orderBy: { createdAt: 'desc' }
         });
-        return users;
+
+        // Calculate isPremium for each user
+        const usersWithPremium = users.map(user => {
+            let isPremium = false;
+
+            // Admin and Gerente are always premium
+            if (user.role === 'ADMIN' || user.role === 'GERENTE') {
+                isPremium = true;
+            }
+            // For client users, check if any current validity period is premium
+            else if (user.client && user.client.workPackages) {
+                isPremium = user.client.workPackages.some(wp =>
+                    wp.validityPeriods.some(vp => vp.isPremium === true)
+                );
+            }
+
+            return {
+                ...user,
+                isPremium
+            };
+        });
+
+        return usersWithPremium;
     } catch (error) {
         console.error("Failed to fetch users:", error);
         return [];
