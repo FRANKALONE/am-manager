@@ -1,9 +1,10 @@
 "use client";
 
+import { useRef, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, ArrowRight, CheckCircle2, Circle, Clock, Rocket, ShieldAlert, FlaskConical, AlertTriangle, Hourglass, BarChart } from "lucide-react";
-import { formatShortDate } from "@/lib/date-utils";
+import { formatShortDate, getStartOfToday } from "@/lib/date-utils";
 
 interface TimelineProps {
     evolutivo: any;
@@ -13,6 +14,23 @@ interface TimelineProps {
 }
 
 export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: TimelineProps) {
+    const activeMilestoneRef = useRef<HTMLDivElement>(null);
+
+    // Encuentra el primer hito activo (en progreso o el primero no terminado)
+    const activeHitoKey = useMemo(() => {
+        const active = hitos.find(h => {
+            const s = h.status.toLowerCase();
+            return s === "en tratamiento" || s === "in progress" || s === "reabierto" || s === "reopened" || s === "por hacer" || s === "to do" || s === "open" || s === "abierto";
+        });
+        return active?.issueKey;
+    }, [hitos]);
+
+    useEffect(() => {
+        if (activeMilestoneRef.current) {
+            activeMilestoneRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [evolutivo.issueKey, activeHitoKey]);
+
     const isKeyMilestone = (summary: string) => {
         const keywords = [
             "entrega en des", "entrega en qas", "entrega para pruebas",
@@ -23,23 +41,50 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
         return keywords.some(k => lowerSummary.includes(k));
     };
 
-    const getIcon = (summary: string, status: string) => {
-        const lowerSummary = summary.toLowerCase();
-        if (lowerSummary.includes("pro") || lowerSummary.includes("prd")) return <Rocket className="w-5 h-5" />;
-        if (lowerSummary.includes("qas") || lowerSummary.includes("pruebas")) return <FlaskConical className="w-5 h-5" />;
-        if (lowerSummary.includes("des")) return <ArrowRight className="w-5 h-5" />;
+    const getMilestoneColor = (status: string, dueDate: string | null) => {
+        const s = status.toLowerCase();
+        const isClosed = s === "cerrado" || s === "done" || s === "closed";
+        const isInProgress = s === "en tratamiento" || s === "in progress" || s === "reabierto" || s === "reopened";
+        const isToDo = s === "por hacer" || s === "to do" || s === "pendiente" || s === "open" || s === "abierto";
 
-        if (status === "Cerrado" || status === "Done" || status === "Closed") return <CheckCircle2 className="w-5 h-5" />;
-        if (status === "En Tratamiento" || status === "In Progress") return <Clock className="w-5 h-5" />;
+        if (isClosed) return "jade"; // Verde (Jade) para completadas
 
-        return <Circle className="w-5 h-5" />;
+        if (isInProgress) {
+            if (!dueDate) return "blue-500"; // Azul si no hay fecha pero está en curso
+
+            const today = getStartOfToday();
+            const due = new Date(dueDate);
+            due.setHours(0, 0, 0, 0);
+
+            if (due < today) return "red-500"; // Rojo si está fuera de plazo
+            return "blue-500"; // Azul si está en plazo
+        }
+
+        if (isToDo) return "slate-400"; // Gris para las abiertas futuras
+
+        return "slate-400"; // Por defecto gris
     };
 
-    const getStatusVariant = (status: string) => {
+    const getIcon = (summary: string, status: string, dueDate: string | null) => {
+        const lowerSummary = summary.toLowerCase();
+        const colorClass = `text-${getMilestoneColor(status, dueDate)}`;
+
+        if (lowerSummary.includes("pro") || lowerSummary.includes("prd")) return <Rocket className={`w-5 h-5 ${colorClass}`} />;
+        if (lowerSummary.includes("qas") || lowerSummary.includes("pruebas")) return <FlaskConical className={`w-5 h-5 ${colorClass}`} />;
+        if (lowerSummary.includes("des")) return <ArrowRight className={`w-5 h-5 ${colorClass}`} />;
+
         const s = status.toLowerCase();
-        if (s === "cerrado" || s === "done" || s === "closed") return "success";
-        if (s === "en tratamiento" || s === "in progress") return "warning";
-        if (s === "reabierto" || s === "reopened") return "destructive";
+        if (s === "cerrado" || s === "done" || s === "closed") return <CheckCircle2 className={`w-5 h-5 ${colorClass}`} />;
+        if (s === "en tratamiento" || s === "in progress") return <Clock className={`w-5 h-5 ${colorClass}`} />;
+
+        return <Circle className={`w-5 h-5 ${colorClass}`} />;
+    };
+
+    const getStatusVariant = (status: string, dueDate: string | null) => {
+        const color = getMilestoneColor(status, dueDate);
+        if (color === "jade") return "success";
+        if (color === "red-500") return "destructive";
+        if (color === "blue-500") return "warning"; // Usamos warning para el azul/amarillo original o custom
         return "default";
     };
 
@@ -145,22 +190,36 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                                     const side = index % 2 === 0 ? 'left' : 'right';
 
                                     return (
-                                        <div key={hito.issueKey} className="relative group">
+                                        <div
+                                            key={hito.issueKey}
+                                            className="relative group"
+                                            ref={hito.issueKey === activeHitoKey ? activeMilestoneRef : null}
+                                        >
                                             {/* Timeline Node */}
                                             <div className={`absolute top-0 w-8 h-8 rounded-full border-4 border-white shadow-md z-10 flex items-center justify-center transition-transform group-hover:scale-110 
                                                 ${side === 'left' ? 'md:left-1/2 md:-translate-x-1/2' : 'md:left-1/2 md:-translate-x-1/2'} 
                                                 left-0 -translate-x-[2px] md:-translate-x-[14px]
-                                                ${isKey ? 'bg-jade text-white ring-4 ring-jade/20' : 'bg-white text-slate-400'}
-                                            `}>
-                                                {getIcon(hito.issueSummary, hito.status)}
+                                                ${isKey ? 'ring-4 ring-jade/20' : ''}
+                                                bg-white
+                                            `}
+                                                style={{
+                                                    borderColor: getMilestoneColor(hito.status, hito.dueDate) === 'jade' ? '#10b981' :
+                                                        getMilestoneColor(hito.status, hito.dueDate) === 'red-500' ? '#ef4444' :
+                                                            getMilestoneColor(hito.status, hito.dueDate) === 'blue-500' ? '#3b82f6' : '#94a3b8'
+                                                }}>
+                                                {getIcon(hito.issueSummary, hito.status, hito.dueDate)}
                                             </div>
 
                                             {/* Card content */}
                                             <div className={`flex flex-col ${side === 'left' ? 'md:items-end' : 'md:items-start'} ml-10 md:ml-0`}>
-                                                <div className={`w-full md:w-[42%] bg-white p-5 rounded-xl border shadow-sm transition-all hover:shadow-md 
-                                                    ${isKey ? 'border-jade/30 bg-jade/5' : 'hover:border-slate-300'}
+                                                <div className={`w-full md:w-[42%] bg-white p-5 rounded-xl border-2 shadow-sm transition-all hover:shadow-md 
                                                     ${side === 'left' ? 'md:mr-[58%]' : 'md:ml-[58%]'}
-                                                `}>
+                                                `}
+                                                    style={{
+                                                        borderColor: getMilestoneColor(hito.status, hito.dueDate) === 'jade' ? '#10b981' :
+                                                            getMilestoneColor(hito.status, hito.dueDate) === 'red-500' ? '#ef4444' :
+                                                                getMilestoneColor(hito.status, hito.dueDate) === 'blue-500' ? '#3b82f6' : '#e2e8f0'
+                                                    }}>
                                                     <div className="flex flex-col gap-3">
                                                         <div className="flex items-start justify-between">
                                                             <div className="space-y-1">
@@ -171,7 +230,15 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                                                                     {hito.issueSummary}
                                                                 </h4>
                                                             </div>
-                                                            <Badge variant={getStatusVariant(hito.status) as any} className="text-[10px]">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-[10px] text-white border-none"
+                                                                style={{
+                                                                    backgroundColor: getMilestoneColor(hito.status, hito.dueDate) === 'jade' ? '#10b981' :
+                                                                        getMilestoneColor(hito.status, hito.dueDate) === 'red-500' ? '#ef4444' :
+                                                                            getMilestoneColor(hito.status, hito.dueDate) === 'blue-500' ? '#3b82f6' : '#94a3b8'
+                                                                }}
+                                                            >
                                                                 {hito.status}
                                                             </Badge>
                                                         </div>
