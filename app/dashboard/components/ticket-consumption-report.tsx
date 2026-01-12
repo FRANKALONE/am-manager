@@ -121,7 +121,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                     </style>
                 </head>
                 <body>
-                    <h2>Información de Consumo Detallado - SMA</h2>
+                    <h2>Información de Consumo Detallado</h2>
                     <p>Periodo: ${data.periodLabel || 'N/A'}</p>
                     <br/>
                     <table>
@@ -145,7 +145,8 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                 html += `
                     <tr class="ticket-summary">
                         <td>${ticket.issueKey}</td>
-                        <td colspan="2">${ticket.issueSummary}</td>
+                        <td>${ticket.issueSummary}</td>
+                        <td>${ticket.issueType || '-'}</td>
                         <td>${ticket.issueStatus}</td>
                         <td align="right">${ticket.totalHours.toFixed(2).replace('.', ',')}h</td>
                     </tr>
@@ -421,7 +422,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                             {renderSlaBadge(ticket, ticket.slaResolution, ticket.slaResolutionTime)}
                                         </td>
                                         <td className="p-3 px-4">
-                                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
+                                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 whitespace-nowrap">
                                                 {ticket.issueStatus}
                                             </span>
                                         </td>
