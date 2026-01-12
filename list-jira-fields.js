@@ -49,18 +49,19 @@ async function listAllFields() {
                 const fields = JSON.parse(data);
                 console.log(`Total fields: ${fields.length}`);
 
-                const slaFields = fields.filter(f => f.name.toLowerCase().includes('sla') || f.custom && f.schema && f.schema.custom && f.schema.custom.includes('sla'));
+                // Search for field 10121
+                const field10121 = fields.find(f => f.id === 'customfield_10121');
+                console.log('\n--- FIELD 10121 ---');
+                if (field10121) {
+                    console.log(`ID: ${field10121.id} | Name: ${field10121.name} | Custom: ${field10121.custom} | Type: ${field10121.schema?.custom || field10121.schema?.type}`);
+                } else {
+                    console.log('Field 10121 NOT FOUND');
+                }
 
-                console.log('\n--- FIELDS RELATED TO SLA ---');
-                slaFields.forEach(f => {
-                    console.log(`ID: ${f.id} | Name: ${f.name} | Custom: ${f.custom} | Type: ${f.schema?.custom || f.schema?.type}`);
-                });
-
-                // Also search for "Time to" which is common in SLAs
-                const timeToFields = fields.filter(f => f.name.toLowerCase().includes('time to'));
-                console.log('\n--- FIELDS CONTAINING "Time to" ---');
-                timeToFields.forEach(f => {
-                    console.log(`ID: ${f.id} | Name: ${f.name} | Custom: ${f.custom} | Type: ${f.schema?.custom || f.schema?.type}`);
+                // Show some other potential fields
+                console.log('\n--- ALL FIELDS (FIRST 20) ---');
+                fields.slice(0, 20).forEach(f => {
+                    console.log(`ID: ${f.id} | Name: ${f.name}`);
                 });
 
             } catch (e) {

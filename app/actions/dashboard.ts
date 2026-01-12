@@ -776,10 +776,12 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 // They show up in the specialized Evolutivos Billing report, not here.
                 NOT: {
                     AND: [
-                        { issueType: 'Evolutivo' },
+                        { issueType: { contains: 'Evolutivo', mode: 'insensitive' } },
                         {
                             billingMode: {
-                                in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable']
+                                in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable'],
+                                // Mode insensitive is not supported for 'in' prisma queries directly this way for some databases
+                                // but we list the common variants.
                             }
                         }
                     ]
@@ -897,11 +899,11 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                     isClaimed: claimedFingerprints.has(fingerprint),
                     isRefunded: refundedFingerprints.has(fingerprint),
                     originWpId: log.originWpId,
-                    isTM: log.issueType === 'Evolutivo' && log.billingMode === 'T&M contra bolsa',
-                    isBolsa: log.issueType === 'Evolutivo' && (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas'),
-                    label: (log.issueType === 'Evolutivo' && log.billingMode === 'T&M contra bolsa') ? 'Evolutivo T&M contra bolsa' :
-                        (log.issueType === 'Evolutivo' && (log.billingMode === 'Bolsa de Horas' || log.billingMode === 'Bolsa de horas')) ? 'Evolutivo Bolsa' :
-                            (log.billingMode === 'T&M contra bolsa') ? 'T&M contra bolsa' :
+                    isTM: log.issueType?.toLowerCase() === 'evolutivo' && log.billingMode?.toLowerCase() === 't&m contra bolsa',
+                    isBolsa: (log.issueType?.toLowerCase() === 'evolutivo' && log.billingMode?.toLowerCase() === 'bolsa de horas') || log.author === 'Estimación',
+                    label: (log.issueType?.toLowerCase() === 'evolutivo' && log.billingMode?.toLowerCase() === 't&m contra bolsa') ? 'Evolutivo T&M contra bolsa' :
+                        ((log.issueType?.toLowerCase() === 'evolutivo' && log.billingMode?.toLowerCase() === 'bolsa de horas') || log.author === 'Estimación') ? 'Evolutivo Bolsa' :
+                            (log.billingMode?.toLowerCase() === 't&m contra bolsa') ? 'T&M contra bolsa' :
                                 null
                 };
             }),

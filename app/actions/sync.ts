@@ -465,18 +465,18 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
 
                     // Fetch all Evolutivos with pagination
-                    let startAt = 0;
-                    const maxResults = 100; // Reduced batch size for better performance
+                    let nextPageToken: string | null = null;
+                    const maxResults = 100;
                     let hasMore = true;
                     const allEvolutivos: any[] = [];
 
-                    addLog(`[INFO] Starting paginated fetch of Evolutivos...`);
+                    addLog(`[INFO] Starting paginated fetch of Evolutivos (Token-based)...`);
 
                     while (hasMore) {
                         const bodyData = JSON.stringify({
                             jql,
                             maxResults,
-                            startAt,
+                            nextPageToken,
                             // Include SLA fields in initial query for optimization
                             fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority']
                         });
@@ -496,18 +496,18 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                         if (res.statusCode === 200) {
                                             resolve(JSON.parse(data));
                                         } else {
-                                            addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}`);
-                                            resolve({ issues: [], total: 0 });
+                                            addLog(`[WARN] Failed to fetch Evolutivos: ${res.statusCode}. Response: ${data.substring(0, 200)}`);
+                                            resolve({ issues: [], isLast: true });
                                         }
                                     } catch (e) {
                                         addLog(`[ERROR] Failed to parse Evolutivos response`);
-                                        resolve({ issues: [], total: 0 });
+                                        resolve({ issues: [], isLast: true });
                                     }
                                 });
                             });
                             req.on('error', (err: any) => {
                                 addLog(`[ERROR] Evolutivos request error: ${err.message}`);
-                                resolve({ issues: [], total: 0 });
+                                resolve({ issues: [], isLast: true });
                             });
                             req.write(bodyData);
                             req.end();
@@ -515,11 +515,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
 
                         if (evolutivosRes.issues && evolutivosRes.issues.length > 0) {
                             allEvolutivos.push(...evolutivosRes.issues);
-                            addLog(`[INFO] Fetched ${evolutivosRes.issues.length} Evolutivos (startAt ${startAt}, total so far: ${allEvolutivos.length})`);
+                            addLog(`[INFO] Fetched ${evolutivosRes.issues.length} Evolutivos (Total so far: ${allEvolutivos.length})`);
 
-                            // Check if there are more results
-                            hasMore = evolutivosRes.total > (startAt + evolutivosRes.issues.length);
-                            startAt += maxResults;
+                            nextPageToken = evolutivosRes.nextPageToken || null;
+                            hasMore = !evolutivosRes.isLast && !!nextPageToken;
                         } else {
                             hasMore = false;
                         }
