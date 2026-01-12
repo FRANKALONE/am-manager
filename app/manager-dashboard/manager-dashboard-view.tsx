@@ -370,12 +370,22 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                                     </li>
                                 </ul>
                             </div>
-                            <Link href="/evolutivos">
-                                <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
-                                    Ir al Centro de Trabajo
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                                </Button>
-                            </Link>
+                            {(permissions.view_evolutivos_admin || isAdmin) && (
+                                <Link href="/evolutivos">
+                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
+                                        Ir al Centro de Trabajo
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                    </Button>
+                                </Link>
+                            )}
+                            {!isAdmin && !permissions.view_evolutivos_admin && permissions.view_evolutivos_client && (
+                                <Link href="/dashboard/evolutivos">
+                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
+                                        Ir al Centro de Trabajo
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                    </Button>
+                                </Link>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

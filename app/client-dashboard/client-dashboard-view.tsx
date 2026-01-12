@@ -198,28 +198,30 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                     </Card>
 
                     <div className="space-y-8 flex flex-col">
-                        <Card className="shadow-2xl bg-gradient-to-br from-amber-500 to-orange-600 border-none text-white overflow-hidden relative group flex-1">
-                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                                <Calendar className="w-24 h-24" />
-                            </div>
-                            <CardHeader className="relative p-6">
-                                <CardTitle className="text-2xl flex items-center gap-2 mb-2">
-                                    <Calendar className="w-6 h-6" />
-                                    Evolutivos
-                                </CardTitle>
-                                <CardDescription className="text-orange-100 text-sm leading-relaxed">
-                                    Seguimiento de hitos y planificación de tus proyectos evolutivos.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="relative pt-2 p-6">
-                                <Link href="/dashboard/evolutivos">
-                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
-                                        Ir al Centro
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                                    </Button>
-                                </Link>
-                            </CardContent>
-                        </Card>
+                        {(permissions.view_evolutivos_admin || permissions.view_evolutivos_client) && (
+                            <Card className="shadow-2xl bg-gradient-to-br from-amber-500 to-orange-600 border-none text-white overflow-hidden relative group flex-1">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                    <Calendar className="w-24 h-24" />
+                                </div>
+                                <CardHeader className="relative p-6">
+                                    <CardTitle className="text-2xl flex items-center gap-2 mb-2">
+                                        <Calendar className="w-6 h-6" />
+                                        Evolutivos
+                                    </CardTitle>
+                                    <CardDescription className="text-orange-100 text-sm leading-relaxed">
+                                        Seguimiento de hitos y planificación de tus proyectos evolutivos.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="relative pt-2 p-6">
+                                    <Link href={permissions.view_evolutivos_admin ? "/evolutivos" : "/dashboard/evolutivos"}>
+                                        <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
+                                            Ir al Centro
+                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                        </Button>
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <Card className="shadow-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border-none text-white overflow-hidden relative group flex-1">
                             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">

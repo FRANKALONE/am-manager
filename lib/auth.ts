@@ -176,3 +176,19 @@ export async function getHomeUrl(): Promise<string> {
     // Default to client dashboard for all other cases
     return "/client-dashboard";
 }
+/**
+ * Helper to determine the evolutivos URL for the current user
+ */
+export async function getEvolutivosUrl(): Promise<string> {
+    const session = await getAuthSession();
+    if (!session) return "/login";
+
+    // ADMIN has priority or specific admin view permission
+    if (session.userRole === 'ADMIN' || session.permissions.view_evolutivos_admin) return "/evolutivos";
+
+    // Client view permission
+    if (session.permissions.view_evolutivos_client) return "/dashboard/evolutivos";
+
+    // Default fallback (though usually controlled by visibility)
+    return "/client-dashboard";
+}

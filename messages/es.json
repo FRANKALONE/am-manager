@@ -404,6 +404,24 @@
                 "critical": "Error crítico en la sincronización de peticiones"
             }
         },
+        "clients": {
+            "title": "Sincronización de Datos de Clientes",
+            "description": "Actualiza la información maestra de los clientes (como la URL del Portal) desde JIRA.",
+            "info": "Este proceso consultará JIRA Service Management para cada cliente y actualizará su URL de portal automáticamente.",
+            "button": "Sincronizar Datos de Clientes",
+            "syncing": "Sincronizando...",
+            "toast": {
+                "success": "Sincronización de clientes completada",
+                "error": "Error al sincronizar datos de clientes"
+            },
+            "result": {
+                "success": "Sincronización completada con éxito",
+                "error": "Error durante la sincronización",
+                "processed": "Clientes procesados: {count}",
+                "updated": "Clientes actualizados: {count}",
+                "errors": "Errores encontrados: {count}"
+            }
+        },
         "manager": {
             "wpTitle": "Work Packages y Clientes",
             "regTitle": "Regularizaciones",

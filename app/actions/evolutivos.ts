@@ -6,6 +6,7 @@ import { fetchTempo } from "@/lib/tempo";
 import { revalidatePath } from "next/cache";
 import { getVisibilityFilter, canAccessClient } from "@/lib/auth";
 
+
 // Sync constant for Evolutivo issue types
 const EVOLUTIVO_TYPES = ["Evolutivo", "Hitos Evolutivos"];
 const EVOLUTIVO_BILLING_MODES = ["T&M contra bolsa", "Bolsa de Horas", "T&M Facturable", "Facturable"];
@@ -211,6 +212,7 @@ export async function syncClientEvolutivos(clientId: string) {
         }
 
         const res = await syncEvolutivosByProjectKeys(projectKeys);
+
         revalidatePath("/dashboard/evolutivos");
         return res;
     } catch (error: any) {

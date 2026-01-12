@@ -165,8 +165,9 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
                         evolutivo={selectedEvolutivo}
                         hitos={data.hitos.filter((h: any) => h.parentKey === selectedEvolutivo.issueKey)}
                         isAdmin={isAdmin}
-                        portalUrl={currentClient?.portalUrl || (user.clientId === currentClient?.id ? currentClient?.portalUrl : null)}
+                        portalUrl={currentClient?.portalUrl || null}
                     />
+
                 </div>
             )}
 

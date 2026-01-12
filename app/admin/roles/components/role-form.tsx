@@ -23,7 +23,9 @@ type Permission = {
 const PERMISSIONS: Permission[] = [
     { key: "view_admin_dashboard", label: "Ver Dashboard de Administración", section: "Dashboards" },
     { key: "view_manager_dashboard", label: "Ver Dashboard de Gerente", section: "Dashboards" },
-    { key: "view_client_dashboard", label: "Ver Dashboard de Cliente", section: "Dashboards" },
+    { key: "view_client_dashboard", label: "Ver Dashboard de Consumos (Cliente)", section: "Dashboards" },
+    { key: "view_evolutivos_admin", label: "Ver Gestión Evolutivos (Admin/Manager)", section: "Dashboards" },
+    { key: "view_evolutivos_client", label: "Ver Dashboard Evolutivos (Cliente)", section: "Dashboards" },
 
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
     { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },

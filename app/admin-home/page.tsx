@@ -2,7 +2,7 @@ import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users } from "lucide-react";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession, getEvolutivosUrl } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,8 @@ export default async function AdminHomePage() {
 
     const perms = session.permissions;
     const { t } = await getTranslations();
+
+    const evolutivosUrl = await getEvolutivosUrl();
 
     const options = [
         {
@@ -29,11 +31,11 @@ export default async function AdminHomePage() {
             title: t('adminHome.evolutivosManagement'),
             description: t('adminHome.evolutivosManagementDesc'),
             icon: Calendar,
-            href: "/evolutivos",
+            href: evolutivosUrl,
             color: "text-orange-500",
             bg: "bg-orange-500/10",
             gradient: "from-orange-600 to-orange-400",
-            visible: perms.view_admin_dashboard || perms.view_manager_dashboard
+            visible: perms.view_evolutivos_admin || perms.view_evolutivos_client
         },
         {
             title: t('adminHome.closuresManagement'),

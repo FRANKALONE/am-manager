@@ -63,6 +63,25 @@ export function middleware(request: NextRequest) {
         }
     }
 
+    // Evolutivos routing protection
+    if (pathname === '/evolutivos') {
+        if (userRole !== 'ADMIN' && !userPermissions.view_evolutivos_admin) {
+            if (userPermissions.view_evolutivos_client) {
+                return NextResponse.redirect(new URL('/dashboard/evolutivos', request.url));
+            }
+            return NextResponse.redirect(new URL('/client-dashboard', request.url));
+        }
+    }
+
+    if (pathname === '/dashboard/evolutivos') {
+        if (userRole !== 'ADMIN' && !userPermissions.view_evolutivos_client) {
+            if (userPermissions.view_evolutivos_admin) {
+                return NextResponse.redirect(new URL('/evolutivos', request.url));
+            }
+            return NextResponse.redirect(new URL('/client-dashboard', request.url));
+        }
+    }
+
     // Security headers
     const response = NextResponse.next();
 

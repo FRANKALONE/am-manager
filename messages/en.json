@@ -404,6 +404,24 @@
                 "critical": "Critical error syncing requests"
             }
         },
+        "clients": {
+            "title": "Customer Data Synchronization",
+            "description": "Updates customer master information (such as Portal URL) from JIRA.",
+            "info": "This process will consult JIRA Service Management for each customer and update their portal URL automatically.",
+            "button": "Synchronize Customer Data",
+            "syncing": "Synchronizing...",
+            "toast": {
+                "success": "Customer synchronization completed",
+                "error": "Error synchronizing customer data"
+            },
+            "result": {
+                "success": "Synchronization completed successfully",
+                "error": "Error during synchronization",
+                "processed": "Customers processed: {count}",
+                "updated": "Customers updated: {count}",
+                "errors": "Errors found: {count}"
+            }
+        },
         "manager": {
             "wpTitle": "Work Packages and Clients",
             "regTitle": "Regularizations",

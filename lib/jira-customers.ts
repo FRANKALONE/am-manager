@@ -164,3 +164,53 @@ export async function getUsersByOrganization(organizationId: string): Promise<Ji
         return [];
     }
 }
+
+/**
+ * Obtener URL del portal del cliente por clave de proyecto
+ */
+export async function getPortalUrlByProjectKey(projectKey: string): Promise<string | null> {
+
+    const jiraUrl = process.env.JIRA_URL?.trim();
+    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+
+    if (!jiraUrl || !jiraEmail || !jiraToken) {
+        throw new Error('JIRA credentials not configured');
+    }
+
+    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+    const url = `${jiraUrl}/rest/servicedeskapi/portals/project/${projectKey}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            console.log(`No portal found for project ${projectKey} (status ${response.status})`);
+            return null;
+        }
+
+        const data = await response.json();
+
+        // El endpoint devuelve información del portal
+        // La URL del portal suele estar en _links.portalPage.href o similar
+        // Formato típico: /servicedesk/customer/portal/1
+        const portalId = data.id;
+        if (portalId) {
+            // Construir la URL completa del portal del cliente
+            return `${jiraUrl}/servicedesk/customer/portal/${portalId}`;
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Error fetching portal URL for ${projectKey}:`, error);
+        return null;
+    }
+}
+

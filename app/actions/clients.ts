@@ -180,3 +180,50 @@ export async function deleteClient(id: string) {
         return { success: false, error: t('errors.deleteError', { item: t('clients.title') }) };
     }
 }
+
+export async function syncAllClientData() {
+    try {
+        const { getPortalUrlByProjectKey } = await import("@/lib/jira-customers");
+        const clients = await prisma.client.findMany({
+            include: { workPackages: true }
+        });
+
+        let updatedCount = 0;
+        let totalProcessed = clients.length;
+        let errors = 0;
+
+        for (const client of clients) {
+            try {
+                const keys = client.workPackages
+                    .map(wp => wp.jiraProjectKeys)
+                    .join(',')
+                    .split(',')
+                    .map(k => k.trim())
+                    .filter(Boolean);
+
+                const projectKeys = Array.from(new Set(keys));
+
+                if (projectKeys.length > 0) {
+                    const portalUrl = await getPortalUrlByProjectKey(projectKeys[0]);
+                    if (portalUrl && client.portalUrl !== portalUrl) {
+                        await prisma.client.update({
+                            where: { id: client.id },
+                            data: { portalUrl }
+                        });
+                        updatedCount++;
+                    }
+                }
+            } catch (err) {
+                console.error(`Error syncing client ${client.id}:`, err);
+                errors++;
+            }
+        }
+
+        revalidatePath("/admin/clients");
+        return { success: true, updatedCount, totalProcessed, errors };
+    } catch (error) {
+        console.error("Error in syncAllClientData:", error);
+        return { success: false, error: "Error al sincronizar datos de clientes" };
+    }
+}
+
