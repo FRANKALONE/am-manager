@@ -170,7 +170,9 @@ export async function getHomeUrl(): Promise<string> {
     const landingRedirect = await getLandingRedirect(session.userId, session.userRole);
     if (landingRedirect) return landingRedirect;
 
-    if (session.userRole === 'ADMIN') return "/admin-home";
-    if (session.permissions.view_dashboard) return "/manager-dashboard";
+    // Check specific dashboard permissions in priority order
+    if (session.userRole === 'ADMIN' || session.permissions.view_admin_dashboard) return "/admin-home";
+    if (session.permissions.view_manager_dashboard) return "/manager-dashboard";
+    // Default to client dashboard for all other cases
     return "/client-dashboard";
 }

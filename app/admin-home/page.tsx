@@ -23,7 +23,7 @@ export default async function AdminHomePage() {
             color: "text-emerald-500",
             bg: "bg-emerald-500/10",
             gradient: "from-emerald-600 to-emerald-400",
-            visible: perms.view_dashboard
+            visible: perms.view_admin_dashboard || perms.view_manager_dashboard || perms.view_client_dashboard
         },
         {
             title: t('adminHome.evolutivosManagement'),
@@ -33,7 +33,7 @@ export default async function AdminHomePage() {
             color: "text-orange-500",
             bg: "bg-orange-500/10",
             gradient: "from-orange-600 to-orange-400",
-            visible: perms.view_dashboard
+            visible: perms.view_admin_dashboard || perms.view_manager_dashboard
         },
         {
             title: t('adminHome.closuresManagement'),

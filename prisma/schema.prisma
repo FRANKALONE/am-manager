@@ -131,6 +131,7 @@ model Role {
   description String?
   permissions String
   isActive    Boolean  @default(true)
+  isPremium   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

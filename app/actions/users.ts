@@ -73,15 +73,20 @@ export async function getUsers(filters?: UserFilters) {
             orderBy: { createdAt: 'desc' }
         });
 
+        // Get all roles to check isPremium flag
+        const roles = await prisma.role.findMany();
+        const roleMap = new Map(roles.map(r => [r.name, r]));
+
         // Calculate isPremium for each user
         const usersWithPremium = users.map(user => {
             let isPremium = false;
 
-            // Admin and Gerente are always premium
-            if (user.role === 'ADMIN' || user.role === 'GERENTE') {
+            // First, check if the user's role itself is marked as premium
+            const userRole = roleMap.get(user.role);
+            if (userRole?.isPremium === 1) {
                 isPremium = true;
             }
-            // For client users, check if any current validity period is premium
+            // If role is not premium, check if any current validity period is premium
             else if (user.client && user.client.workPackages) {
                 isPremium = user.client.workPackages.some(wp =>
                     wp.validityPeriods.some(vp => vp.isPremium === true)
@@ -103,7 +108,7 @@ export async function getUsers(filters?: UserFilters) {
 
 export async function getEligibleManagers() {
     try {
-        // Find roles that should be treated as managers (have view_dashboard permission)
+        // Find roles that should be treated as managers (have view_manager_dashboard permission)
         const roles = await prisma.role.findMany({
             where: { isActive: true }
         });
@@ -112,7 +117,7 @@ export async function getEligibleManagers() {
             .filter(role => {
                 try {
                     const perms = JSON.parse(role.permissions);
-                    return perms.view_dashboard === true || role.name === 'ADMIN';
+                    return perms.view_manager_dashboard === true || role.name === 'ADMIN';
                 } catch (e) {
                     return false;
                 }

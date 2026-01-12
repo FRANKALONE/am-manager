@@ -31,6 +31,7 @@ export async function createRole(prevState: any, formData: FormData) {
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const isActive = formData.get("isActive") === "on";
+    const isPremium = formData.get("isPremium") === "on" ? 1 : 0;
 
     // Collect permissions
     const permissions: Record<string, boolean> = {};
@@ -50,7 +51,8 @@ export async function createRole(prevState: any, formData: FormData) {
                 name,
                 description: description || null,
                 permissions: JSON.stringify(permissions),
-                isActive
+                isActive,
+                isPremium
             }
         });
     } catch (error: any) {
@@ -70,6 +72,7 @@ export async function updateRole(id: string, prevState: any, formData: FormData)
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const isActive = formData.get("isActive") === "on";
+    const isPremium = formData.get("isPremium") === "on" ? 1 : 0;
 
     // Collect permissions
     const permissions: Record<string, boolean> = {};
@@ -90,7 +93,8 @@ export async function updateRole(id: string, prevState: any, formData: FormData)
                 name,
                 description: description || null,
                 permissions: JSON.stringify(permissions),
-                isActive
+                isActive,
+                isPremium
             }
         });
     } catch (error: any) {

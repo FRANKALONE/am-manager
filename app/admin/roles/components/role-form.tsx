@@ -21,7 +21,10 @@ type Permission = {
 };
 
 const PERMISSIONS: Permission[] = [
-    { key: "view_dashboard", label: "Ver Dashboard de Consumos", section: "General" },
+    { key: "view_admin_dashboard", label: "Ver Dashboard de Administración", section: "Dashboards" },
+    { key: "view_manager_dashboard", label: "Ver Dashboard de Gerente", section: "Dashboards" },
+    { key: "view_client_dashboard", label: "Ver Dashboard de Cliente", section: "Dashboards" },
+
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
     { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },
     { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
@@ -90,17 +93,31 @@ export function RoleForm({ initialRole }: Props) {
                                 <Label htmlFor="name">Nombre *</Label>
                                 <Input id="name" name="name" defaultValue={initialRole?.name} required placeholder="Ej: CLIENTE" />
                             </div>
-                            <div className="flex items-center space-x-2 pt-8">
-                                <input
-                                    type="checkbox"
-                                    id="isActive"
-                                    name="isActive"
-                                    defaultChecked={initialRole ? initialRole.isActive : true}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="isActive" className="font-normal cursor-pointer">
-                                    Rol activo
-                                </Label>
+                            <div className="flex flex-col gap-3 pt-8">
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isActive"
+                                        name="isActive"
+                                        defaultChecked={initialRole ? initialRole.isActive : true}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="isActive" className="font-normal cursor-pointer">
+                                        Rol activo
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isPremium"
+                                        name="isPremium"
+                                        defaultChecked={initialRole?.isPremium === 1}
+                                        className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                    />
+                                    <Label htmlFor="isPremium" className="font-normal cursor-pointer">
+                                        ⭐ Rol Premium
+                                    </Label>
+                                </div>
                             </div>
                         </div>
 
@@ -124,7 +141,7 @@ export function RoleForm({ initialRole }: Props) {
                             <CardTitle>Permisos de Funciones</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-8">
-                            {["General", "Administración", "Finanzas", "Comunicación"].map(section => (
+                            {["Dashboards", "General", "Administración", "Finanzas", "Comunicación"].map(section => (
                                 <div key={section} className="space-y-3">
                                     <h3 className="font-bold text-dark-green border-b pb-1 mb-4">{section}</h3>
                                     <div className="space-y-3">

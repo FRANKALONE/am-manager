@@ -20,7 +20,7 @@ export default async function ManagerDashboardPage() {
         redirect(landingRedirect);
     }
 
-    if (!session.permissions.view_dashboard) {
+    if (!session.permissions.view_manager_dashboard && session.userRole !== 'ADMIN') {
         redirect("/client-dashboard");
     }
 

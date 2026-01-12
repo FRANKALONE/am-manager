@@ -36,7 +36,7 @@ export const MANUAL_CONTENT: HelpSection[] = [
     {
         id: "dashboard",
         title: "Dashboard de Consumos",
-        permission: "view_dashboard",
+        permission: "view_client_dashboard",
         icon: "LayoutDashboard",
         content: [
             {

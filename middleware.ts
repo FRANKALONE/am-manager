@@ -20,10 +20,10 @@ export function middleware(request: NextRequest) {
     const publicPaths = ['/login', '/', '/login/forgot-password', '/login/reset-password'];
     if (publicPaths.includes(pathname)) {
         if (userId) {
-            // If already logged in, redirect to appropriate home
-            if (userRole === 'ADMIN') {
+            // If already logged in, redirect to appropriate home based on permissions
+            if (userRole === 'ADMIN' || userPermissions.view_admin_dashboard) {
                 return NextResponse.redirect(new URL('/admin-home', request.url));
-            } else if (userPermissions.view_dashboard) {
+            } else if (userPermissions.view_manager_dashboard) {
                 return NextResponse.redirect(new URL('/manager-dashboard', request.url));
             } else {
                 return NextResponse.redirect(new URL('/client-dashboard', request.url));
@@ -48,7 +48,7 @@ export function middleware(request: NextRequest) {
             userPermissions.view_cierres;
 
         if (!hasAdminPermission) {
-            if (userPermissions.view_dashboard) {
+            if (userPermissions.view_manager_dashboard) {
                 return NextResponse.redirect(new URL('/manager-dashboard', request.url));
             } else {
                 return NextResponse.redirect(new URL('/client-dashboard', request.url));
@@ -58,7 +58,7 @@ export function middleware(request: NextRequest) {
 
     // Manager dashboard
     if (pathname.startsWith('/manager-dashboard')) {
-        if (userRole !== 'ADMIN' && !userPermissions.view_dashboard) {
+        if (userRole !== 'ADMIN' && !userPermissions.view_manager_dashboard) {
             return NextResponse.redirect(new URL('/client-dashboard', request.url));
         }
     }

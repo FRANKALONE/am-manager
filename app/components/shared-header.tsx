@@ -16,7 +16,13 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
     const session = await getAuthSession();
     const userRole = session?.userRole || "";
     const user = await getCurrentUser();
-    const canSeeDashboard = await hasPermission("view_dashboard");
+
+    // Check if user has any dashboard permission
+    const canSeeAdminDashboard = await hasPermission("view_admin_dashboard");
+    const canSeeManagerDashboard = await hasPermission("view_manager_dashboard");
+    const canSeeClientDashboard = await hasPermission("view_client_dashboard");
+    const canSeeDashboard = canSeeAdminDashboard || canSeeManagerDashboard || canSeeClientDashboard;
+
     const { t } = await getTranslations();
 
     const activeLandings = user ? await getActiveLandingsForUser(user.id) : [];
@@ -24,9 +30,9 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
 
     // Determine home link based on role and permissions
     let homeHref = "/client-dashboard";
-    if (userRole === "ADMIN") {
+    if (userRole === "ADMIN" || canSeeAdminDashboard) {
         homeHref = "/admin-home";
-    } else if (canSeeDashboard) {
+    } else if (canSeeManagerDashboard) {
         homeHref = "/manager-dashboard";
     }
 
