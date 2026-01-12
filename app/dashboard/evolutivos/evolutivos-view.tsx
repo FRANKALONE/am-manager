@@ -16,9 +16,10 @@ interface Props {
     initialData: any;
     isAdmin: boolean;
     initialClientId: string;
+    permissions: Record<string, boolean>;
 }
 
-export function EvolutivosView({ user, clients, initialData, isAdmin, initialClientId }: Props) {
+export function EvolutivosView({ user, clients, initialData, isAdmin, initialClientId, permissions }: Props) {
     const [selectedClientId, setSelectedClientId] = useState(initialClientId);
     const [data, setData] = useState(initialData);
     const [selectedEvolutivoKey, setSelectedEvolutivoKey] = useState("");
@@ -84,7 +85,7 @@ export function EvolutivosView({ user, clients, initialData, isAdmin, initialCli
                             <div className="space-y-2">
                                 <Label htmlFor="client-select" className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex justify-between items-center">
                                     Cliente
-                                    {selectedClientId && (
+                                    {selectedClientId && (isAdmin || permissions.manage_evolutivos) && (
                                         <button
                                             onClick={handleSync}
                                             disabled={syncing}

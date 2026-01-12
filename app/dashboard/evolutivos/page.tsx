@@ -36,6 +36,7 @@ export default async function EvolutivosPage() {
                     initialData={initialData}
                     isAdmin={isAdmin}
                     initialClientId={initialClientId}
+                    permissions={session.permissions}
                 />
             </main>
             <Footer />

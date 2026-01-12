@@ -22,9 +22,10 @@ interface Props {
     initialData: any;
     isAdmin: boolean;
     initialClientId: string;
+    permissions: Record<string, boolean>;
 }
 
-export function EvolutivosTableView({ user, clients, initialData, isAdmin, initialClientId }: Props) {
+export function EvolutivosTableView({ user, clients, initialData, isAdmin, initialClientId, permissions }: Props) {
     const [selectedClientId, setSelectedClientId] = useState(initialClientId);
     const [data, setData] = useState(initialData);
     const [loading, setLoading] = useState(false);
@@ -107,7 +108,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                                     </SelectContent>
                                 </Select>
                             )}
-                            {selectedClientId && (
+                            {(isAdmin || permissions.manage_evolutivos) && selectedClientId && (
                                 <Button onClick={handleSync} disabled={syncing} variant="outline" size="sm">
                                     <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
                                     Sincronizar
