@@ -27,7 +27,7 @@ const PERMISSIONS: Permission[] = [
 
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
     { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },
-    { key: "request_review", label: "Solicitar Revisión de Imputaciones", section: "General" },
+    { key: "request_review", label: "⭐ Solicitar Revisión de Imputaciones (Premium)", section: "General" },
 
     { key: "manage_users", label: "Gestionar Usuarios (App)", section: "Administración" },
     { key: "manage_client_users", label: "Gestionar Usuarios (Empresa)", section: "Administración" },

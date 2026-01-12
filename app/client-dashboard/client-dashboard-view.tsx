@@ -75,6 +75,7 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                     initialClientId={user.clientId}
                     initialWpId={selectedWP.id}
                     readOnly={true}
+                    isPremium={user.isPremium || false}
                 />
             </div>
         );

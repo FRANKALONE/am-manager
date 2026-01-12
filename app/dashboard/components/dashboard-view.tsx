@@ -33,7 +33,8 @@ export function DashboardView({
     initialClientId = "",
     initialWpId = "",
     readOnly = false,
-    isAdmin = false
+    isAdmin = false,
+    isPremium = false
 }: {
     clients: { id: string, name: string }[],
     permissions: Record<string, boolean>,
@@ -41,7 +42,8 @@ export function DashboardView({
     initialClientId?: string,
     initialWpId?: string,
     readOnly?: boolean,
-    isAdmin?: boolean
+    isAdmin?: boolean,
+    isPremium?: boolean
 }) {
     const { t, locale } = useTranslations();
     const [selectedClient, setSelectedClient] = useState<string>(initialClientId);
@@ -540,6 +542,7 @@ export function DashboardView({
                                                             scopeUnit={metrics.scopeUnit}
                                                             isEventos={metrics.isEventos || false}
                                                             permissions={permissions}
+                                                            isPremium={isPremium}
                                                             selectedWorklogs={selectedWorklogs}
                                                             onWorklogSelect={handleWorklogSelect}
                                                             onRequestReview={() => setIsReviewModalOpen(true)}

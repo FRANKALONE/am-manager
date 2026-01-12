@@ -18,6 +18,12 @@ export default async function DashboardPage() {
     const clients = await getDashboardClients();
     const { t } = await getTranslations();
 
+    // Calculate user's premium status
+    const { getUsers } = await import("@/app/actions/users");
+    const users = await getUsers({ email: user?.email });
+    const currentUser = users.find(u => u.id === user?.id);
+    const isPremium = currentUser?.isPremium || false;
+
     // Determine home URL based on role/permissions
     const homeUrl = await getHomeUrl();
 
@@ -41,7 +47,7 @@ export default async function DashboardPage() {
                         </Link>
                     </div>
 
-                    <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} isAdmin={isAdmin} />
+                    <DashboardView clients={clients} permissions={perms} userId={user?.id || ""} isAdmin={isAdmin} isPremium={isPremium} />
                 </div>
             </main>
             <Footer />
