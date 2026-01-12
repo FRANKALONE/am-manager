@@ -156,6 +156,21 @@
             "created": "Creation Date",
             "reporter": "Reporter",
             "status": "Status"
+        },
+        "intelligence": {
+            "title": "Service Intelligence",
+            "subtitle": "Advanced analytics and predictive insights for premium reporting",
+            "premiumOnly": "This advanced reporting module is exclusively for premium users. Contact your AM manager to upgrade your service.",
+            "slaTrend": "SLA Performance Trend",
+            "efficiency": "Resolution Efficiency",
+            "timeToResolve": "Avg. Time to Resolve",
+            "days": "days",
+            "compliance": "SLA Compliance",
+            "demandForecast": "Predictive Demand Forecast",
+            "ticketsForecast": "ESTIMATED TICKETS NEXT MONTH",
+            "serviceComposition": "Service Type Composition",
+            "valueFocused": "We focus on value-driven delivery",
+            "noData": "No intelligence data available for the selected period."
         }
     },
     "admin": {

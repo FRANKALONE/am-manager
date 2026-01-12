@@ -7,11 +7,12 @@ import { getDashboardWPs, getDashboardMetrics, getTicketConsumptionReport } from
 import { syncWorkPackage } from "@/app/actions/sync";
 import { deleteSelectedRegularizations, markRegularizationsAsReviewed } from "@/app/actions/regularizations";
 import { DuplicateConsumptionsModal } from "./duplicate-consumptions-modal";
-import { Activity, BarChart3, PieChart, Clock, AlertCircle, RefreshCcw } from "lucide-react";
+import { Activity, BarChart3, PieChart, Clock, AlertCircle, RefreshCcw, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpandableMonthlyRow } from "./expandable-monthly-row";
 import { TicketConsumptionReport } from "./ticket-consumption-report";
 import { ReviewRequestModal } from "./review-request-modal";
+import { ServiceIntelligence } from "./service-intelligence";
 import { useTranslations } from "@/lib/use-translations";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/date-utils";
@@ -68,7 +69,7 @@ export function DashboardView({
     const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
 
     // Tab view state
-    const [activeView, setActiveView] = useState<'monthly' | 'tickets'>('monthly');
+    const [activeView, setActiveView] = useState<'monthly' | 'tickets' | 'intelligence'>('monthly');
     const [ticketReport, setTicketReport] = useState<any>(null);
     const [loadingTicketReport, setLoadingTicketReport] = useState(false);
     const isInitialMount = useRef(true);
@@ -402,6 +403,16 @@ export function DashboardView({
                                 {t('dashboard.consumptionByTicket')}
                             </button>
                         )}
+                        <button
+                            onClick={() => setActiveView('intelligence')}
+                            className={`px-4 py-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeView === 'intelligence'
+                                ? 'border-b-2 border-primary text-primary'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                        >
+                            <Brain className={`w-4 h-4 ${isPremium ? 'text-primary' : 'text-slate-400'}`} />
+                            {t('dashboard.intelligence.title')}
+                        </button>
                     </div>
 
                     {activeView === 'monthly' && (
@@ -585,6 +596,16 @@ export function DashboardView({
                                     isAdmin={isAdmin}
                                 />
                             )}
+                        </div>
+                    )}
+
+                    {activeView === 'intelligence' && (
+                        <div className="mt-4">
+                            <ServiceIntelligence
+                                wpId={selectedWp}
+                                selectedPeriodId={selectedPeriodId}
+                                isPremium={isPremium}
+                            />
                         </div>
                     )}
                 </div>
