@@ -403,16 +403,18 @@ export function DashboardView({
                                 {t('dashboard.consumptionByTicket')}
                             </button>
                         )}
-                        <button
-                            onClick={() => setActiveView('intelligence')}
-                            className={`px-4 py-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeView === 'intelligence'
-                                ? 'border-b-2 border-primary text-primary'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            <Brain className={`w-4 h-4 ${isPremium ? 'text-primary' : 'text-slate-400'}`} />
-                            {t('dashboard.intelligence.title')}
-                        </button>
+                        {permissions.view_service_intelligence && (
+                            <button
+                                onClick={() => setActiveView('intelligence')}
+                                className={`px-4 py-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeView === 'intelligence'
+                                    ? 'border-b-2 border-primary text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                <Brain className={`w-4 h-4 ${isPremium ? 'text-primary' : 'text-slate-400'}`} />
+                                {t('dashboard.intelligence.title')}
+                            </button>
+                        )}
                     </div>
 
                     {activeView === 'monthly' && (
