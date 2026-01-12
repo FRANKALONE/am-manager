@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getServiceIntelligenceMetrics } from "@/app/actions/dashboard";
 import { useTranslations } from "@/lib/use-translations";
@@ -81,10 +81,21 @@ export function ServiceIntelligence({
         );
     }
 
-    // Calculations for What-if
-    const currentAvgDays = metrics.efficiency.avgDays;
+    // Calculations for What-if with safety defaults
+    const efficiency = metrics?.efficiency || { avgDays: 0, byPriority: [], closedCount: 0, openCount: 0 };
+    const currentAvgDays = efficiency.avgDays || 0;
     const projectedDays = currentAvgDays * (1 - reductionPct / 100);
-    const capacitySaving = metrics.efficiency.closedCount * (currentAvgDays - projectedDays);
+    const capacitySaving = (efficiency.closedCount || 0) * (currentAvgDays - projectedDays);
+
+    // Pre-calculate max values for bar charts to avoid division by zero or Infinity
+    const volumeTrend = metrics?.volumeTrend || [];
+    const maxCreated = Math.max(1, ...volumeTrend.map((mt: any) => mt.created || 0));
+
+    const density = metrics?.density || Array(7).fill(Array(24).fill(0));
+    const maxDensity = Math.max(1, ...density.flat());
+
+    const componentComposition = metrics?.componentComposition || [];
+    const maxComponentValue = Math.max(1, ...(componentComposition.length > 0 ? componentComposition.map((c: any) => c.value || 0) : [1]));
 
     return (
         <div className="space-y-8 animate-in fade-in duration-1000 slide-in-from-bottom-2">
@@ -124,16 +135,16 @@ export function ServiceIntelligence({
                                     <span className="text-sm font-bold text-primary">Target: 95%</span>
                                 </div>
                                 <div className="h-[120px] w-full flex items-end gap-2 px-2">
-                                    {metrics.slaTrend.map((item: any, i: number) => (
+                                    {(metrics?.slaTrend || []).map((item: any, i: number) => (
                                         <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
                                             <div
-                                                className={`w-full rounded-t-lg transition-all duration-1000 ease-out ${item.resolutionPct >= 95 ? 'bg-emerald-500 group-hover:bg-emerald-600' :
-                                                        item.resolutionPct >= 80 ? 'bg-amber-400 group-hover:bg-amber-500' : 'bg-rose-500 group-hover:bg-rose-600'
+                                                className={`w-full rounded-t-lg transition-all duration-1000 ease-out ${(item.resolutionPct || 0) >= 95 ? 'bg-emerald-500 group-hover:bg-emerald-600' :
+                                                    (item.resolutionPct || 0) >= 80 ? 'bg-amber-400 group-hover:bg-amber-500' : 'bg-rose-500 group-hover:bg-rose-600'
                                                     }`}
-                                                style={{ height: `${item.resolutionPct}%` }}
+                                                style={{ height: `${item.resolutionPct || 0}%` }}
                                             />
                                             <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-20">
-                                                {item.resolutionPct.toFixed(1)}%
+                                                {(item.resolutionPct || 0).toFixed(1)}%
                                             </div>
                                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate w-full text-center">{item.month}</span>
                                         </div>
@@ -148,14 +159,14 @@ export function ServiceIntelligence({
                                     <span className="text-sm font-bold text-blue-500">Target: 98%</span>
                                 </div>
                                 <div className="h-[120px] w-full flex items-end gap-2 px-2">
-                                    {metrics.slaTrend.map((item: any, i: number) => (
+                                    {(metrics?.slaTrend || []).map((item: any, i: number) => (
                                         <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
                                             <div
                                                 className={`w-full rounded-t-lg transition-all duration-1000 ease-out bg-blue-400/80 group-hover:bg-blue-500`}
-                                                style={{ height: `${item.responsePct}%` }}
+                                                style={{ height: `${item.responsePct || 0}%` }}
                                             />
                                             <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-20">
-                                                {item.responsePct.toFixed(1)}%
+                                                {(item.responsePct || 0).toFixed(1)}%
                                             </div>
                                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate w-full text-center">{item.month}</span>
                                         </div>
@@ -182,16 +193,16 @@ export function ServiceIntelligence({
 
                         <div className="space-y-4">
                             <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">MTTR por Prioridad</h4>
-                            {metrics.efficiency.byPriority.map((p: any, i: number) => (
+                            {(efficiency.byPriority || []).map((p: any, i: number) => (
                                 <div key={i} className="flex items-center gap-4">
                                     <span className={`w-20 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.priority === 'Crítica' ? 'bg-rose-100 text-rose-700' :
-                                            p.priority === 'Alta' ? 'bg-amber-100 text-amber-700' :
-                                                p.priority === 'Media' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
+                                        p.priority === 'Alta' ? 'bg-amber-100 text-amber-700' :
+                                            p.priority === 'Media' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
                                         }`}>{p.priority}</span>
                                     <div className="flex-grow h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-slate-300 rounded-full" style={{ width: `${(p.avgDays / 10) * 100}%` }} />
+                                        <div className="h-full bg-slate-300 rounded-full" style={{ width: `${Math.min(100, ((p.avgDays || 0) / 10) * 100)}%` }} />
                                     </div>
-                                    <span className="text-xs font-black text-slate-700 w-12 text-right">{p.avgDays} <span className="text-[9px] text-slate-400 font-normal">h</span></span>
+                                    <span className="text-xs font-black text-slate-700 w-12 text-right">{p.avgDays || 0} <span className="text-[9px] text-slate-400 font-normal">h</span></span>
                                 </div>
                             ))}
                         </div>
@@ -218,23 +229,23 @@ export function ServiceIntelligence({
                     </CardHeader>
                     <CardContent className="pt-4">
                         <div className="h-[200px] w-full flex items-end gap-6 px-4">
-                            {metrics.volumeTrend.map((v: any, i: number) => (
+                            {volumeTrend.map((v: any, i: number) => (
                                 <div key={i} className="flex-1 flex flex-col justify-end gap-1 group relative">
                                     <div className="flex gap-1 items-end h-[160px]">
                                         <div
                                             className="flex-1 bg-blue-400/30 rounded-t-md hover:bg-blue-400/50 transition-colors"
-                                            style={{ height: `${(v.created / Math.max(...metrics.volumeTrend.map((mt: any) => mt.created))) * 100}%` }}
+                                            style={{ height: `${((v.created || 0) / maxCreated) * 100}%` }}
                                         />
                                         <div
                                             className="flex-1 bg-emerald-400/30 rounded-t-md hover:bg-emerald-400/50 transition-colors"
-                                            style={{ height: `${(v.resolved / Math.max(...metrics.volumeTrend.map((mt: any) => mt.created))) * 100}%` }}
+                                            style={{ height: `${((v.resolved || 0) / maxCreated) * 100}%` }}
                                         />
                                     </div>
                                     <span className="text-[10px] font-bold text-slate-400 text-center uppercase">{v.month}</span>
 
                                     <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-20 min-w-[80px]">
-                                        <div className="flex justify-between gap-2"><span>In:</span> <b>{v.created}</b></div>
-                                        <div className="flex justify-between gap-2"><span>Out:</span> <b>{v.resolved}</b></div>
+                                        <div className="flex justify-between gap-2"><span>In:</span> <b>{v.created || 0}</b></div>
+                                        <div className="flex justify-between gap-2"><span>Out:</span> <b>{v.resolved || 0}</b></div>
                                     </div>
                                 </div>
                             ))}
@@ -259,9 +270,9 @@ export function ServiceIntelligence({
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-4">
-                            {metrics.composition.map((item: any, i: number) => {
-                                const total = metrics.composition.reduce((sum: number, c: any) => sum + c.value, 0);
-                                const pct = (item.value / total) * 100;
+                            {(metrics?.composition || []).map((item: any, i: number) => {
+                                const total = (metrics?.composition || []).reduce((sum: number, c: any) => sum + (c.value || 0), 0) || 1;
+                                const pct = ((item.value || 0) / total) * 100;
                                 return (
                                     <div key={i} className="group">
                                         <div className="flex justify-between items-center mb-1">
@@ -270,8 +281,8 @@ export function ServiceIntelligence({
                                         </div>
                                         <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
                                             <div className={`h-full rounded-full transition-all duration-1000 ${item.name === 'Correctivo' ? 'bg-rose-500' :
-                                                    item.name === 'Evolutivo' ? 'bg-blue-600' :
-                                                        item.name === 'Consulta / Soporte' ? 'bg-amber-400' : 'bg-slate-400'
+                                                item.name === 'Evolutivo' ? 'bg-blue-600' :
+                                                    item.name === 'Consulta / Soporte' ? 'bg-amber-400' : 'bg-slate-400'
                                                 }`} style={{ width: `${pct}%` }} />
                                         </div>
                                     </div>
@@ -282,14 +293,14 @@ export function ServiceIntelligence({
                         <div className="pt-6 border-t border-slate-100 overflow-hidden">
                             <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">{t('dashboard.intelligence.componentComposition')}</h4>
                             <div className="space-y-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
-                                {metrics.componentComposition.slice(0, 5).map((c: any, i: number) => (
+                                {componentComposition.slice(0, 5).map((c: any, i: number) => (
                                     <div key={i} className="flex items-center justify-between text-xs">
                                         <span className="text-slate-500 truncate w-32">{c.name}</span>
                                         <div className="flex items-center gap-2">
                                             <div className="h-1.5 w-24 bg-slate-50 rounded-full overflow-hidden">
-                                                <div className="h-full bg-slate-200" style={{ width: `${(c.value / metrics.componentComposition[0].value) * 100}%` }} />
+                                                <div className="h-full bg-slate-200" style={{ width: `${((c.value || 0) / maxComponentValue) * 100}%` }} />
                                             </div>
-                                            <span className="font-bold w-4">{c.value}</span>
+                                            <span className="font-bold w-4">{c.value || 0}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -314,11 +325,10 @@ export function ServiceIntelligence({
 
                             {/* Data rows */}
                             {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((day, dIdx) => (
-                                <>
-                                    <div key={day} className="col-span-1 text-[8px] font-black text-slate-400 uppercase flex items-center">{t(`dashboard.intelligence.${day}`).substring(0, 1)}</div>
-                                    {metrics.density[dIdx].map((val: number, hIdx: number) => {
-                                        const maxVal = Math.max(...metrics.density.flat());
-                                        const intensity = maxVal > 0 ? val / maxVal : 0;
+                                <React.Fragment key={day}>
+                                    <div className="col-span-1 text-[8px] font-black text-slate-400 uppercase flex items-center">{t(`dashboard.intelligence.${day}`).substring(0, 1)}</div>
+                                    {(density[dIdx] || []).map((val: number, hIdx: number) => {
+                                        const intensity = maxDensity > 0 ? (val || 0) / maxDensity : 0;
                                         return (
                                             <div
                                                 key={`${day}-${hIdx}`}
@@ -330,12 +340,12 @@ export function ServiceIntelligence({
                                                 }}
                                             >
                                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-slate-900 text-white p-1 rounded text-[8px] z-30 pointer-events-none whitespace-nowrap">
-                                                    {val} tickets @ {hIdx}:00
+                                                    {val || 0} tickets @ {hIdx}:00
                                                 </div>
                                             </div>
                                         );
                                     })}
-                                </>
+                                </React.Fragment>
                             ))}
                         </div>
                         <div className="mt-4 flex items-center justify-end gap-2 text-[9px] font-bold text-slate-400">
