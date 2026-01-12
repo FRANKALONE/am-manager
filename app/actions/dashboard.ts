@@ -1232,6 +1232,7 @@ export async function getTicketConsumptionReport(wpId: string, validityPeriodId?
             }));
 
         return {
+            wpId,
             tickets,
             totalTickets: tickets.length,
             totalHours: tickets.reduce((sum: number, t: any) => sum + t.totalHours, 0),
