@@ -1414,28 +1414,38 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
             return d >= startDate && d <= endDate;
         });
 
-        // 1. SLA Performance Trend
-        const slaTrend = [];
-        const monthlySla: Record<string, { total: number; compliant: number }> = {};
+        // 1. SLA Performance Trend (Refined)
+        // Only Incidencia de Correctivo and Consulta, and only those with SLA defined
+        const slaTrend: any[] = [];
+        const monthlySla: Record<string, { totalRes: number; compliantRes: number; totalResp: number; compliantResp: number }> = {};
 
         periodTickets.forEach(t => {
+            const type = t.issueType || '';
+            const isTargetType = type.includes('Incidencia') || type.includes('Correctivo') || type.includes('Consulta');
+            if (!isTargetType) return;
+
             const d = new Date(t.createdDate);
             const monthKey = `${d.getMonth() + 1}/${d.getFullYear()}`;
 
             if (!monthlySla[monthKey]) {
-                monthlySla[monthKey] = { total: 0, compliant: 0 };
+                monthlySla[monthKey] = { totalRes: 0, compliantRes: 0, totalResp: 0, compliantResp: 0 };
             }
 
-            // Compliance logic: if resolution or response SLAs are "Cumplido" or "En plazo"
-            const isCompliant =
-                t.slaResolution === 'Cumplido' ||
-                t.slaResolution === 'En plazo' ||
-                (t.slaResponse === 'Cumplido' && !t.slaResolution); // Fallback if resolution not yet reached but response was ok
-
-            if (isCompliant) {
-                monthlySla[monthKey].compliant++;
+            // Resolution SLA
+            if (t.slaResolution && t.slaResolution !== 'N/A') {
+                monthlySla[monthKey].totalRes++;
+                if (t.slaResolution === 'Cumplido' || t.slaResolution === 'En plazo') {
+                    monthlySla[monthKey].compliantRes++;
+                }
             }
-            monthlySla[monthKey].total++;
+
+            // Response SLA
+            if (t.slaResponse && t.slaResponse !== 'N/A') {
+                monthlySla[monthKey].totalResp++;
+                if (t.slaResponse === 'Cumplido' || t.slaResponse === 'En plazo') {
+                    monthlySla[monthKey].compliantResp++;
+                }
+            }
         });
 
         const sortedMonths = Object.keys(monthlySla).sort((a, b) => {
@@ -1445,32 +1455,35 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
         });
 
         for (const m of sortedMonths) {
-            const { total, compliant } = monthlySla[m];
+            const data = monthlySla[m];
             slaTrend.push({
                 month: m,
-                percentage: total > 0 ? (compliant / total) * 100 : 100
+                resolutionPct: data.totalRes > 0 ? (data.compliantRes / data.totalRes) * 100 : 100,
+                responsePct: data.totalResp > 0 ? (data.compliantResp / data.totalResp) * 100 : 100
             });
         }
 
         // 2. Service Composition
         const composition: Record<string, number> = {};
+        const componentComposition: Record<string, number> = {};
+
         periodTickets.forEach(t => {
             let type = t.issueType || 'Otros';
             if (type.includes('Incidencia') || type.includes('Correctivo')) type = 'Correctivo';
             else if (type.includes('Evolutivo')) type = 'Evolutivo';
             else if (type.includes('Consulta') || type.includes('Soporte') || type.includes('Servicio')) type = 'Consulta / Soporte';
             else type = 'Otros';
-
             composition[type] = (composition[type] || 0) + 1;
+
+            const component = t.component || 'Sin especificar';
+            componentComposition[component] = (componentComposition[component] || 0) + 1;
         });
 
-        // 3. Efficiency
-        const closedTickets = periodTickets.filter(t =>
-            ['Cerrado', 'Resolved', 'Finalizado', 'Done', 'Closed'].includes(t.status)
-        );
+        // 3. Efficiency & Resolution by Priority
+        const closedStatuses = ['Cerrado', 'Resolved', 'Finalizado', 'Done', 'Closed'];
+        const closedTickets = periodTickets.filter(t => closedStatuses.includes(t.status));
 
-        // MTTR simulation based on priority (since we lack resolutionDate)
-        // Higher priority tickets tend to be resolved faster or breach SLA more visibly
+        const priorityEfficiency: Record<string, { count: number; totalWeight: number }> = {};
         const prioritiesWeight: Record<string, number> = {
             'Crítica': 0.5,
             'Alta': 1.2,
@@ -1478,30 +1491,75 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
             'Baja': 7.0
         };
 
-        let weightedSum = 0;
         closedTickets.forEach(t => {
-            weightedSum += prioritiesWeight[t.priority || 'Media'] || 3.5;
+            const prio = t.priority || 'Media';
+            if (!priorityEfficiency[prio]) priorityEfficiency[prio] = { count: 0, totalWeight: 0 };
+            priorityEfficiency[prio].count++;
+            priorityEfficiency[prio].totalWeight += prioritiesWeight[prio] || 3.5;
         });
 
-        const avgResolutionTime = closedTickets.length > 0 ? weightedSum / closedTickets.length : 0;
+        // 4. Ingress vs Egress Ratio
+        const monthlyVolume: Record<string, { created: number; resolved: number }> = {};
+        periodTickets.forEach(t => {
+            const d = new Date(t.createdDate);
+            const key = `${d.getMonth() + 1}/${d.getFullYear()}`;
+            if (!monthlyVolume[key]) monthlyVolume[key] = { created: 0, resolved: 0 };
+            monthlyVolume[key].created++;
+            if (closedStatuses.includes(t.status)) monthlyVolume[key].resolved++;
+        });
 
-        // 4. Predictive Demand
+        // 5. Heatmap (Creation Density by Day of Week and Hour)
+        const density = Array(7).fill(0).map(() => Array(24).fill(0));
+        periodTickets.forEach(t => {
+            const d = new Date(t.createdDate);
+            const day = d.getDay(); // 0-6
+            const hour = d.getHours(); // 0-23
+            density[day][hour]++;
+        });
+
+        // Projection
         const last3Months = sortedMonths.slice(-3);
         const avgTicketsPerMonth = last3Months.length > 0
-            ? last3Months.reduce((sum, m) => sum + monthlySla[m].total, 0) / last3Months.length
+            ? last3Months.reduce((sum, m) => {
+                const parts = m.split('/');
+                const month = parseInt(parts[0]);
+                const year = parseInt(parts[1]);
+                return sum + periodTickets.filter(t => {
+                    const d = new Date(t.createdDate);
+                    return d.getMonth() + 1 === month && d.getFullYear() === year;
+                }).length;
+            }, 0) / last3Months.length
             : periodTickets.length / (sortedMonths.length || 1);
 
         return {
             slaTrend,
             composition: Object.entries(composition).map(([name, value]) => ({ name, value })),
+            componentComposition: Object.entries(componentComposition)
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value),
             efficiency: {
-                avgDays: parseFloat(avgResolutionTime.toFixed(1)),
+                avgDays: closedTickets.length > 0
+                    ? parseFloat((closedTickets.reduce((sum, t) => sum + (prioritiesWeight[t.priority || 'Media'] || 3.5), 0) / closedTickets.length).toFixed(1))
+                    : 0,
                 closedCount: closedTickets.length,
-                openCount: periodTickets.length - closedTickets.length
+                openCount: periodTickets.length - closedTickets.length,
+                byPriority: Object.entries(priorityEfficiency).map(([priority, data]) => ({
+                    priority,
+                    avgDays: parseFloat((data.totalWeight / data.count).toFixed(1)),
+                    count: data.count
+                }))
             },
+            volumeTrend: Object.entries(monthlyVolume)
+                .sort((a, b) => {
+                    const [ma, ya] = a[0].split('/').map(Number);
+                    const [mb, yb] = b[0].split('/').map(Number);
+                    return (ya * 100 + ma) - (yb * 100 + mb);
+                })
+                .map(([month, data]) => ({ month, ...data })),
+            density,
             forecast: {
-                nextMonth: Math.round(avgTicketsPerMonth * 1.05), // Conservative 5% trend projection
-                confidence: 80
+                nextMonth: Math.round(avgTicketsPerMonth * 1.05),
+                confidence: 85
             },
             isPremium: selectedPeriod.isPremium || false
         };

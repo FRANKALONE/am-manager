@@ -757,7 +757,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components']
                 });
 
                 try {
@@ -1250,7 +1250,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         billingMode: details?.billingMode || wl.billingMode || null,
                         assignee: details?.assignee || null,
                         dueDate: details?.dueDate ? new Date(details.dueDate) : null,
-                        parentKey: details?.parentKey || null
+                        parentKey: details?.parentKey || null,
+                        component: details?.component || null
                     });
                 }
             }
@@ -1277,7 +1278,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     billingMode: details.billingMode || null,
                     assignee: details.assignee || null,
                     dueDate: details.dueDate ? new Date(details.dueDate) : null,
-                    parentKey: details.parentKey || null
+                    parentKey: details.parentKey || null,
+                    component: details.component || null
                 });
             }
         }
@@ -1303,7 +1305,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     billingMode: ticketData.billingMode,
                     assignee: ticketData.assignee,
                     dueDate: ticketData.dueDate,
-                    parentKey: ticketData.parentKey
+                    parentKey: ticketData.parentKey,
+                    component: ticketData.component
                 },
                 create: {
                     workPackageId: wp.id,
@@ -1324,7 +1327,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     billingMode: ticketData.billingMode,
                     assignee: ticketData.assignee,
                     dueDate: ticketData.dueDate,
-                    parentKey: ticketData.parentKey
+                    parentKey: ticketData.parentKey,
+                    component: ticketData.component
                 }
             });
         }

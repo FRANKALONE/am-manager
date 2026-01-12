@@ -233,6 +233,7 @@ model Ticket {
   dueDate           DateTime?
   parentKey         String?
   originalEstimate  Float?
+  component         String?
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])

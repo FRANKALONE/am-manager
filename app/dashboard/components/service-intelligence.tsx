@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getServiceIntelligenceMetrics } from "@/app/actions/dashboard";
 import { useTranslations } from "@/lib/use-translations";
-import { Brain, TrendingUp, Users, Zap, Target, Lock } from "lucide-react";
+import { Brain, TrendingUp, Users, Zap, Target, Lock, Clock, AlertTriangle, ArrowUpRight, ArrowDownRight, BarChart3, PieChart, Activity } from "lucide-react";
 
 export function ServiceIntelligence({
     wpId,
@@ -18,6 +18,7 @@ export function ServiceIntelligence({
     const { t } = useTranslations();
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [reductionPct, setReductionPct] = useState(10);
 
     useEffect(() => {
         if (!wpId) return;
@@ -80,6 +81,11 @@ export function ServiceIntelligence({
         );
     }
 
+    // Calculations for What-if
+    const currentAvgDays = metrics.efficiency.avgDays;
+    const projectedDays = currentAvgDays * (1 - reductionPct / 100);
+    const capacitySaving = metrics.efficiency.closedCount * (currentAvgDays - projectedDays);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-1000 slide-in-from-bottom-2">
             {/* Header section */}
@@ -93,177 +99,306 @@ export function ServiceIntelligence({
                         <p className="text-slate-500 font-medium">{t('dashboard.intelligence.subtitle')}</p>
                     </div>
                 </div>
-                {metrics.isPremium && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg shadow-sm">
-                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                        <span className="text-xs font-bold text-amber-700 uppercase tracking-widest leading-none">Insight Active</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg shadow-sm">
+                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-widest leading-none">Intelligence Active</span>
+                </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
-                {/* SLA Trend Chart (Simplified CSS Bars) */}
-                <Card className="col-span-1 lg:col-span-4 shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-50">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-12">
+
+                {/* 1. SLA Performance (Resolution vs Response) */}
+                <Card className="lg:col-span-8 shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50">
                         <div className="space-y-1">
                             <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.slaTrend')}</CardTitle>
                         </div>
                         <TrendingUp className="w-5 h-5 text-emerald-500" />
                     </CardHeader>
                     <CardContent className="pt-8 pb-4">
-                        <div className="h-[240px] w-full flex items-end gap-3 px-2">
-                            {metrics.slaTrend.map((item: any, i: number) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-                                    <div className="relative w-full bg-slate-50 rounded-xl flex flex-col justify-end h-[200px] transition-colors group-hover:bg-slate-100">
-                                        <div
-                                            className={`w-full relative transition-all duration-1000 delay-${i * 100} ease-out rounded-t-xl overflow-hidden ${item.percentage >= 95 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' :
-                                                    item.percentage >= 80 ? 'bg-gradient-to-t from-amber-500 to-amber-300' :
-                                                        'bg-gradient-to-t from-rose-600 to-rose-400'
-                                                }`}
-                                            style={{ height: `${item.percentage}%` }}
-                                        >
-                                            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                        <div className="space-y-12">
+                            {/* Resolution SLA */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-2">
+                                    <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Cumplimiento de Resolución</h4>
+                                    <span className="text-sm font-bold text-primary">Target: 95%</span>
+                                </div>
+                                <div className="h-[120px] w-full flex items-end gap-2 px-2">
+                                    {metrics.slaTrend.map((item: any, i: number) => (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                            <div
+                                                className={`w-full rounded-t-lg transition-all duration-1000 ease-out ${item.resolutionPct >= 95 ? 'bg-emerald-500 group-hover:bg-emerald-600' :
+                                                        item.resolutionPct >= 80 ? 'bg-amber-400 group-hover:bg-amber-500' : 'bg-rose-500 group-hover:bg-rose-600'
+                                                    }`}
+                                                style={{ height: `${item.resolutionPct}%` }}
+                                            />
+                                            <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-20">
+                                                {item.resolutionPct.toFixed(1)}%
+                                            </div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate w-full text-center">{item.month}</span>
                                         </div>
-                                        {/* Tooltip-like value */}
-                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold py-1 px-2 rounded-md opacity-0 group-hover:opacity-100 transition-all shadow-xl -translate-y-2 group-hover:translate-y-0 whitespace-nowrap z-10">
-                                            {item.percentage.toFixed(1)}% Compliance
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Response SLA */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-2">
+                                    <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Cumplimiento de Primera Respuesta</h4>
+                                    <span className="text-sm font-bold text-blue-500">Target: 98%</span>
+                                </div>
+                                <div className="h-[120px] w-full flex items-end gap-2 px-2">
+                                    {metrics.slaTrend.map((item: any, i: number) => (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                            <div
+                                                className={`w-full rounded-t-lg transition-all duration-1000 ease-out bg-blue-400/80 group-hover:bg-blue-500`}
+                                                style={{ height: `${item.responsePct}%` }}
+                                            />
+                                            <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-20">
+                                                {item.responsePct.toFixed(1)}%
+                                            </div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate w-full text-center">{item.month}</span>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 2. Efficiency by Priority */}
+                <Card className="lg:col-span-4 shadow-xl shadow-slate-200/50 border-slate-100 bg-white">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.efficiency')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">MTTR Global</p>
+                                <p className="text-3xl font-black text-primary">{metrics.efficiency.avgDays} <span className="text-sm text-slate-400">días</span></p>
+                            </div>
+                            <Zap className="w-8 h-8 text-blue-500" />
+                        </div>
+
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">MTTR por Prioridad</h4>
+                            {metrics.efficiency.byPriority.map((p: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <span className={`w-20 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.priority === 'Crítica' ? 'bg-rose-100 text-rose-700' :
+                                            p.priority === 'Alta' ? 'bg-amber-100 text-amber-700' :
+                                                p.priority === 'Media' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
+                                        }`}>{p.priority}</span>
+                                    <div className="flex-grow h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-slate-300 rounded-full" style={{ width: `${(p.avgDays / 10) * 100}%` }} />
                                     </div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter group-hover:text-primary transition-colors">{item.month}</span>
+                                    <span className="text-xs font-black text-slate-700 w-12 text-right">{p.avgDays} <span className="text-[9px] text-slate-400 font-normal">h</span></span>
                                 </div>
                             ))}
                         </div>
-                    </CardContent>
-                </Card>
 
-                {/* Efficiency Stats Card */}
-                <Card className="col-span-1 lg:col-span-2 shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden bg-white">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.efficiency')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-8 pt-4">
-                        <div className="flex items-center justify-between group">
-                            <div className="space-y-1">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('dashboard.intelligence.timeToResolve')}</p>
-                                <div className="flex items-baseline gap-1">
-                                    <p className="text-4xl font-black text-primary transition-transform group-hover:scale-110 origin-left duration-500">{metrics.efficiency.avgDays}</p>
-                                    <span className="text-sm font-bold text-slate-400">{t('dashboard.intelligence.days')}</span>
-                                </div>
+                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-center">
+                            <div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase">Resueltos</p>
+                                <p className="text-lg font-black text-emerald-600">{metrics.efficiency.closedCount}</p>
                             </div>
-                            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-blue-100">
-                                <Zap className="w-7 h-7 text-blue-600 animate-[pulse_3s_infinite]" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                                <div className="space-y-1">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('dashboard.intelligence.compliance')}</span>
-                                    <p className="text-sm font-bold text-emerald-600">SLA Health Score</p>
-                                </div>
-                                <span className="text-2xl font-black text-emerald-600">
-                                    {(metrics.slaTrend[metrics.slaTrend.length - 1]?.percentage || 0).toFixed(0)}%
-                                </span>
-                            </div>
-                            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner p-[1px]">
-                                <div
-                                    className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-lg"
-                                    style={{ width: `${metrics.slaTrend[metrics.slaTrend.length - 1]?.percentage || 0}%` }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                            <div className="text-center">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Cerrados</p>
-                                <p className="text-xl font-black text-slate-800">{metrics.efficiency.closedCount}</p>
-                            </div>
-                            <div className="w-px h-10 bg-slate-100" />
-                            <div className="text-center">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Pendientes</p>
-                                <p className="text-xl font-black text-amber-500">{metrics.efficiency.openCount}</p>
+                            <div className="w-px h-8 bg-slate-100" />
+                            <div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase">Backlog</p>
+                                <p className="text-lg font-black text-amber-500">{metrics.efficiency.openCount}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Demand Forecast with visual "Brain" background feel */}
-                <Card className="col-span-1 lg:col-span-2 shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-1000" />
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.demandForecast')}</CardTitle>
+                {/* 3. Ingress vs Egress Trend */}
+                <Card className="lg:col-span-12 shadow-xl shadow-slate-200/50 border-slate-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.backlogTrend')}</CardTitle>
+                        <Activity className="w-5 h-5 text-slate-400" />
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-2">
-                        <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-3xl border border-slate-100 relative overflow-hidden group">
-                            <div className="text-6xl font-black text-slate-900 mb-2 relative z-10 transition-transform group-hover:scale-125 duration-700">
-                                {metrics.forecast.nextMonth}
-                            </div>
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest relative z-10">{t('dashboard.intelligence.ticketsForecast')}</p>
-                            <Target className="w-24 h-24 absolute -bottom-4 -right-4 text-slate-200/60 rotate-12 transition-transform duration-1000 group-hover:rotate-0 group-hover:scale-110" />
-                        </div>
-
-                        <div className="flex items-center gap-4 px-4 py-3 bg-white border border-slate-100 rounded-2xl shadow-sm transition-shadow hover:shadow-md">
-                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                                <Zap className="w-5 h-5 text-amber-500" />
-                            </div>
-                            <div className="flex-grow">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Confianza Predictiva</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-grow h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                                        <div className="h-full bg-primary" style={{ width: `${metrics.forecast.confidence}%` }} />
+                    <CardContent className="pt-4">
+                        <div className="h-[200px] w-full flex items-end gap-6 px-4">
+                            {metrics.volumeTrend.map((v: any, i: number) => (
+                                <div key={i} className="flex-1 flex flex-col justify-end gap-1 group relative">
+                                    <div className="flex gap-1 items-end h-[160px]">
+                                        <div
+                                            className="flex-1 bg-blue-400/30 rounded-t-md hover:bg-blue-400/50 transition-colors"
+                                            style={{ height: `${(v.created / Math.max(...metrics.volumeTrend.map((mt: any) => mt.created))) * 100}%` }}
+                                        />
+                                        <div
+                                            className="flex-1 bg-emerald-400/30 rounded-t-md hover:bg-emerald-400/50 transition-colors"
+                                            style={{ height: `${(v.resolved / Math.max(...metrics.volumeTrend.map((mt: any) => mt.created))) * 100}%` }}
+                                        />
                                     </div>
-                                    <span className="text-xs font-black text-slate-900">{metrics.forecast.confidence}%</span>
+                                    <span className="text-[10px] font-bold text-slate-400 text-center uppercase">{v.month}</span>
+
+                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-20 min-w-[80px]">
+                                        <div className="flex justify-between gap-2"><span>In:</span> <b>{v.created}</b></div>
+                                        <div className="flex justify-between gap-2"><span>Out:</span> <b>{v.resolved}</b></div>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-center gap-8 mt-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-blue-400/30 rounded" />
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('dashboard.intelligence.created')}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-emerald-400/30 rounded" />
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('dashboard.intelligence.resolved')}</span>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Service Composition Breakdown */}
-                <Card className="col-span-1 lg:col-span-4 shadow-xl shadow-slate-200/50 border-slate-100">
+                {/* 4. Service & Component Composition */}
+                <Card className="lg:col-span-4 shadow-xl shadow-slate-200/50 border-slate-100 h-full">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.serviceComposition')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="grid md:grid-cols-2 gap-10 items-center">
-                            <div className="space-y-5">
-                                {metrics.composition.map((item: any, i: number) => {
-                                    const total = metrics.efficiency.closedCount + metrics.efficiency.openCount;
-                                    const pct = total > 0 ? (item.value / total) * 100 : 0;
-                                    return (
-                                        <div key={i} className="space-y-2 group">
-                                            <div className="flex justify-between items-end">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${item.name === 'Correctivo' ? 'bg-rose-500' :
-                                                            item.name === 'Evolutivo' ? 'bg-blue-600' :
-                                                                item.name === 'Consulta / Soporte' ? 'bg-amber-400' : 'bg-slate-400'
-                                                        }`} />
-                                                    <span className="text-sm font-bold text-slate-700 group-hover:text-primary transition-colors">{item.name}</span>
-                                                </div>
-                                                <span className="text-xs font-bold text-slate-400">{item.value} tickets ({pct.toFixed(0)}%)</span>
-                                            </div>
-                                            <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden p-[1px]">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-1000 delay-${i * 150} shadow-sm ${item.name === 'Correctivo' ? 'bg-rose-500' :
-                                                            item.name === 'Evolutivo' ? 'bg-blue-600' :
-                                                                item.name === 'Consulta / Soporte' ? 'bg-amber-400' : 'bg-slate-400'
-                                                        }`}
-                                                    style={{ width: `${pct}%` }}
-                                                />
-                                            </div>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-4">
+                            {metrics.composition.map((item: any, i: number) => {
+                                const total = metrics.composition.reduce((sum: number, c: any) => sum + c.value, 0);
+                                const pct = (item.value / total) * 100;
+                                return (
+                                    <div key={i} className="group">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-bold text-slate-600 truncate">{item.name}</span>
+                                            <span className="text-[10px] font-black text-slate-400">{pct.toFixed(0)}%</span>
                                         </div>
-                                    );
-                                })}
+                                        <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full transition-all duration-1000 ${item.name === 'Correctivo' ? 'bg-rose-500' :
+                                                    item.name === 'Evolutivo' ? 'bg-blue-600' :
+                                                        item.name === 'Consulta / Soporte' ? 'bg-amber-400' : 'bg-slate-400'
+                                                }`} style={{ width: `${pct}%` }} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="pt-6 border-t border-slate-100 overflow-hidden">
+                            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">{t('dashboard.intelligence.componentComposition')}</h4>
+                            <div className="space-y-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                                {metrics.componentComposition.slice(0, 5).map((c: any, i: number) => (
+                                    <div key={i} className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-500 truncate w-32">{c.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-24 bg-slate-50 rounded-full overflow-hidden">
+                                                <div className="h-full bg-slate-200" style={{ width: `${(c.value / metrics.componentComposition[0].value) * 100}%` }} />
+                                            </div>
+                                            <span className="font-bold w-4">{c.value}</span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div className="flex flex-col items-center justify-center p-10 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 relative group overflow-hidden">
-                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mb-6 relative z-10 transition-transform group-hover:scale-110 duration-500">
-                                    <Users className="w-10 h-10 text-slate-300 group-hover:text-primary transition-colors" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5. Workload Heatmap */}
+                <Card className="lg:col-span-8 shadow-xl shadow-slate-200/50 border-slate-100">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.density')}</CardTitle>
+                        <Clock className="w-5 h-5 text-slate-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-25 gap-1">
+                            {/* Time labels row */}
+                            <div className="col-span-1" />
+                            {[0, 4, 8, 12, 16, 20].map(h => (
+                                <div key={h} className="col-span-4 text-[8px] font-bold text-slate-400 text-center">{h}:00</div>
+                            ))}
+
+                            {/* Data rows */}
+                            {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((day, dIdx) => (
+                                <>
+                                    <div key={day} className="col-span-1 text-[8px] font-black text-slate-400 uppercase flex items-center">{t(`dashboard.intelligence.${day}`).substring(0, 1)}</div>
+                                    {metrics.density[dIdx].map((val: number, hIdx: number) => {
+                                        const maxVal = Math.max(...metrics.density.flat());
+                                        const intensity = maxVal > 0 ? val / maxVal : 0;
+                                        return (
+                                            <div
+                                                key={`${day}-${hIdx}`}
+                                                className="aspect-square rounded-[1px] transition-transform hover:scale-125 hover:z-10 cursor-pointer group relative"
+                                                style={{
+                                                    backgroundColor: intensity === 0 ? '#f8fafc' :
+                                                        `rgba(59, 130, 246, ${Math.max(0.1, intensity)})`,
+                                                    border: val > 0 ? '1px solid rgba(59,130,246,0.1)' : 'none'
+                                                }}
+                                            >
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-slate-900 text-white p-1 rounded text-[8px] z-30 pointer-events-none whitespace-nowrap">
+                                                    {val} tickets @ {hIdx}:00
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </>
+                            ))}
+                        </div>
+                        <div className="mt-4 flex items-center justify-end gap-2 text-[9px] font-bold text-slate-400">
+                            <span>Menos</span>
+                            <div className="flex gap-1">
+                                {[0.1, 0.4, 0.7, 1].map(o => <div key={o} className="w-2.5 h-2.5 rounded-[1px]" style={{ background: `rgba(59, 130, 246, ${o})` }} />)}
+                            </div>
+                            <span>Más actividad</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 6. What-if Simulation Card */}
+                <Card className="lg:col-span-12 shadow-2xl shadow-primary/10 border-primary/20 bg-gradient-to-br from-primary/5 via-white to-blue-50/30 overflow-hidden relative">
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <Target className="w-5 h-5 text-primary" />
+                            <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.whatIf')}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-8 pt-2">
+                        <div className="grid md:grid-cols-2 gap-10 items-center">
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <p className="text-sm font-semibold text-slate-700">{t('dashboard.intelligence.impactResolution')}</p>
+                                        <span className="text-2xl font-black text-primary">-{reductionPct}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="50"
+                                        value={reductionPct}
+                                        onChange={(e) => setReductionPct(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        <span>Actual</span>
+                                        <span>Ambitious (-50%)</span>
+                                    </div>
                                 </div>
-                                <p className="text-center text-sm font-semibold text-slate-500 italic relative z-10 leading-relaxed group-hover:text-slate-700">
-                                    "{t('dashboard.intelligence.valueFocused')}"
-                                </p>
+                                <div className="p-5 bg-white border border-primary/10 rounded-2xl shadow-sm space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estimación MTTR futuro</p>
+                                    <p className="text-4xl font-black text-slate-900">{projectedDays.toFixed(1)} <span className="text-sm text-slate-400">días/ticket</span></p>
+                                </div>
+                            </div>
+
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-primary rounded-[2.5rem] blur-xl opacity-10 group-hover:opacity-20 transition-opacity" />
+                                <div className="relative bg-white border-2 border-primary/20 p-8 rounded-[2.5rem] text-center space-y-4">
+                                    <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-2">
+                                        <TrendingUp className="w-10 h-10 text-primary" />
+                                    </div>
+                                    <h5 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.intelligence.projectedSavings')}</h5>
+                                    <div className="flex flex-col">
+                                        <span className="text-5xl font-black text-primary tracking-tighter">+{capacitySaving.toFixed(1)}</span>
+                                        <span className="text-sm font-black text-primary">Horas de capacidad liberada</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 leading-relaxed px-6">
+                                        Optimizar este porcentaje permitiría absorber hasta <span className="font-bold text-slate-600">{(capacitySaving / 8).toFixed(1)} tickets</span> adicionales al mes.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
@@ -272,3 +407,6 @@ export function ServiceIntelligence({
         </div>
     );
 }
+
+// Add these to global CSS or local style block if needed for the grid 25
+// .grid-cols-25 { grid-template-columns: repeat(25, minmax(0, 1fr)); }
