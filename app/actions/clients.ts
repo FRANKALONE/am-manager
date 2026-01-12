@@ -206,7 +206,13 @@ export async function syncAllClientData() {
                 const projectKeys = Array.from(new Set(keys));
 
                 if (projectKeys.length > 0) {
-                    const portalUrl = await getPortalUrlByProjectKey(projectKeys[0]);
+                    let portalUrl = null;
+                    // Try each project key until one yields a portal URL
+                    for (const key of projectKeys) {
+                        portalUrl = await getPortalUrlByProjectKey(key);
+                        if (portalUrl) break;
+                    }
+
                     if (portalUrl && (client.portalUrl !== portalUrl || client.clientPortalUrl !== portalUrl)) {
                         await prisma.client.update({
                             where: { id: client.id },
