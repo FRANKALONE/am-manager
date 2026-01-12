@@ -93,6 +93,7 @@ export async function createClient(prevState: any, formData: FormData) {
                 name,
                 manager: manager || null,
                 amOnboardingDate: amOnboardingDateStr ? new Date(amOnboardingDateStr) : null,
+                portalUrl: clientPortalUrl || null,
                 clientPortalUrl: clientPortalUrl || null,
                 reportEmails: reportEmails || null,
                 clientLogo: clientLogo || null,
@@ -149,6 +150,7 @@ export async function updateClient(id: string, prevState: any, formData: FormDat
                 name,
                 manager: manager || null,
                 amOnboardingDate: amOnboardingDateStr ? new Date(amOnboardingDateStr) : null,
+                portalUrl: clientPortalUrl || null,
                 clientPortalUrl: clientPortalUrl || null,
                 reportEmails: reportEmails || null,
                 clientLogo: clientLogo || null,
@@ -205,10 +207,13 @@ export async function syncAllClientData() {
 
                 if (projectKeys.length > 0) {
                     const portalUrl = await getPortalUrlByProjectKey(projectKeys[0]);
-                    if (portalUrl && client.portalUrl !== portalUrl) {
+                    if (portalUrl && (client.portalUrl !== portalUrl || client.clientPortalUrl !== portalUrl)) {
                         await prisma.client.update({
                             where: { id: client.id },
-                            data: { portalUrl }
+                            data: {
+                                portalUrl,
+                                clientPortalUrl: portalUrl
+                            }
                         });
                         updatedCount++;
                     }

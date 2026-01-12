@@ -156,6 +156,26 @@
             "created": "Fecha Creación",
             "reporter": "Informador",
             "status": "Estado"
+        },
+        "intelligence": {
+            "title": "Service Intelligence",
+            "subtitle": "Análisis avanzado y métricas premium de servicio.",
+            "slaTrend": "Tendencia de Cumplimiento SLA",
+            "demandForecast": "Previsión de Demanda (Próximos 30 días)",
+            "serviceComposition": "Composición del Servicio",
+            "efficiency": "Eficiencia y Velocidad",
+            "timeToResolve": "Tiempo Medio de Resolución",
+            "ticketsForecast": "Tickets previstos",
+            "compliance": "Cumplimiento",
+            "valueFocused": "Enfoque en Valor",
+            "corrective": "Correctivo",
+            "evolutionary": "Evolutivo",
+            "consultation": "Consulta / Soporte",
+            "others": "Otros",
+            "days": "días",
+            "hours": "horas",
+            "noData": "No hay datos suficientes para generar análisis de inteligencia.",
+            "premiumOnly": "Esta sección requiere una suscripción Premium."
         }
     },
     "admin": {

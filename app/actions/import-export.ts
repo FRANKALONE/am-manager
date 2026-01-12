@@ -214,6 +214,7 @@ export async function importBulkData(formData: FormData) {
                     manager: clientManager || null,
                     amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
                     portalUrl: clientPortalUrl || null,
+                    clientPortalUrl: clientPortalUrl || null,
                     jiraProjectKey: clientJiraProjectKey || null,
                     customAttributes: clientCustomAttrs || "{}"
                 },
@@ -223,6 +224,7 @@ export async function importBulkData(formData: FormData) {
                     manager: clientManager || null,
                     amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
                     portalUrl: clientPortalUrl || null,
+                    clientPortalUrl: clientPortalUrl || null,
                     jiraProjectKey: clientJiraProjectKey || null,
                     customAttributes: clientCustomAttrs || "{}"
                 }

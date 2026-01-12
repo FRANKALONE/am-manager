@@ -80,7 +80,7 @@ export function ClientFormFields({
                     name="clientPortalUrl"
                     type="url"
                     placeholder={t('clients.form.placeholders.portal')}
-                    defaultValue={client?.clientPortalUrl || ""}
+                    defaultValue={client?.portalUrl || client?.clientPortalUrl || ""}
                 />
                 <p className="text-xs text-muted-foreground">{t('clients.form.labels.portalHelp')}</p>
             </div>

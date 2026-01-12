@@ -135,9 +135,9 @@ export function ClientsTable({ clients, managerMap, deleteClientAction }: Client
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    {client.clientPortalUrl ? (
+                                    {client.portalUrl || client.clientPortalUrl ? (
                                         <a
-                                            href={client.clientPortalUrl}
+                                            href={client.portalUrl || client.clientPortalUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:text-blue-800 text-sm underline"
