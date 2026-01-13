@@ -1270,10 +1270,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         issueType: details.issueType || wl.issueType,
                         status: details.status || 'Unknown',
                         priority: details.priority || 'Media',
-                        slaResponse: details.slaResponse,
-                        slaResponseTime: details.slaResponseTime,
-                        slaResolution: details.slaResolution,
-                        slaResolutionTime: details.slaResolutionTime,
+                        slaResponse: details?.slaResponse || null,
+                        slaResponseTime: details?.slaResponseTime || null,
+                        slaResolution: details?.slaResolution || null,
+                        slaResolutionTime: details?.slaResolutionTime || null,
                         createdDate: wl.issueCreatedDate || new Date(),
                         year: wl.year,
                         month: wl.month,
@@ -1282,7 +1282,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                         assignee: details?.assignee || null,
                         dueDate: details?.dueDate ? new Date(details.dueDate) : null,
                         parentKey: details?.parentKey || null,
-                        component: details?.component || null
+                        component: details?.component || null,
+                        clientJiraId: details?.clientJiraId || null
                     });
                 }
             }
@@ -1309,7 +1310,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     assignee: details.assignee || null,
                     dueDate: details.dueDate ? new Date(details.dueDate) : null,
                     parentKey: details.parentKey || null,
-                    component: details.component || null
+                    component: details.component || null,
+                    clientJiraId: details.clientJiraId || null
                 });
             } else {
                 // Update reporter if it was 'Unknown' from worklogs
