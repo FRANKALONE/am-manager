@@ -233,6 +233,15 @@ export async function syncTeamsFromTempo() {
         const teamsResponse = await fetchTempo("/teams");
         const tempoTeams = teamsResponse.results || [];
 
+        // Jira Credentials
+        const jiraUrl = process.env.JIRA_URL?.trim();
+        const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+        const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+        const auth = (jiraEmail && jiraToken) ? Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64') : null;
+
+        // Cache to avoid redundant Jira calls
+        const userNamesCache = new Map<string, string>();
+
         for (const t of tempoTeams) {
             // Upsert Team
             const team = await prisma.team.upsert({
@@ -249,8 +258,36 @@ export async function syncTeamsFromTempo() {
             const tempoMembers = membersResponse.results || [];
 
             for (const tm of tempoMembers) {
-                // Tempo v4 member structure: tm.member.displayName or tm.member.name or tm.member.self
-                const memberName = tm.member?.displayName || tm.member?.name;
+                // Filter: Only currently active members in the team
+                if (!tm.memberships?.active) {
+                    continue;
+                }
+
+                const accountId = tm.member?.accountId;
+                let memberName = tm.member?.displayName;
+
+                // If displayName is missing, try to fetch from Jira
+                if (!memberName && accountId && auth && jiraUrl) {
+                    if (userNamesCache.has(accountId)) {
+                        memberName = userNamesCache.get(accountId);
+                    } else {
+                        try {
+                            const jiraRes = await fetch(`${jiraUrl}/rest/api/3/user?accountId=${accountId}`, {
+                                headers: {
+                                    'Authorization': `Basic ${auth}`,
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            if (jiraRes.ok) {
+                                const jiraUser = await jiraRes.json();
+                                memberName = jiraUser.displayName;
+                                if (memberName) userNamesCache.set(accountId, memberName);
+                            }
+                        } catch (err) {
+                            console.error(`Error fetching Jira user ${accountId}:`, err);
+                        }
+                    }
+                }
 
                 if (!memberName) {
                     console.warn(`[SYNC] Skipping team member without name for team ${team.name}:`, JSON.stringify(tm));
@@ -263,13 +300,15 @@ export async function syncTeamsFromTempo() {
                         where: { name: memberName },
                         update: {
                             teamId: team.id,
-                            isActive: true
+                            isActive: true,
+                            linkedUserId: accountId // Store accountId for future reference
                         },
                         create: {
                             name: memberName,
                             weeklyCapacity: 40.0, // Default
                             teamId: team.id,
-                            isActive: true
+                            isActive: true,
+                            linkedUserId: accountId
                         }
                     });
                 } catch (dbError) {
