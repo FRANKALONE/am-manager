@@ -172,23 +172,27 @@ export function ServiceIntelligence({
                         <div className="space-y-12">
                             <div className="h-[200px] w-full flex items-end gap-3 px-2">
                                 {(metrics.stabilityTrend || []).map((item: any, i: number) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative">
-                                        <div className="w-full flex flex-col items-center justify-end h-full gap-1">
+                                    <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative h-full">
+                                        <div className="w-full flex-1 flex flex-col items-center justify-end gap-0.5 min-h-[140px]">
                                             {/* Corrective Part */}
                                             <div
-                                                className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500"
+                                                className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500 relative"
                                                 style={{ height: `${item.correctivePct}%` }}
-                                            />
+                                            >
+                                                {item.correctivePct > 10 && (
+                                                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/40 rotate-90 whitespace-nowrap">FIX</span>
+                                                )}
+                                            </div>
                                             {/* Stabilization / Others Part */}
                                             <div
-                                                className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/40"
+                                                className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/30"
                                                 style={{ height: `${100 - item.correctivePct}%` }}
                                             />
                                         </div>
                                         <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded shadow-xl z-20 whitespace-nowrap">
                                             Correctivo: <b>{item.correctivePct.toFixed(1)}%</b>
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center">{item.month}</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center h-4">{item.month}</span>
                                     </div>
                                 ))}
                             </div>

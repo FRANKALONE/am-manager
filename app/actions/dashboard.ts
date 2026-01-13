@@ -1523,7 +1523,14 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
                 const d = new Date(t.createdDate);
                 return `${d.getMonth() + 1}/${d.getFullYear()}` === m;
             });
-            const corrective = monthTickets.filter(t => (t.issueType || '').includes('Incidencia') || (t.issueType || '').includes('Correctivo')).length;
+            const corrective = monthTickets.filter(t => {
+                const type = (t.issueType || '').toLowerCase();
+                return type.includes('incidencia') ||
+                    type.includes('correctivo') ||
+                    type.includes('bug') ||
+                    type.includes('error') ||
+                    type.includes('garantía');
+            }).length;
             const total = monthTickets.length || 1;
             return {
                 month: m,
