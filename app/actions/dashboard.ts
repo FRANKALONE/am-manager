@@ -1381,7 +1381,8 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                 },
                 tickets: {
                     orderBy: { createdDate: 'asc' }
-                }
+                },
+                worklogDetails: true
             }
         });
 
@@ -1688,7 +1689,23 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             },
             riskRadar: riskRadar.slice(0, 5),
             recommendations: recommendations.length > 0 ? recommendations : ["El servicio se mantiene en parámetros estables. No se detectan anomalías críticas en la distribución de la demanda."],
-            isPremium: wp.validityPeriods[0]?.isPremium || false
+            isPremium: wp.validityPeriods[0]?.isPremium || false,
+            // 10. Historical Averages for Forecasting
+            avgHoursByType: {
+                corrective: parseFloat((wp.worklogDetails
+                    .filter((w: any) => (w.issueType || '').toLowerCase().includes('incidencia') || (w.issueType || '').toLowerCase().includes('correctivo'))
+                    .reduce((sum: number, w: any) => sum + w.timeSpentHours, 0) /
+                    (wp.tickets.filter(t => (t.issueType || '').toLowerCase().includes('incidencia') || (t.issueType || '').toLowerCase().includes('correctivo')).length || 1)).toFixed(1)),
+                consultation: parseFloat((wp.worklogDetails
+                    .filter((w: any) => (w.issueType || '').toLowerCase().includes('consulta') || (w.issueType || '').toLowerCase().includes('soporte'))
+                    .reduce((sum: number, w: any) => sum + w.timeSpentHours, 0) /
+                    (wp.tickets.filter(t => (t.issueType || '').toLowerCase().includes('consulta') || (t.issueType || '').toLowerCase().includes('soporte')).length || 1)).toFixed(1)),
+                evolution: parseFloat((wp.worklogDetails
+                    .filter((w: any) => (w.issueType || '').toLowerCase().includes('evolutivo'))
+                    .reduce((sum: number, w: any) => sum + w.timeSpentHours, 0) /
+                    (wp.tickets.filter(t => (t.issueType || '').toLowerCase().includes('evolutivo')).length || 1)).toFixed(1)),
+                iaas: (wp as any).hasIaasService ? 1.0 : 0 // Constant factor if IAAS is active
+            }
         };
 
     } catch (error) {

@@ -45,6 +45,14 @@ export function ServiceIntelligence({
     const [reductionPct, setReductionPct] = useState(10);
     const [range, setRange] = useState(selectedPeriodId?.toString() || 'current_period');
 
+    // Contract Forecasting State
+    const [forecastCounts, setForecastCounts] = useState({
+        corrective: 0,
+        consultation: 0,
+        evolution: 0,
+        iaas: false
+    });
+
     useEffect(() => {
         if (!wpId) return;
         setLoading(true);
@@ -106,11 +114,20 @@ export function ServiceIntelligence({
         );
     }
 
-    // Calculations for What-if with safety defaults
-    const efficiency = metrics.efficiency || { avgDays: 0, byPriority: [], closedCount: 0, openCount: 0 };
-    const currentAvgDays = efficiency.avgDays || 0;
-    const projectedDays = currentAvgDays * (1 - reductionPct / 100);
-    const capacitySaving = (efficiency.closedCount || 0) * (currentAvgDays - projectedDays);
+    // Calculations for Value Shift simulation
+    const noiseCount = (metrics.operationalNoise?.byComponent || []).reduce((sum: number, c: any) => sum + c.value, 0) ||
+        (metrics.composition?.find((c: any) => c.name === 'Consulta / Soporte')?.value || 0);
+
+    const avgConsultation = metrics.avgHoursByType?.consultation || 2.5;
+    const capacitySaving = noiseCount * (reductionPct / 100) * avgConsultation;
+
+    // Contract Forecasting Calculation
+    const projectedHours = (
+        (forecastCounts.corrective * (metrics.avgHoursByType?.corrective || 4.5)) +
+        (forecastCounts.consultation * (metrics.avgHoursByType?.consultation || 2.5)) +
+        (forecastCounts.evolution * (metrics.avgHoursByType?.evolution || 12.0)) +
+        (forecastCounts.iaas ? (metrics.avgHoursByType?.iaas || 40) : 0)
+    );
 
     return (
         <div className="space-y-8 animate-in fade-in duration-1000 slide-in-from-bottom-2 pb-12">
@@ -377,15 +394,15 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 6. Strategic Simulation (What-if) */}
-                <Card className="lg:col-span-12 shadow-2xl border-malachite/20 bg-gradient-to-br from-white via-white to-malachite/5 overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-malachite/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+                {/* 6. Strategic Simulation: De Soporte a Innovación */}
+                <Card className="lg:col-span-12 shadow-2xl border-indigo-500/20 bg-gradient-to-br from-indigo-50/10 via-white to-indigo-50/20 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
                     <CardHeader>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-malachite/10 flex items-center justify-center">
-                                <Target className="w-5 h-5 text-malachite" />
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <Zap className="w-5 h-5 text-indigo-600" />
                             </div>
-                            <CardTitle className="text-xl font-black text-slate-800 tracking-tight">{t('dashboard.intelligence.whatIf')}</CardTitle>
+                            <CardTitle className="text-xl font-black text-slate-800 tracking-tight">Reinversión Estratégica: De Soporte a Innovación</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-10 pt-4">
@@ -394,57 +411,160 @@ export function ServiceIntelligence({
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-end">
                                         <div>
-                                            <p className="text-sm font-bold text-slate-700">{t('dashboard.intelligence.impactResolution')}</p>
-                                            <p className="text-xs text-slate-400 font-medium">Simule el impacto de optimizar tiempos operativos.</p>
+                                            <p className="text-sm font-bold text-slate-700">Reducción de Ruido Operativo</p>
+                                            <p className="text-xs text-slate-400 font-medium">Optimice procesos y formación para liberar capacidad.</p>
                                         </div>
-                                        <span className="text-3xl font-black text-malachite">-{reductionPct}%</span>
+                                        <span className="text-3xl font-black text-indigo-600">-{reductionPct}%</span>
                                     </div>
                                     <input
                                         type="range"
                                         min="0"
-                                        max="50"
+                                        max="100"
                                         value={reductionPct}
                                         onChange={(e) => setReductionPct(parseInt(e.target.value))}
-                                        className="w-full h-3 bg-slate-100 rounded-full appearance-none cursor-pointer accent-malachite"
+                                        className="w-full h-3 bg-slate-100 rounded-full appearance-none cursor-pointer accent-indigo-600"
                                     />
                                     <div className="flex justify-between text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                                        <span>Actual</span>
-                                        <span>Objetivo Ambitioso (-50%)</span>
+                                        <span>Estado Actual</span>
+                                        <span>Optimización Total</span>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MTTR Actual</p>
-                                        <p className="text-3xl font-black text-slate-900">{currentAvgDays.toFixed(1)} <span className="text-xs font-bold text-slate-400">días</span></p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ruido Detectado</p>
+                                        <p className="text-3xl font-black text-slate-900">{noiseCount} <span className="text-xs font-bold text-slate-400">tickets/mes</span></p>
                                     </div>
-                                    <div className="p-6 bg-malachite/5 border border-malachite/10 rounded-3xl space-y-2">
-                                        <p className="text-[10px] font-black text-malachite/60 uppercase tracking-widest">MTTR Proyectado</p>
-                                        <p className="text-3xl font-black text-malachite">{projectedDays.toFixed(1)} <span className="text-xs font-bold text-malachite/60">días</span></p>
+                                    <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-3xl space-y-2">
+                                        <p className="text-[10px] font-black text-indigo-600/60 uppercase tracking-widest">Esfuerzo Unitario de Soporte</p>
+                                        <p className="text-3xl font-black text-indigo-600">{avgConsultation} <span className="text-xs font-bold text-indigo-600/60">h/ticket</span></p>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="relative">
-                                <div className="absolute inset-0 bg-malachite rounded-[3rem] blur-2xl opacity-5 group-hover:opacity-10 transition-opacity" />
+                                <div className="absolute inset-0 bg-indigo-500 rounded-[3rem] blur-2xl opacity-5 group-hover:opacity-10 transition-opacity" />
                                 <div className="relative bg-white border-2 border-slate-100 p-10 rounded-[3rem] text-center space-y-6 shadow-xl">
-                                    <div className="w-24 h-24 bg-malachite/10 rounded-[2rem] flex items-center justify-center mx-auto mb-2 rotate-3 transition-transform group-hover:rotate-0">
-                                        <Zap className="w-12 h-12 text-malachite" />
+                                    <div className="w-24 h-24 bg-indigo-100 rounded-[2rem] flex items-center justify-center mx-auto mb-2 rotate-3 transition-transform group-hover:rotate-0">
+                                        <TrendingUp className="w-12 h-12 text-indigo-600" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.intelligence.projectedSavings')}</h5>
+                                        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">CAPACIDAD LIBERADA PARA INNOVACIÓN</h5>
                                         <div className="flex flex-col items-center">
-                                            <span className="text-7xl font-black text-dark-green tracking-tighter">+{capacitySaving.toFixed(0)}h</span>
-                                            <span className="text-sm font-black text-malachite uppercase tracking-widest">Capacidad Estratégica</span>
+                                            <span className="text-7xl font-black text-indigo-900 tracking-tighter">+{capacitySaving.toFixed(0)}h</span>
+                                            <span className="text-sm font-black text-indigo-600 uppercase tracking-widest">Impacto en Evolutivos</span>
                                         </div>
                                     </div>
                                     <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3 text-left">
                                         <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                                            <ArrowRight className="w-5 h-5 text-malachite" />
+                                            <ArrowRight className="w-5 h-5 text-indigo-600" />
                                         </div>
                                         <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                                            Esta eficiencia permitiría absorber hasta <span className="font-bold text-dark-green">{(capacitySaving / 8).toFixed(1)} tickets adicionales</span> sin incrementar recursos.
+                                            Estas horas pasarían de ser un <span className="font-bold text-indigo-700">coste operativo</span> a ser una <span className="font-bold text-indigo-700">inversión en el futuro</span> de sus sistemas.
                                         </p>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 7. Contract Sizing Forecast Tool */}
+                <Card className="lg:col-span-12 shadow-2xl border-emerald-500/20 bg-gradient-to-br from-emerald-50/10 via-white to-emerald-50/20 overflow-hidden relative">
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                <Target className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <CardTitle className="text-xl font-black text-slate-800 tracking-tight">Pronóstico de Dimensionamiento de Contrato</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-10 pt-4">
+                        <div className="grid md:grid-cols-2 gap-16 items-start">
+                            <div className="space-y-8">
+                                <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                                    Configure los volúmenes previstos para el próximo periodo. El sistema utilizará sus <span className="font-bold text-slate-700">costes reales de servicio</span> para calcular el dimensionamiento óptimo.
+                                </p>
+
+                                <div className="grid grid-cols-1 gap-6">
+                                    {[
+                                        { key: 'corrective', label: 'Tickets Correctivos', sub: 'Mantenimiento y Errores', icon: ShieldAlert, color: 'text-red-500' },
+                                        { key: 'consultation', label: 'Tickets de Consulta', sub: 'Soporte a Usuarios', icon: MessageSquareWarning, color: 'text-amber-500' },
+                                        { key: 'evolution', label: 'Tickets Evolutivos', sub: 'Nuevas Funcionalidades', icon: Lightbulb, color: 'text-indigo-500' }
+                                    ].map((item) => (
+                                        <div key={item.key} className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl bg-white border border-slate-100 shadow-sm ${item.color}`}>
+                                                <item.icon className="w-5 h-5" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.label}</span>
+                                                    <span className="text-xs font-bold text-slate-400">Previstos: {forecastCounts[item.key as keyof typeof forecastCounts]}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="200"
+                                                    value={forecastCounts[item.key as keyof typeof forecastCounts] as number}
+                                                    onChange={(e) => setForecastCounts({ ...forecastCounts, [item.key]: parseInt(e.target.value) })}
+                                                    className="w-full h-2 bg-slate-100 rounded-full appearance-none cursor-pointer accent-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div className="flex items-center justify-between p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+                                        <div className="flex items-center gap-3">
+                                            <Activity className="w-5 h-5 text-emerald-600" />
+                                            <div>
+                                                <p className="text-xs font-black text-slate-700 uppercase tracking-tighter">Servicios IAAS / Base</p>
+                                                <p className="text-[10px] text-slate-400">Infraestructura y Monitorización</p>
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={forecastCounts.iaas}
+                                            onChange={(e) => setForecastCounts({ ...forecastCounts, iaas: e.target.checked })}
+                                            className="w-5 h-5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-emerald-900 rounded-[3rem] p-10 text-white space-y-8 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+                                <div className="space-y-2">
+                                    <h5 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">PROYECCIÓN DE NECESIDAD MENSUAL</h5>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-7xl font-black tracking-tighter">{projectedHours.toFixed(0)}</span>
+                                        <span className="text-2xl font-black text-emerald-400">Horas</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-emerald-800">
+                                    <p className="text-xs font-bold text-emerald-300 uppercase tracking-widest">Desglose de inversión</p>
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: 'Soporte y Correctivo', hours: (forecastCounts.corrective * (metrics.avgHoursByType?.corrective || 4.5)) + (forecastCounts.consultation * (metrics.avgHoursByType?.consultation || 2.5)), color: 'bg-emerald-400' },
+                                            { label: 'Evolutivos', hours: forecastCounts.evolution * (metrics.avgHoursByType?.evolution || 12.0), color: 'bg-indigo-400' },
+                                        ].filter(b => b.hours > 0).map((bar, i) => (
+                                            <div key={i} className="space-y-1">
+                                                <div className="flex justify-between text-[10px] font-bold">
+                                                    <span>{bar.label}</span>
+                                                    <span>{bar.hours.toFixed(1)}h</span>
+                                                </div>
+                                                <div className="h-2 bg-emerald-800 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${bar.color}`} style={{ width: `${(bar.hours / projectedHours) * 100}%` }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="pt-6">
+                                    <button className="w-full py-4 bg-emerald-400 text-emerald-950 font-black rounded-2xl hover:bg-white transition-colors uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                                        Solicitar Presupuesto Basado en Datos
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
