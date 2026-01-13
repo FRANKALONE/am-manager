@@ -142,29 +142,27 @@ export async function deleteAssignment(id: string) {
  * Calcula la carga para las próximas 4 semanas empezando desde el lunes actual
  */
 export async function getTeamWorkload() {
-    const members = await prisma.teamMember.findMany({
-        where: { isActive: true },
-        include: {
-            assignments: {
-                where: {
-                    status: "ACTIVE",
-                    endDate: { gte: getNow() }
-                }
-            }
-        }
+    const teams = await (prisma as any).team.findMany({
+        where: { name: { startsWith: 'AMA' } }
+    });
+    const teamIds = teams.map((t: any) => t.id);
+
+    const members = await (prisma as any).teamMember.findMany({
+        where: { teamId: { in: teamIds }, isActive: true },
+        include: { assignments: true }
     });
 
     const now = getNow();
-    const startOfCurrentWeek = new Date(now);
-    const day = startOfCurrentWeek.getDay();
-    const diff = startOfCurrentWeek.getDate() - day + (day === 0 ? -6 : 1); // Ajuste a Lunes
-    startOfCurrentWeek.setDate(diff);
-    startOfCurrentWeek.setHours(0, 0, 0, 0);
+    const currentMonday = new Date(now);
+    const day = currentMonday.getDay();
+    const diff = currentMonday.getDate() - day + (day === 0 ? -6 : 1);
+    currentMonday.setDate(diff);
+    currentMonday.setHours(0, 0, 0, 0);
 
-    // Semanas a calcular (4)
-    const weeks: { start: Date, end: Date }[] = [];
-    for (let i = 0; i < 4; i++) {
-        const start = new Date(startOfCurrentWeek);
+    const numWeeks = 12; // Extendemos horizonte
+    const weeks: { start: Date; end: Date }[] = [];
+    for (let i = 0; i < numWeeks; i++) {
+        const start = new Date(currentMonday);
         start.setDate(start.getDate() + (i * 7));
         const end = new Date(start);
         end.setDate(end.getDate() + 6);
@@ -172,14 +170,34 @@ export async function getTeamWorkload() {
         weeks.push({ start, end });
     }
 
-    // Cache de medias por WP para no repetir consultas
     const wpAveragesCache = new Map<string, number>();
 
-    // Carga por miembro
     const workloadByMember = await Promise.all(members.map(async (member: any) => {
-        // 1. Obtener tickets activos asignados en Jira (desde nuestra DB)
-        // Refinamos el filtro de estados "vivos"
-        const activeTicketsDb = await prisma.ticket.findMany({
+        const memberWeeks = weeks.map(w => ({
+            start: w.start,
+            end: w.end,
+            availableCapacity: member.weeklyCapacity || 40.0,
+            ticketHours: 0,
+            assignmentHours: 0,
+            details: { tickets: [] as any[], assignments: [] as any[] }
+        }));
+
+        // 1. Asignaciones Manuales (Carga fija prorrateada)
+        for (const asig of member.assignments) {
+            const weeklyAsigHours = asig.hours / numWeeks;
+            for (const week of memberWeeks) {
+                const hoursToConsume = Math.min(week.availableCapacity, weeklyAsigHours);
+                week.assignmentHours += hoursToConsume;
+                week.availableCapacity -= hoursToConsume;
+                week.details.assignments.push({
+                    description: asig.description,
+                    hours: hoursToConsume
+                });
+            }
+        }
+
+        // 2. Tickets Activos de DB
+        const activeTicketsDb = await (prisma as any).ticket.findMany({
             where: {
                 assignee: member.name,
                 status: {
@@ -191,175 +209,92 @@ export async function getTeamWorkload() {
             }
         });
 
-        if (activeTicketsDb.length === 0 && member.assignments.length === 0) {
-            return {
-                id: member.id,
-                name: member.name,
-                capacity: member.weeklyCapacity,
-                weeks: weeks.map(w => ({
-                    weekStart: w.start,
-                    ticketHours: 0,
-                    assignmentHours: 0,
-                    totalLoad: 0,
-                    utilization: 0
-                }))
-            };
-        }
+        // 3. Obtener datos precisos de Jira
+        const ticketDetails = await Promise.all(activeTicketsDb.map(async (t: any) => {
+            let hours = 0;
+            let priorityValue = 2; // Medium
+            let summary = t.issueSummary;
+            let dueDate = t.dueDate;
 
-        // 2. Fetch de Remaining Estimates y vinculación de Hitos
-        let ticketDetails = new Map<string, { remainingSeconds: number, timeSpentSeconds: number }>();
-        let parentHitos = new Map<string, Date>(); // issueKey -> nearest Hito dueDate
+            try {
+                const jiraData = await fetchJira(`/issue/${t.issueKey}?fields=timetracking,issuetype,summary,priority,duedate`);
+                const tracking = jiraData?.fields?.timetracking;
+                const rem = tracking?.remainingEstimateSeconds || 0;
+                const spent = tracking?.timeSpentSeconds || 0;
+                const orig = tracking?.originalEstimateSeconds || 0;
 
-        try {
-            const issueKeys = activeTicketsDb.map(t => t.issueKey);
-            const parentKeys = activeTicketsDb.filter(t => t.parentKey).map(t => t.parentKey as string);
+                if (rem > 0) hours = rem / 3600;
+                else if (orig > 0) hours = Math.max(0, (orig - spent) / 3600);
 
-            if (issueKeys.length > 0) {
-                // 2.1 Jira Timetracking
-                const jql = `key IN (${issueKeys.map(k => `"${k}"`).join(',')})`;
-                const jiraRes = await fetchJira(`/search`, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        jql,
-                        fields: ["timetracking"],
-                        maxResults: 100
-                    })
-                });
-
-                (jiraRes.issues || []).forEach((issue: any) => {
-                    ticketDetails.set(issue.key, {
-                        remainingSeconds: issue.fields.timetracking?.remainingEstimateSeconds || 0,
-                        timeSpentSeconds: issue.fields.timetracking?.timeSpentSeconds || 0
-                    });
-                });
-
-                // 2.2 Buscar hitos cercanos para los evolutivos activos
-                const evolutivoKeys = activeTicketsDb.filter(t => t.issueType === 'Evolutivo').map(t => t.issueKey);
-                if (evolutivoKeys.length > 0) {
-                    const hitos = await prisma.ticket.findMany({
-                        where: {
-                            parentKey: { in: evolutivoKeys },
-                            issueType: 'Hitos Evolutivos',
-                            dueDate: { not: null },
-                            status: { notIn: ['Cerrado', 'Propuesta de solución', 'Entregado en PRO', 'Enviado a Gerente', 'Enviado a Cliente'] }
-                        },
-                        orderBy: { dueDate: 'asc' }
-                    });
-
-                    hitos.forEach(h => {
-                        if (h.parentKey && !parentHitos.has(h.parentKey)) {
-                            parentHitos.set(h.parentKey, h.dueDate as Date);
+                if (hours === 0) {
+                    const isEvo = t.issueKey.startsWith('EVO-') || jiraData?.fields?.issuetype?.name === 'Evolutivo';
+                    if (isEvo) hours = 8.0;
+                    else {
+                        if (!wpAveragesCache.has(t.workPackageId)) {
+                            wpAveragesCache.set(t.workPackageId, await getClientAverageDedication(t.workPackageId));
                         }
-                    });
-                }
-            }
-        } catch (e) {
-            console.error("Error fetching runtime details:", e);
-        }
-
-        const memberWeeks = await Promise.all(weeks.map(async (week: { start: Date, end: Date }, weekIdx: number) => {
-            let ticketHours = 0;
-            const details: { tickets: any[], assignments: any[] } = { tickets: [], assignments: [] };
-
-            for (const t of activeTicketsDb) {
-                let estimate = 0;
-
-                if (t.issueType === 'Evolutivo') {
-                    const d = ticketDetails.get(t.issueKey);
-                    if (d && d.remainingSeconds > 0) {
-                        estimate = d.remainingSeconds / 3600;
-                    } else {
-                        const spent = d?.timeSpentSeconds ? (d.timeSpentSeconds / 3600) : 0;
-                        estimate = Math.max(0, (t.originalEstimate || 0) - spent);
+                        hours = wpAveragesCache.get(t.workPackageId) || 4.0;
                     }
-
-                    if (estimate === 0 && (t.billingMode?.includes("T&M"))) estimate = 8.0;
-                } else if (t.issueType === 'Hitos Evolutivos') {
-                    estimate = t.originalEstimate || 2.0;
-                } else {
-                    if (!wpAveragesCache.has(t.workPackageId)) {
-                        const avg = await getClientAverageDedication(t.workPackageId);
-                        wpAveragesCache.set(t.workPackageId, avg);
-                    }
-                    estimate = wpAveragesCache.get(t.workPackageId) || 4.0;
                 }
 
-                // Fecha de referencia para prioridad: su propia dueDate o el hito más cercano
-                const dueDate = t.dueDate ? new Date(t.dueDate) : (parentHitos.get(t.issueKey) || null);
-                const slaUrgency = parseSlaToHours(t.slaResolutionTime || t.slaResolution);
-
-                // Prioridad absoluta: SLA muy corto o Hito vencido/esta semana
-                const isUrgent = slaUrgency < 24 || (dueDate && dueDate <= weeks[0].end);
-
-                let assignedHours = 0;
-                if (isUrgent) {
-                    if (weekIdx === 0) assignedHours = estimate;
-                } else if (dueDate && dueDate <= week.end) {
-                    // Distribuimos la carga hasta el hito/vencimiento
-                    const daysToDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
-                    const weeksToDue = Math.ceil(daysToDue / 7);
-
-                    if (weekIdx < weeksToDue) {
-                        assignedHours = estimate / weeksToDue;
-                    }
-                } else if (!dueDate) {
-                    // Si no tiene fecha, lo cargamos en las primeras 2 semanas para que no "desaparezca"
-                    if (weekIdx < 2) assignedHours = estimate / 2;
-                }
-
-                if (assignedHours > 0) {
-                    ticketHours += assignedHours;
-                    details.tickets.push({
-                        key: t.issueKey,
-                        summary: t.issueSummary,
-                        type: t.issueType,
-                        hours: assignedHours,
-                        dueDate: dueDate,
-                        isUrgent
-                    });
-                }
+                if (jiraData?.fields?.priority?.name === 'Highest' || jiraData?.fields?.priority?.name === 'High') priorityValue = 1;
+                summary = jiraData?.fields?.summary || summary;
+                dueDate = jiraData?.fields?.duedate ? new Date(jiraData?.fields?.duedate) : dueDate;
+            } catch (e) {
+                console.error(`Error fetching Jira for ${t.issueKey}:`, e);
+                hours = t.originalEstimate || 4.0;
             }
 
-            // 1.2 Carga de Asignaciones Manuales (Prorrateo por días en la semana)
-            let assignmentHours = 0;
-            member.assignments.forEach((asig: any) => {
-                const asigStart = new Date(asig.startDate);
-                const asigEnd = new Date(asig.endDate);
-
-                const overlapStart = new Date(Math.max(asigStart.getTime(), week.start.getTime()));
-                const overlapEnd = new Date(Math.min(asigEnd.getTime(), week.end.getTime()));
-
-                if (overlapStart < overlapEnd) {
-                    const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 3600 * 24);
-                    const totalDays = Math.max(1, (asigEnd.getTime() - asigStart.getTime()) / (1000 * 3600 * 24));
-                    const currentHours = (asig.hours / totalDays) * overlapDays;
-                    assignmentHours += currentHours;
-                    details.assignments.push({
-                        description: asig.description,
-                        hours: currentHours
-                    });
-                }
-            });
-
-            const totalLoad = ticketHours + assignmentHours;
-            const capacity = member.weeklyCapacity;
-            const utilization = capacity > 0 ? (totalLoad / capacity) * 100 : 0;
-
-            return {
-                weekStart: week.start,
-                ticketHours,
-                assignmentHours,
-                totalLoad,
-                utilization,
-                details
-            };
+            return { key: t.issueKey, summary, hours, dueDate, priority: priorityValue };
         }));
+
+        // Ordenar: Prioridad 1 primero, luego por DueDate
+        ticketDetails.sort((a, b) => {
+            if (a.priority !== b.priority) return a.priority - b.priority;
+            if (a.dueDate && b.dueDate) return a.dueDate.getTime() - b.dueDate.getTime();
+            if (a.dueDate) return -1;
+            if (b.dueDate) return 1;
+            return 0;
+        });
+
+        // 4. Reparto Secuencial (Consecutivo)
+        for (const ticket of ticketDetails) {
+            let remaining = ticket.hours;
+            for (const week of memberWeeks) {
+                if (remaining <= 0) break;
+                if (week.availableCapacity <= 0) continue;
+
+                const consume = Math.min(week.availableCapacity, remaining);
+                week.ticketHours += consume;
+                week.availableCapacity -= consume;
+                remaining -= consume;
+
+                week.details.tickets.push({
+                    key: ticket.key,
+                    summary: ticket.summary,
+                    hours: consume,
+                    isTotal: remaining === 0,
+                    totalTicketHours: ticket.hours
+                });
+            }
+        }
 
         return {
             id: member.id,
             name: member.name,
-            capacity: member.weeklyCapacity,
-            weeks: memberWeeks
+            capacity: member.weeklyCapacity || 40.0,
+            weeks: memberWeeks.map(mw => {
+                const totalLoad = mw.ticketHours + mw.assignmentHours;
+                return {
+                    start: mw.start,
+                    end: mw.end,
+                    ticketHours: mw.ticketHours,
+                    assignmentHours: mw.assignmentHours,
+                    totalLoad,
+                    utilization: Math.round((totalLoad / (member.weeklyCapacity || 40)) * 100),
+                    details: mw.details
+                };
+            })
         };
     }));
 
@@ -413,6 +348,23 @@ export async function syncTeamsFromTempo() {
 
         // Cache to avoid redundant Jira calls
         const userNamesCache = new Map<string, string>();
+
+        // Fetch Workload Schemes to get actual capacities
+        const capacityMap = new Map<string, number>();
+        try {
+            const schemesRes = await fetchTempo("/workload-schemes");
+            for (const scheme of (schemesRes.results || [])) {
+                const weeklySeconds = scheme.days.reduce((sum: number, d: any) => sum + (d.requiredSeconds || 0), 0);
+                const weeklyHours = weeklySeconds / 3600;
+
+                const membersRes = await fetchTempo(`/workload-schemes/${scheme.id}/members`);
+                for (const m of (membersRes.results || [])) {
+                    capacityMap.set(m.accountId, weeklyHours);
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching workload schemes:", err);
+        }
 
         for (const t of tempoTeams) {
             // Upsert Team
@@ -468,16 +420,18 @@ export async function syncTeamsFromTempo() {
 
                 // Upsert Member
                 try {
-                    await prisma.teamMember.upsert({
+                    const memberCapacity = capacityMap.get(accountId) || 40.0;
+                    await (prisma as any).teamMember.upsert({
                         where: { name: memberName },
                         update: {
                             teamId: team.id,
                             isActive: true,
-                            linkedUserId: accountId // Store accountId for future reference
+                            linkedUserId: accountId,
+                            weeklyCapacity: memberCapacity
                         },
                         create: {
                             name: memberName,
-                            weeklyCapacity: 40.0, // Default
+                            weeklyCapacity: memberCapacity,
                             teamId: team.id,
                             isActive: true,
                             linkedUserId: accountId

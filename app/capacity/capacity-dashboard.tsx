@@ -422,10 +422,10 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100">
-                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest bg-slate-50/30">Miembro</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest bg-slate-50/30 sticky left-0 z-10 w-[240px]">Miembro</th>
                                     {workload.weeks.map((w, idx) => (
-                                        <th key={idx} className="px-6 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                                            Semana {new Date(w.start).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                                        <th key={idx} className="px-4 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest min-w-[120px]">
+                                            Sem. {new Date(w.start).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
                                         </th>
                                     ))}
                                 </tr>
@@ -434,13 +434,13 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                 {filteredMembers.length > 0 ? (
                                     filteredMembers.map((member) => (
                                         <tr key={member.id} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-6 py-5">
+                                            <td className="px-6 py-5 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200 group-hover:bg-white transition-colors shadow-sm">
                                                         {member.name.substring(0, 2).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-slate-800 text-sm leading-none">{member.name}</p>
+                                                        <p className="font-bold text-slate-800 text-sm leading-none whitespace-nowrap">{member.name}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Cap: {member.capacity}h</span>
                                                             {allMembers.find(am => am.id === member.id)?.team && (
@@ -668,15 +668,22 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                                     {t.isUrgent && <Badge className="bg-rose-500 text-white text-[8px] h-4">URGENTE</Badge>}
                                                 </div>
                                                 <p className="text-sm font-bold text-slate-800 truncate group-hover:text-dark-green transition-colors">{t.summary}</p>
-                                                {t.dueDate && (
-                                                    <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" /> F.Vence: {new Date(t.dueDate).toLocaleDateString()}
-                                                    </p>
-                                                )}
+                                                <div className="flex items-center gap-3 mt-1.5">
+                                                    {t.dueDate && (
+                                                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                            <Calendar className="w-3 h-3" /> {new Date(t.dueDate).toLocaleDateString()}
+                                                        </p>
+                                                    )}
+                                                    {t.totalTicketHours > t.hours && (
+                                                        <p className="text-[9px] font-black text-indigo-400 flex items-center gap-1 uppercase">
+                                                            <RefreshCw className="w-2.5 h-2.5" /> Repartido en varias semanas ({t.totalTicketHours.toFixed(1)}h total)
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="ml-4 text-right">
                                                 <p className="text-sm font-black text-slate-900">{t.hours.toFixed(1)}h</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase">Esfuerzo</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">Esta semana</p>
                                             </div>
                                         </div>
                                     ))
