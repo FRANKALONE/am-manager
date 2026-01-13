@@ -1579,11 +1579,19 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
         if (topNoiseModule && topNoiseModule[1] > 5) {
             recommendations.push(`El módulo '${topNoiseModule[0]}' genera un alto volumen de consultas (${topNoiseModule[1]}). Considerar sesiones de formación para usuarios finales.`);
         }
-
-        // Check risk
-        if (riskRadar.length > 0 && riskRadar[0].riskScore > 30) {
-            recommendations.push(`El componente '${riskRadar[0].name}' presenta una alta densidad de incidencias críticas (${riskRadar[0].riskScore.toFixed(0)}%). Considerar revisión técnica o refactorización.`);
-        }
+        // Projection
+        const last3Months = sortedMonths.slice(-3);
+        const avgTicketsPerMonth = last3Months.length > 0
+            ? last3Months.reduce((sum, m) => {
+                const parts = m.split('/');
+                const month = parseInt(parts[0]);
+                const year = parseInt(parts[1]);
+                return sum + periodTickets.filter(t => {
+                    const d = new Date(t.createdDate);
+                    return d.getMonth() + 1 === month && d.getFullYear() === year;
+                }).length;
+            }, 0) / last3Months.length
+            : periodTickets.length / (sortedMonths.length || 1);
 
         return {
             slaTrend,
