@@ -720,3 +720,68 @@ export async function approveExcessForMonth(wpId: string, month: number, year: n
         return { success: false, error: error.message };
     }
 }
+
+export async function billEventosExcess(
+    wpId: string,
+    month: number,
+    year: number,
+    ticketCount: number,
+    amount: number,
+    note: string,
+    createdBy?: string,
+    createdByName?: string
+) {
+    try {
+        // 1. Safety sync
+        await syncWorkPackage(wpId);
+
+        // 2. Create EXCESS regularization with negative quantity to subtract from consumption
+        const regularization = await prisma.regularization.create({
+            data: {
+                workPackageId: wpId,
+                date: new Date(year, month - 1, 28),
+                type: 'EXCESS',
+                quantity: -ticketCount, // Negative to subtract from consumed tickets
+                description: `Facturación exceso EVENTOS: ${ticketCount} tickets, ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)}. ${note}`,
+                isBilled: true,
+                isRevenueRecognized: false,
+                createdBy,
+                createdByName
+            },
+            include: {
+                workPackage: {
+                    include: {
+                        client: true,
+                        validityPeriods: { orderBy: { endDate: 'desc' }, take: 1 }
+                    }
+                }
+            }
+        });
+
+        // 3. Notify manager
+        const managerId = regularization.workPackage.client.manager;
+        if (managerId) {
+            await createNotification(
+                "EVENTOS_EXCESS_BILLED",
+                {
+                    clientName: regularization.workPackage.client.name,
+                    ticketCount,
+                    amount: amount.toFixed(2),
+                    wpName: regularization.workPackage.name,
+                    month,
+                    year
+                },
+                regularization.id.toString(),
+                regularization.workPackage.clientId,
+                managerId
+            );
+        }
+
+        revalidatePath('/cierres');
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error billing eventos excess:", error);
+        return { success: false, error: error.message };
+    }
+}

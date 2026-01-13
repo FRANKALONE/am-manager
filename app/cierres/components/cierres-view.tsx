@@ -20,6 +20,7 @@ import {
     getPendingRevenueRecognitions,
     convertRevenueRecognitionToBilled,
     approveExcessForMonth,
+    billEventosExcess,
     type CierreCandidate,
     type EventosStatus,
     type RevenueRecognition
@@ -102,6 +103,20 @@ export function CierresView({ user }: CierresViewProps) {
     const [filterFrequency, setFilterFrequency] = useState("all");
     const [filterDueOnly, setFilterDueOnly] = useState(false);
     const [filterBalance, setFilterBalance] = useState<"all" | "positive" | "negative">("negative");
+
+    const [eventosBillingModal, setEventosBillingModal] = useState<{
+        isOpen: boolean;
+        eventosWp: EventosStatus | null;
+        ticketCount: number;
+        amount: number;
+        note: string;
+    }>({
+        isOpen: false,
+        eventosWp: null,
+        ticketCount: 0,
+        amount: 0,
+        note: ''
+    });
 
     const loadData = async () => {
         console.log(`[CIERRES] Refreshing data for ${month}/${year}...`);
@@ -425,6 +440,38 @@ export function CierresView({ user }: CierresViewProps) {
                 month,
                 year,
                 note || 'Sin nota',
+                user.id,
+                `${user.name}${user.surname ? ' ' + user.surname : ''}`
+            );
+
+            if (result.success) {
+                await loadData();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error: any) {
+            alert('Error: ' + error.message);
+        }
+    };
+
+
+    const handleEventosBilling = async () => {
+        const { eventosWp, ticketCount, amount, note } = eventosBillingModal;
+        if (!eventosWp || ticketCount <= 0 || amount <= 0) {
+            alert('Debes indicar el número de tickets y el importe');
+            return;
+        }
+
+        setEventosBillingModal(prev => ({ ...prev, isOpen: false }));
+
+        try {
+            const result = await billEventosExcess(
+                eventosWp.wpId,
+                month,
+                year,
+                ticketCount,
+                amount,
+                note,
                 user.id,
                 `${user.name}${user.surname ? ' ' + user.surname : ''}`
             );
@@ -863,6 +910,7 @@ export function CierresView({ user }: CierresViewProps) {
                                     <th className="px-6 py-4">Cliente / WP Eventos</th>
                                     <th className="px-6 py-4 text-center">Detalle por Mes (Consumo / Contractado)</th>
                                     <th className="px-6 py-4 text-right">TOTAL ACUMULADO</th>
+                                    <th className="px-6 py-4 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
@@ -901,6 +949,25 @@ export function CierresView({ user }: CierresViewProps) {
                                                     <div className="text-[10px] text-red-400 font-bold italic mt-1 leading-none">
                                                         +{Math.abs(ev.totalConsumed - ev.totalContracted).toFixed(0)} exceso
                                                     </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {ev.isTotalExceeded && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setEventosBillingModal({
+                                                            isOpen: true,
+                                                            eventosWp: ev,
+                                                            ticketCount: 0,
+                                                            amount: 0,
+                                                            note: ''
+                                                        })}
+                                                        className="border-red-300 text-red-600 hover:bg-red-50 h-8 gap-1"
+                                                    >
+                                                        <DollarSign className="w-3 h-3" />
+                                                        Facturar Exceso
+                                                    </Button>
                                                 )}
                                             </td>
                                         </tr>
@@ -966,6 +1033,19 @@ export function CierresView({ user }: CierresViewProps) {
                                 ))}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Total Summary */}
+                    <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <DollarSign className="w-5 h-5 text-emerald-600" />
+                                <span className="font-bold text-emerald-900">Total Facturado en {MONTHS_LABELS[month - 1]}</span>
+                            </div>
+                            <div className="text-2xl font-black text-emerald-600">
+                                {processed.reduce((sum, p) => sum + p.suggestedCashAmount, 0).toLocaleString(locale || 'es-ES', { style: 'currency', currency: 'EUR' })}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1053,6 +1133,86 @@ export function CierresView({ user }: CierresViewProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Eventos Billing Modal */}
+            <Dialog
+                open={eventosBillingModal.isOpen}
+                onOpenChange={(open) => setEventosBillingModal(prev => ({ ...prev, isOpen: open }))}
+            >
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-amber-600" />
+                            Facturar Exceso EVENTOS
+                        </DialogTitle>
+                        <DialogDescription>
+                            {eventosBillingModal.eventosWp?.wpName} - {eventosBillingModal.eventosWp?.clientName}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="ticketCount">Número de tickets a facturar</Label>
+                            <Input
+                                id="ticketCount"
+                                type="number"
+                                min="1"
+                                value={eventosBillingModal.ticketCount || ''}
+                                onChange={(e) => setEventosBillingModal(prev => ({
+                                    ...prev,
+                                    ticketCount: parseInt(e.target.value) || 0
+                                }))}
+                                placeholder="Ej: 5"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="amount">Importe a facturar (€)</Label>
+                            <Input
+                                id="amount"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={eventosBillingModal.amount || ''}
+                                onChange={(e) => setEventosBillingModal(prev => ({
+                                    ...prev,
+                                    amount: parseFloat(e.target.value) || 0
+                                }))}
+                                placeholder="Ej: 250.00"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="note">Nota (opcional)</Label>
+                            <Textarea
+                                id="note"
+                                value={eventosBillingModal.note}
+                                onChange={(e) => setEventosBillingModal(prev => ({
+                                    ...prev,
+                                    note: e.target.value
+                                }))}
+                                placeholder="Explicación del exceso..."
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setEventosBillingModal(prev => ({ ...prev, isOpen: false }))}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleEventosBilling}
+                            className="bg-malachite hover:bg-dark-green"
+                        >
+                            Confirmar Facturación
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Processing Modal */}
             <Dialog

@@ -591,6 +591,27 @@ export function EvolutivosBillingPanel({ clientId, year, month }: Props) {
                             </div>
                         )}
 
+                        {activeTab === "billed" && billedEvolutivos.length > 0 && (
+                            <div className="mt-4 flex justify-end">
+                                <Card className="bg-emerald-50 border-emerald-200 shadow-none">
+                                    <CardContent className="p-4 flex items-center gap-8">
+                                        <div className="text-right">
+                                            <div className="text-[10px] text-emerald-600 font-bold uppercase">Total Horas Facturadas</div>
+                                            <div className="text-xl font-bold text-emerald-700">
+                                                {billedEvolutivos.reduce((sum, evo) => sum + (adjustedHours[evo.issueKey] || 0), 0).toFixed(2)}h
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[10px] text-emerald-600 font-bold uppercase">Total Facturado</div>
+                                            <div className="text-2xl font-black text-emerald-700">
+                                                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(billedEvolutivos.reduce((a, b) => a + (totalAmounts[b.issueKey] || 0), 0))}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
                             <Info className="w-4 h-4 text-blue-400" />
                             <p>Usa la pestaña <strong>Pendientes</strong> para facturar nuevos evolutivos y <strong>Ya Facturados</strong> para consultar o anular cierres realizados.</p>
