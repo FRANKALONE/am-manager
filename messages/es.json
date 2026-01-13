@@ -198,6 +198,14 @@
             "operationalNoise": "Ruido Operacional y Formación",
             "trainingOpportunities": "Oportunidades de formación según demanda",
             "riskRadar": "Radar de Riesgo por Módulo",
+            "periods": {
+                "current_period": "Periodo de Contrato Actual",
+                "previous_period": "Periodo de Contrato Anterior",
+                "last_month": "Último Mes",
+                "last_quarter": "Últimos 90 días",
+                "last_6m": "Últimos 6 Meses",
+                "last_12m": "Últimos 12 Meses"
+            },
             "criticalDensity": "Densidad de Incidencias Críticas"
         }
     },

@@ -196,8 +196,16 @@
             "stabilityIndex": "System Stability Index",
             "stabilizationTrend": "Stabilization Trend (Corrective % Loss)",
             "operationalNoise": "Operational Noise & Training",
-            "trainingOpportunities": "On-demand training opportunities",
-            "riskRadar": "By-Module Risk Radar",
+            "trainingOpportunities": "Training opportunities by demand",
+            "riskRadar": "Module Risk Radar",
+            "periods": {
+                "current_period": "Current Contract Period",
+                "previous_period": "Previous Contract Period",
+                "last_month": "Last Month",
+                "last_quarter": "Last 90 Days",
+                "last_6m": "Last 6 Months",
+                "last_12m": "Last 12 Months"
+            },
             "criticalDensity": "Critical Incident Density"
         }
     },

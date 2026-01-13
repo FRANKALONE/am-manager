@@ -1369,14 +1369,16 @@ export async function getBulkWorklogsForExport(wpId: string, ticketKeys: string[
 /**
  * Get advanced intelligence metrics for premium reporting
  */
-export async function getServiceIntelligenceMetrics(wpId: string, validityPeriodId?: number) {
+export async function getServiceIntelligenceMetrics(wpId: string, range: string = 'current_period') {
     "use server";
 
     try {
         const wp = await prisma.workPackage.findUnique({
             where: { id: wpId },
             include: {
-                validityPeriods: true,
+                validityPeriods: {
+                    orderBy: { startDate: 'desc' }
+                },
                 tickets: {
                     orderBy: { createdDate: 'asc' }
                 }
@@ -1385,30 +1387,63 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
 
         if (!wp) return null;
 
-        // Determine validity period details
-        let selectedPeriod = null;
+        let startDate: Date;
+        let endDate: Date;
         const now = new Date();
 
-        if (validityPeriodId) {
-            selectedPeriod = wp.validityPeriods.find(p => p.id === validityPeriodId);
-        }
-
-        if (!selectedPeriod) {
-            selectedPeriod = wp.validityPeriods.find(p => {
+        // 1. Determine date range
+        if (range === 'current_period') {
+            const current = wp.validityPeriods.find(p => {
                 const start = new Date(p.startDate);
                 const end = new Date(p.endDate);
                 const inclusiveEnd = new Date(end);
                 inclusiveEnd.setHours(23, 59, 59, 999);
                 return now >= start && now <= inclusiveEnd;
             }) || wp.validityPeriods[0];
+
+            if (!current) return null;
+            startDate = new Date(current.startDate);
+            endDate = new Date(current.endDate);
+        } else if (range === 'previous_period') {
+            const currentIdx = wp.validityPeriods.findIndex(p => {
+                const start = new Date(p.startDate);
+                const end = new Date(p.endDate);
+                const inclusiveEnd = new Date(end);
+                inclusiveEnd.setHours(23, 59, 59, 999);
+                return now >= start && now <= inclusiveEnd;
+            });
+            // Validity periods are desc by startDate, so currentIdx+1 is the previous one in time
+            const prev = currentIdx !== -1 ? wp.validityPeriods[currentIdx + 1] : null;
+            if (!prev) return null;
+            startDate = new Date(prev.startDate);
+            endDate = new Date(prev.endDate);
+        } else if (range === 'last_month') {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        } else if (range === 'last_quarter') {
+            startDate = new Date(now.setDate(now.getDate() - 90));
+            endDate = new Date();
+        } else if (range === 'last_6m') {
+            startDate = new Date(now.setMonth(now.getMonth() - 6));
+            endDate = new Date();
+        } else if (range === 'last_12m') {
+            startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+            endDate = new Date();
+        } else if (!isNaN(Number(range))) {
+            // It's a period ID
+            const period = wp.validityPeriods.find(p => p.id === Number(range));
+            if (!period) return null;
+            startDate = new Date(period.startDate);
+            endDate = new Date(period.endDate);
+        } else {
+            // Default to current period if unknown
+            const current = wp.validityPeriods[0];
+            if (!current) return null;
+            startDate = new Date(current.startDate);
+            endDate = new Date(current.endDate);
         }
 
-        if (!selectedPeriod) return null;
-
-        const startDate = new Date(selectedPeriod.startDate);
-        const endDate = new Date(selectedPeriod.endDate);
-
-        // Filter tickets within period
+        // Filter tickets within range
         const periodTickets = wp.tickets.filter(t => {
             const d = new Date(t.createdDate);
             return d >= startDate && d <= endDate;

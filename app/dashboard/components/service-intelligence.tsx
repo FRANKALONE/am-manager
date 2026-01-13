@@ -19,8 +19,16 @@ import {
     UserX,
     Lightbulb,
     ChevronRight,
-    ArrowRight
+    ArrowRight,
+    CalendarDays
 } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function ServiceIntelligence({
     wpId,
@@ -35,18 +43,19 @@ export function ServiceIntelligence({
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [reductionPct, setReductionPct] = useState(10);
+    const [range, setRange] = useState(selectedPeriodId?.toString() || 'current_period');
 
     useEffect(() => {
         if (!wpId) return;
         setLoading(true);
-        getServiceIntelligenceMetrics(wpId, selectedPeriodId).then(data => {
+        getServiceIntelligenceMetrics(wpId, range).then(data => {
             setMetrics(data);
             setLoading(false);
         }).catch(err => {
             console.error("Error loading intelligence metrics:", err);
             setLoading(false);
         });
-    }, [wpId, selectedPeriodId]);
+    }, [wpId, range]);
 
     if (!isPremium) {
         return (
@@ -124,6 +133,24 @@ export function ServiceIntelligence({
                     <p className="text-slate-500 text-sm leading-relaxed px-1">
                         Información estratégica sobre la salud de sus sistemas, identificación de riesgos y oportunidades de optimización operativa.
                     </p>
+                    <div className="pt-2">
+                        <Select value={range} onValueChange={setRange}>
+                            <SelectTrigger className="w-full bg-white shadow-sm border-slate-200 text-slate-700 font-bold h-12">
+                                <div className="flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-dark-green" />
+                                    <SelectValue placeholder="Seleccionar periodo" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-slate-200">
+                                <SelectItem value="current_period" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.current_period')}</SelectItem>
+                                <SelectItem value="previous_period" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.previous_period')}</SelectItem>
+                                <SelectItem value="last_month" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.last_month')}</SelectItem>
+                                <SelectItem value="last_quarter" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.last_quarter')}</SelectItem>
+                                <SelectItem value="last_6m" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.last_6m')}</SelectItem>
+                                <SelectItem value="last_12m" className="font-semibold text-slate-600 focus:bg-malachite/10">{t('dashboard.intelligence.periods.last_12m')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <div className="lg:w-2/3 w-full">
