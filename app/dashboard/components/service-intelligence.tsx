@@ -125,7 +125,7 @@ export function ServiceIntelligence({
     const projectedHours = (
         (forecastCounts.corrective * (metrics.avgHoursByType?.corrective || 4.5)) +
         (forecastCounts.consultation * (metrics.avgHoursByType?.consultation || 2.5)) +
-        (forecastCounts.evolution * (metrics.avgHoursByType?.evolution || 12.0)) +
+        (forecastCounts.evolution) + // Evolution is now raw hours
         (forecastCounts.iaas ? (metrics.avgHoursByType?.iaas || 40) : 0)
     );
 
@@ -487,9 +487,9 @@ export function ServiceIntelligence({
 
                                 <div className="grid grid-cols-1 gap-6">
                                     {[
-                                        { key: 'corrective', label: 'Tickets Correctivos', sub: 'Mantenimiento y Errores', icon: ShieldAlert, color: 'text-red-500' },
-                                        { key: 'consultation', label: 'Tickets de Consulta', sub: 'Soporte a Usuarios', icon: MessageSquareWarning, color: 'text-amber-500' },
-                                        { key: 'evolution', label: 'Tickets Evolutivos', sub: 'Nuevas Funcionalidades', icon: Lightbulb, color: 'text-indigo-500' }
+                                        { key: 'corrective', label: 'Tickets Correctivos', sub: 'Mantenimiento y Errores', icon: ShieldAlert, color: 'text-red-500', max: 200, unit: 'Tickets' },
+                                        { key: 'consultation', label: 'Tickets de Consulta', sub: 'Soporte a Usuarios', icon: MessageSquareWarning, color: 'text-amber-500', max: 200, unit: 'Tickets' },
+                                        { key: 'evolution', label: 'Horas de Evolutivos', sub: 'Nuevas Funcionalidades', icon: Lightbulb, color: 'text-indigo-500', max: 500, unit: 'Horas' }
                                     ].map((item) => (
                                         <div key={item.key} className="flex items-center gap-4">
                                             <div className={`p-3 rounded-xl bg-white border border-slate-100 shadow-sm ${item.color}`}>
@@ -498,12 +498,12 @@ export function ServiceIntelligence({
                                             <div className="flex-1">
                                                 <div className="flex justify-between mb-1">
                                                     <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.label}</span>
-                                                    <span className="text-xs font-bold text-slate-400">Previstos: {forecastCounts[item.key as keyof typeof forecastCounts]}</span>
+                                                    <span className="text-xs font-bold text-slate-400">{item.unit} previstos: {forecastCounts[item.key as keyof typeof forecastCounts]}</span>
                                                 </div>
                                                 <input
                                                     type="range"
                                                     min="0"
-                                                    max="200"
+                                                    max={item.max}
                                                     value={forecastCounts[item.key as keyof typeof forecastCounts] as number}
                                                     onChange={(e) => setForecastCounts({ ...forecastCounts, [item.key]: parseInt(e.target.value) })}
                                                     className="w-full h-2 bg-slate-100 rounded-full appearance-none cursor-pointer accent-emerald-600"
@@ -545,7 +545,7 @@ export function ServiceIntelligence({
                                     <div className="space-y-3">
                                         {[
                                             { label: 'Soporte y Correctivo', hours: (forecastCounts.corrective * (metrics.avgHoursByType?.corrective || 4.5)) + (forecastCounts.consultation * (metrics.avgHoursByType?.consultation || 2.5)), color: 'bg-emerald-400' },
-                                            { label: 'Evolutivos', hours: forecastCounts.evolution * (metrics.avgHoursByType?.evolution || 12.0), color: 'bg-indigo-400' },
+                                            { label: 'Evolutivos', hours: forecastCounts.evolution, color: 'bg-indigo-400' },
                                         ].filter(b => b.hours > 0).map((bar, i) => (
                                             <div key={i} className="space-y-1">
                                                 <div className="flex justify-between text-[10px] font-bold">
