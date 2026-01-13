@@ -96,7 +96,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <CardTitle>Evolutivos Sincronizados</CardTitle>
                         <div className="flex items-center gap-2">
-                            {(isAdmin || user.permissions?.view_all_clients) && clients.length > 0 && (
+                            {(isAdmin || user.permissions?.view_all_clients || clients.length > 1) && clients.length > 0 && (
                                 <Select value={selectedClientId} onValueChange={handleClientChange}>
                                     <SelectTrigger className="w-[250px]">
                                         <SelectValue placeholder="Seleccionar cliente..." />
@@ -250,9 +250,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                 </CardContent>
             </Card>
 
-            {data.proposals && data.proposals.length > 0 && (
-                <ProposalsPanel proposals={data.proposals} />
-            )}
+            <ProposalsPanel proposals={data.proposals || []} />
 
             <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
                 <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">

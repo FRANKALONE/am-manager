@@ -22,7 +22,7 @@ export default async function EvolutivosPage() {
 
     const clients = await getClientsWithEvolutivos();
 
-    let initialData: any = { evolutivos: [], hitos: [], workPackages: [] };
+    let initialData: any = { evolutivos: [], hitos: [], workPackages: [], proposals: [] };
     if (initialClientId) {
         initialData = await getEvolutivosByClient(initialClientId);
     }
