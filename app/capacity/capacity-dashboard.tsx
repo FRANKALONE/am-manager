@@ -49,7 +49,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface CapacityDashboardProps {
     initialWorkload: {
@@ -445,7 +445,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                                             <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Cap: {member.capacity}h</span>
                                                             {allMembers.find(am => am.id === member.id)?.team && (
                                                                 <Badge variant="outline" className="text-[8px] py-0 h-4 border-slate-100 bg-slate-50 text-slate-500 font-black tracking-tight leading-none uppercase">
-                                                                    {allMembers.find(am => am.id === member.id).team.name}
+                                                                    {allMembers.find(am => am.id === member.id)?.team?.name}
                                                                 </Badge>
                                                             )}
                                                         </div>
