@@ -301,7 +301,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components']
                 });
 
                 try {
@@ -362,6 +362,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const resSla = getSlaInfo(issue.fields.customfield_10065);
                             const resolSla = getSlaInfo(issue.fields.customfield_10064);
 
+                            const componentsRaw = issue.fields.components || [];
+                            const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
+
                             issueDetails.set(issue.id, {
                                 key: issue.key,
                                 summary: issue.fields.summary || '',
@@ -373,7 +376,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponse: resSla.status,
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
-                                slaResolutionTime: resolSla.time
+                                slaResolutionTime: resolSla.time,
+                                component: component
                             });
                         });
                     }
@@ -478,7 +482,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             maxResults,
                             nextPageToken,
                             // Include SLA fields in initial query for optimization
-                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority']
+                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components']
                         });
 
                         const evolutivosRes: any = await new Promise((resolve, reject) => {
@@ -575,6 +579,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const resSla = getSlaInfo(issue.fields.customfield_10065);
                             const resolSla = getSlaInfo(issue.fields.customfield_10064);
 
+                            const componentsRaw = issue.fields.components || [];
+                            const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
+
                             issueDetails.set(issue.id, {
                                 id: issue.id,
                                 key: issue.key,
@@ -591,7 +598,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponse: resSla.status,
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
-                                slaResolutionTime: resolSla.time
+                                slaResolutionTime: resolSla.time,
+                                component: component
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
@@ -818,6 +826,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const resSla = getSlaInfo(issue.fields.customfield_10065);
                             const resolSla = getSlaInfo(issue.fields.customfield_10064);
 
+                            const componentsRaw = issue.fields.components || [];
+                            const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
+
                             issueDetails.set(issue.id, {
                                 key: issue.key,
                                 summary: issue.fields.summary || '',
@@ -829,7 +840,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponse: resSla.status,
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
-                                slaResolutionTime: resolSla.time
+                                slaResolutionTime: resolSla.time,
+                                component: component
                             });
                         });
                     }
