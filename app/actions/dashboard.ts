@@ -1688,7 +1688,7 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             },
             riskRadar: riskRadar.slice(0, 5),
             recommendations: recommendations.length > 0 ? recommendations : ["El servicio se mantiene en parámetros estables. No se detectan anomalías críticas en la distribución de la demanda."],
-            isPremium: selectedPeriod.isPremium || false
+            isPremium: wp.validityPeriods[0]?.isPremium || false
         };
 
     } catch (error) {
