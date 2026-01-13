@@ -6,6 +6,7 @@ import { limitConcurrency } from "@/lib/utils-sync";
 import { getNow } from "@/lib/date-utils";
 import { getTranslations } from "@/lib/get-translations";
 import { formatDate } from "@/lib/date-utils";
+import { extractClientJiraId } from "@/lib/ticket-utils";
 
 async function isKillSwitchActive() {
     try {
@@ -301,7 +302,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components', 'reporter']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter']
                 });
 
                 try {
@@ -365,6 +366,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const componentsRaw = issue.fields.components || [];
                             const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
 
+                            // Extract client JIRA ID for FAIN, MOLECOR, UAX
+                            const projectKey = issue.key.split('-')[0];
+                            const clientJiraId = extractClientJiraId(issue.fields, projectKey);
+
                             issueDetails.set(issue.id, {
                                 key: issue.key,
                                 summary: issue.fields.summary || '',
@@ -378,7 +383,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
                                 component: component,
-                                reporter: issue.fields.reporter?.displayName || 'Unknown'
+                                reporter: issue.fields.reporter?.displayName || 'Unknown',
+                                clientJiraId: clientJiraId
                             });
                         });
                     }
@@ -483,7 +489,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             maxResults,
                             nextPageToken,
                             // Include SLA fields in initial query for optimization
-                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components', 'reporter']
+                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components', 'reporter']
                         });
 
                         const evolutivosRes: any = await new Promise((resolve, reject) => {
@@ -583,6 +589,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const componentsRaw = issue.fields.components || [];
                             const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
 
+                            // Extract client JIRA ID for FAIN, MOLECOR, UAX
+                            const projectKey = issue.key.split('-')[0];
+                            const clientJiraId = extractClientJiraId(issue.fields, projectKey);
+
                             issueDetails.set(issue.id, {
                                 id: issue.id,
                                 key: issue.key,
@@ -601,7 +611,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
                                 component: component,
-                                reporter: issue.fields.reporter?.displayName || 'Unknown'
+                                reporter: issue.fields.reporter?.displayName || 'Unknown',
+                                clientJiraId: clientJiraId
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
@@ -767,7 +778,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components', 'reporter']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter']
                 });
 
                 try {
@@ -831,6 +842,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             const componentsRaw = issue.fields.components || [];
                             const component = componentsRaw.length > 0 ? componentsRaw[0].name : null;
 
+                            // Extract client JIRA ID for FAIN, MOLECOR, UAX
+                            const projectKey = issue.key.split('-')[0];
+                            const clientJiraId = extractClientJiraId(issue.fields, projectKey);
+
                             issueDetails.set(issue.id, {
                                 key: issue.key,
                                 summary: issue.fields.summary || '',
@@ -844,7 +859,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
                                 component: component,
-                                reporter: issue.fields.reporter?.displayName || 'Unknown'
+                                reporter: issue.fields.reporter?.displayName || 'Unknown',
+                                clientJiraId: clientJiraId
                             });
                         });
                     }
@@ -1327,7 +1343,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     dueDate: ticketData.dueDate,
                     parentKey: ticketData.parentKey,
                     component: ticketData.component,
-                    reporter: ticketData.reporter
+                    reporter: ticketData.reporter,
+                    clientJiraId: ticketData.clientJiraId || null
                 },
                 create: {
                     workPackageId: wp.id,
@@ -1349,7 +1366,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     assignee: ticketData.assignee,
                     dueDate: ticketData.dueDate,
                     parentKey: ticketData.parentKey,
-                    component: ticketData.component
+                    component: ticketData.component,
+                    clientJiraId: ticketData.clientJiraId || null
                 }
             });
         }

@@ -43,12 +43,20 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
         return "default";
     };
 
-    const renderIssueLink = (key: string, className?: string) => {
+    const renderIssueLink = (key: string, hito?: any, className?: string) => {
+        const clientJiraId = hito?.clientJiraId;
+
+        // Determine URL based on user role
         const url = isAdmin
             ? `https://altim.atlassian.net/browse/${key}`
             : portalUrl
-                ? `${portalUrl}/browse/${key}`
+                ? `${portalUrl}/browse/${clientJiraId || key}`
                 : null;
+
+        // Determine display text
+        const displayText = clientJiraId
+            ? `${clientJiraId} (${key})`
+            : key;
 
         if (url) {
             return (
@@ -58,11 +66,11 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                     rel="noopener noreferrer"
                     className={`hover:underline cursor-pointer ${className}`}
                 >
-                    {key}
+                    {displayText}
                 </a>
             );
         }
-        return <span className={className}>{key}</span>;
+        return <span className={className}>{displayText}</span>;
     };
 
     return (
@@ -75,7 +83,7 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                             <div className="flex items-center gap-2">
                                 <Badge className="bg-jade hover:bg-jade/90 text-white border-none">{evolutivo.status}</Badge>
                                 <span className="text-sm font-mono font-bold text-slate-400">
-                                    {renderIssueLink(evolutivo.issueKey)}
+                                    {renderIssueLink(evolutivo.issueKey, evolutivo)}
                                 </span>
                             </div>
                             <h3 className="text-xl font-bold text-slate-900">{evolutivo.issueSummary}</h3>
@@ -165,7 +173,7 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                                                         <div className="flex items-start justify-between">
                                                             <div className="space-y-1">
                                                                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                                    {renderIssueLink(hito.issueKey)}
+                                                                    {renderIssueLink(hito.issueKey, hito)}
                                                                 </div>
                                                                 <h4 className={`font-bold leading-tight ${isKey ? 'text-jade' : 'text-slate-800'}`}>
                                                                     {hito.issueSummary}

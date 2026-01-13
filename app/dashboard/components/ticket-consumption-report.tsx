@@ -380,11 +380,17 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                                     <ChevronRight className="h-4 w-4" />
                                                 }
                                                 {(() => {
+                                                    // Determine URL based on user role
                                                     const url = isAdmin
                                                         ? `https://altim.atlassian.net/browse/${ticket.issueKey}`
                                                         : data.portalUrl
-                                                            ? `${data.portalUrl}/browse/${ticket.issueKey}`
+                                                            ? `${data.portalUrl}/browse/${(ticket as any).clientJiraId || ticket.issueKey}`
                                                             : null;
+
+                                                    // Determine display text - show both IDs if clientJiraId exists
+                                                    const displayText = (ticket as any).clientJiraId
+                                                        ? `${(ticket as any).clientJiraId} (${ticket.issueKey})`
+                                                        : ticket.issueKey;
 
                                                     if (url) {
                                                         return (
@@ -395,11 +401,11 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                                                                 className="font-medium text-primary hover:underline"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {ticket.issueKey}
+                                                                {displayText}
                                                             </a>
                                                         );
                                                     }
-                                                    return <span className="font-medium">{ticket.issueKey}</span>;
+                                                    return <span className="font-medium">{displayText}</span>;
                                                 })()}
                                             </div>
                                         </td>

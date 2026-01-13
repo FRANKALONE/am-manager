@@ -234,11 +234,13 @@ model Ticket {
   parentKey         String?
   originalEstimate  Float?
   component         String?
+  clientJiraId      String?      // ID of ticket in client's own JIRA (for FAIN, MOLECOR, UAX)
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])
   @@index([workPackageId, year, month])
 }
+
 
 model ReviewRequest {
   id              String      @id @default(cuid())

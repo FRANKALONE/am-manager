@@ -16,6 +16,7 @@ interface MonthlyRowProps {
     isEventos?: boolean;
     permissions: Record<string, boolean>;
     isPremium?: boolean;
+    isAdmin?: boolean;
     selectedWorklogs: any[];
     onWorklogSelect: (worklog: any, isSelected: boolean) => void;
     onRequestReview?: () => void;
@@ -29,6 +30,7 @@ export function ExpandableMonthlyRow({
     isEventos = false,
     permissions,
     isPremium = false,
+    isAdmin = false,
     selectedWorklogs,
     onWorklogSelect,
     onRequestReview
@@ -308,19 +310,36 @@ export function ExpandableMonthlyRow({
                                                                             />
                                                                             <div className="flex-1">
                                                                                 <div className="flex items-center gap-2">
-                                                                                    {portalUrl ? (
-                                                                                        <a
-                                                                                            href={`${portalUrl}/browse/${ticketKey}`}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            className="font-medium text-sm text-primary hover:underline"
-                                                                                            onClick={(e) => e.stopPropagation()}
-                                                                                        >
-                                                                                            {ticketKey}
-                                                                                        </a>
-                                                                                    ) : (
-                                                                                        <span className="font-medium text-sm">{ticketKey}</span>
-                                                                                    )}
+                                                                                    {(() => {
+                                                                                        const clientJiraId = (worklogs[0] as any).clientJiraId;
+
+                                                                                        // Determine URL based on user role
+                                                                                        const url = isAdmin
+                                                                                            ? `https://altim.atlassian.net/browse/${ticketKey}`
+                                                                                            : portalUrl
+                                                                                                ? `${portalUrl}/browse/${clientJiraId || ticketKey}`
+                                                                                                : null;
+
+                                                                                        // Determine display text
+                                                                                        const displayText = clientJiraId
+                                                                                            ? `${clientJiraId} (${ticketKey})`
+                                                                                            : ticketKey;
+
+                                                                                        if (url) {
+                                                                                            return (
+                                                                                                <a
+                                                                                                    href={url}
+                                                                                                    target="_blank"
+                                                                                                    rel="noopener noreferrer"
+                                                                                                    className="font-medium text-sm text-primary hover:underline"
+                                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                                >
+                                                                                                    {displayText}
+                                                                                                </a>
+                                                                                            );
+                                                                                        }
+                                                                                        return <span className="font-medium text-sm">{displayText}</span>;
+                                                                                    })()}
                                                                                     {worklogs[0].label && (
                                                                                         <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">
                                                                                             {worklogs[0].label}
