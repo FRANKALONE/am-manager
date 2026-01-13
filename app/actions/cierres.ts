@@ -203,7 +203,7 @@ export async function getPendingCierres(month: number, year: number) {
                     }) || [];
 
                     const pReturnTotal = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const pRegTotal = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pRegTotal = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
                     const pPuntualTotal = pRegs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     pConsumed = pConsumed - pReturnTotal;
@@ -230,7 +230,7 @@ export async function getPendingCierres(month: number, year: number) {
                     const pEnd = new Date(p.endDate);
                     return pEnd < firstPeriodStart && regDate >= pStart && regDate <= pEnd;
                 });
-                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
+                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled === true;
             }).reduce((sum, r) => sum + r.quantity, 0) || 0;
 
             accumulatedBalance += sobrantesBeforeSelection;
@@ -251,7 +251,11 @@ export async function getPendingCierres(month: number, year: number) {
             const monthProcessedReg = wp.regularizations?.find(r => {
                 const rd = new Date(r.date);
                 // We use UTC to avoid local timezone shifts at end-of-month dates
-                return r.type === 'EXCESS' && (rd.getUTCMonth() + 1 === month || rd.getMonth() + 1 === month) && (rd.getUTCFullYear() === year || rd.getFullYear() === year);
+                const isExcessBilled = (r.type === 'EXCESS' && r.isBilled === true);
+                const isApprovedExcess = (r.type === 'APPROVED_EXCESS');
+                return (isExcessBilled || isApprovedExcess)
+                    && (rd.getUTCMonth() + 1 === month || rd.getMonth() + 1 === month)
+                    && (rd.getUTCFullYear() === year || rd.getFullYear() === year);
             });
 
             if (monthProcessedReg) {
@@ -276,7 +280,7 @@ export async function getPendingCierres(month: number, year: number) {
                 }) || [];
 
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
                 const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                 consumed = consumed - returnTotal;
@@ -577,7 +581,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 }) || [];
 
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
                 const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                 consumed = consumed - returnTotal;
@@ -619,5 +623,99 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
     } catch (error: any) {
         console.error("Error fetching report data for WP:", wpId, error);
         throw new Error(`Error fetching report data: ${error.message}`);
+    }
+}
+
+export interface RevenueRecognition {
+    id: number;
+    wpId: string;
+    wpName: string;
+    clientName: string;
+    amount: number;
+    date: Date;
+    description: string | null;
+    unit: string;
+    createdBy: string | null;
+}
+
+export async function getPendingRevenueRecognitions(month: number, year: number): Promise<RevenueRecognition[]> {
+    try {
+        const regs = await prisma.regularization.findMany({
+            where: {
+                type: 'EXCESS',
+                isRevenueRecognized: true,
+                isBilled: false,
+                date: {
+                    gte: new Date(year, month - 1, 1),
+                    lt: new Date(year, month, 1)
+                }
+            },
+            include: {
+                workPackage: {
+                    include: {
+                        client: true,
+                        validityPeriods: { orderBy: { endDate: 'desc' }, take: 1 }
+                    }
+                }
+            }
+        });
+
+        return regs.map(r => ({
+            id: r.id,
+            wpId: r.workPackageId,
+            wpName: r.workPackage.name,
+            clientName: r.workPackage.client.name,
+            amount: r.quantity,
+            date: r.date,
+            description: r.description,
+            unit: r.workPackage.validityPeriods[0]?.scopeUnit || 'HORAS',
+            createdBy: r.createdByName
+        }));
+    } catch (error: any) {
+        console.error("Error fetching pending revenue recognitions:", error);
+        throw new Error("Error al obtener reconocimientos de ingreso pendientes");
+    }
+}
+
+export async function convertRevenueRecognitionToBilled(regularizationId: number) {
+    try {
+        await prisma.regularization.update({
+            where: { id: regularizationId },
+            data: { isBilled: true }
+        });
+
+        revalidatePath('/cierres');
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error converting revenue recognition to billed:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function approveExcessForMonth(wpId: string, month: number, year: number, note: string, approvedBy?: string, approvedByName?: string) {
+    try {
+        // Create an APPROVED_EXCESS regularization with quantity 0
+        // This serves as a marker that this month was reviewed and approved
+        await prisma.regularization.create({
+            data: {
+                workPackageId: wpId,
+                date: new Date(year, month - 1, 28),
+                type: 'APPROVED_EXCESS',
+                quantity: 0,
+                description: `Exceso aprobado para ${month}/${year}. ${note}`,
+                isBilled: false,
+                isRevenueRecognized: false,
+                createdBy: approvedBy,
+                createdByName: approvedByName
+            }
+        });
+
+        revalidatePath('/cierres');
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error approving excess for month:", error);
+        return { success: false, error: error.message };
     }
 }

@@ -17,8 +17,12 @@ import {
     processBatchCierres,
     getClosureReportData,
     markReportAsSent,
+    getPendingRevenueRecognitions,
+    convertRevenueRecognitionToBilled,
+    approveExcessForMonth,
     type CierreCandidate,
-    type EventosStatus
+    type EventosStatus,
+    type RevenueRecognition
 } from "@/app/actions/cierres";
 import { syncWorkPackage } from "@/app/actions/sync";
 import { EvolutivosBillingPanel } from "./evolutivos-billing-panel";
@@ -58,6 +62,7 @@ export function CierresView({ user }: CierresViewProps) {
     const [candidates, setCandidates] = useState<CierreCandidate[]>([]);
     const [processed, setProcessed] = useState<CierreCandidate[]>([]);
     const [eventosMonitor, setEventosMonitor] = useState<EventosStatus[]>([]);
+    const [revenueRecognitions, setRevenueRecognitions] = useState<RevenueRecognition[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [syncingWp, setSyncingWp] = useState<string | null>(null);
@@ -103,10 +108,12 @@ export function CierresView({ user }: CierresViewProps) {
         setLoading(true);
         try {
             const data = await getPendingCierres(month, year);
+            const revenues = await getPendingRevenueRecognitions(month, year);
             console.log("[CIERRES] Data received:", data);
             setCandidates(data.candidates || []);
             setProcessed(data.processed || []);
             setEventosMonitor(data.eventosMonitor || []);
+            setRevenueRecognitions(revenues || []);
             setSelectedIds([]);
         } catch (error: any) {
             console.error("[CIERRES] Error loading data:", error);
@@ -388,6 +395,50 @@ export function CierresView({ user }: CierresViewProps) {
             prev.includes(wpId) ? prev.filter(id => id !== wpId) : [...prev, wpId]
         );
     };
+
+    const handleConvertToBilled = async (regId: number) => {
+        if (!confirm('¿Marcar este reconocimiento de ingreso como facturado? Esto lo moverá a Cierres Procesados y descontará del consumo.')) return;
+
+        try {
+            const result = await convertRevenueRecognitionToBilled(regId);
+            if (result.success) {
+                await loadData();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error: any) {
+            alert('Error: ' + error.message);
+        }
+    };
+
+    const handleApproveExcess = async (candidate: CierreCandidate) => {
+
+        const note = prompt(
+            `¿Confirmar que el exceso de ${candidate.suggestedAmount.toFixed(1)} ${candidate.unit} en "${candidate.wpName}" está aprobado para este mes sin facturar?\n\nNota (opcional):`
+        );
+
+        if (note === null) return; // Cancelado
+
+        try {
+            const result = await approveExcessForMonth(
+                candidate.wpId,
+                month,
+                year,
+                note || 'Sin nota',
+                user.id,
+                `${user.name}${user.surname ? ' ' + user.surname : ''}`
+            );
+
+            if (result.success) {
+                await loadData();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error: any) {
+            alert('Error: ' + error.message);
+        }
+    };
+
 
     // --- Lógica de Filtrado en Frontend ---
     const filteredCandidates = candidates.filter(c => {
@@ -672,6 +723,17 @@ export function CierresView({ user }: CierresViewProps) {
                                                     </Button>
                                                     <Button
                                                         size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleApproveExcess(c)}
+                                                        disabled={processingWp === c.wpId || syncingWp === c.wpId}
+                                                        className="border-slate-300 hover:bg-slate-100 h-8 flex items-center gap-1 px-2"
+                                                        title="Aprobar exceso sin facturar"
+                                                    >
+                                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                                        OK
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
                                                         onClick={() => handleProcessClick(c)}
                                                         disabled={processingWp === c.wpId || syncingWp === c.wpId}
                                                         className="bg-malachite hover:bg-dark-green text-white font-bold h-8 flex items-center gap-2 shadow-sm px-4"
@@ -898,6 +960,61 @@ export function CierresView({ user }: CierresViewProps) {
                                                     <FileText className="w-4 h-4" />
                                                 )}
                                                 Descargar Copia
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            )}
+
+            {/* Revenue Recognitions Pending Table */}
+            {revenueRecognitions.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <Clock className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h2 className="text-xl font-bold tracking-tight">Reconocimientos de Ingreso Pendientes</h2>
+                        <Badge className="bg-amber-600">{revenueRecognitions.length}</Badge>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-amber-50">
+                                    <TableHead className="w-[40%]">Cliente / WP</TableHead>
+                                    <TableHead className="text-center">Reconocido</TableHead>
+                                    <TableHead className="text-center">Fecha</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {revenueRecognitions.map(rev => (
+                                    <TableRow key={rev.id} className="hover:bg-amber-50/50">
+                                        <TableCell>
+                                            <div className="font-bold text-slate-700">{rev.wpName}</div>
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{rev.clientName}</div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="text-[10px] font-bold text-amber-500 mb-1 uppercase">Pendiente Facturación</div>
+                                            <div className="text-sm font-black text-amber-600">
+                                                {rev.amount.toFixed(1)} {rev.unit}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center text-xs text-slate-500">
+                                            {formatDate(rev.date, { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleConvertToBilled(rev.id)}
+                                                className="bg-malachite hover:bg-dark-green text-white font-bold h-8 gap-2"
+                                            >
+                                                <DollarSign className="w-3 h-3" />
+                                                Facturar Ahora
                                             </Button>
                                         </TableCell>
                                     </TableRow>
