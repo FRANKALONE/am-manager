@@ -249,21 +249,32 @@ export async function syncTeamsFromTempo() {
             const tempoMembers = membersResponse.results || [];
 
             for (const tm of tempoMembers) {
-                const memberName = tm.member.displayName;
+                // Tempo v4 member structure: tm.member.displayName or tm.member.name or tm.member.self
+                const memberName = tm.member?.displayName || tm.member?.name;
+
+                if (!memberName) {
+                    console.warn(`[SYNC] Skipping team member without name for team ${team.name}:`, JSON.stringify(tm));
+                    continue;
+                }
+
                 // Upsert Member
-                await prisma.teamMember.upsert({
-                    where: { name: memberName },
-                    update: {
-                        teamId: team.id,
-                        isActive: true
-                    },
-                    create: {
-                        name: memberName,
-                        weeklyCapacity: 40.0, // Default
-                        teamId: team.id,
-                        isActive: true
-                    }
-                });
+                try {
+                    await prisma.teamMember.upsert({
+                        where: { name: memberName },
+                        update: {
+                            teamId: team.id,
+                            isActive: true
+                        },
+                        create: {
+                            name: memberName,
+                            weeklyCapacity: 40.0, // Default
+                            teamId: team.id,
+                            isActive: true
+                        }
+                    });
+                } catch (dbError) {
+                    console.error(`[SYNC] Error upserting member ${memberName}:`, dbError);
+                }
             }
         }
 
