@@ -252,8 +252,9 @@ export async function getPendingCierres(month: number, year: number) {
                 const rd = new Date(r.date);
                 // We use UTC to avoid local timezone shifts at end-of-month dates
                 const isExcessBilled = (r.type === 'EXCESS' && r.isBilled === true);
+                const isRevenueRecognized = (r.type === 'EXCESS' && r.isRevenueRecognized === true);
                 const isApprovedExcess = (r.type === 'APPROVED_EXCESS');
-                return (isExcessBilled || isApprovedExcess)
+                return (isExcessBilled || isRevenueRecognized || isApprovedExcess)
                     && (rd.getUTCMonth() + 1 === month || rd.getMonth() + 1 === month)
                     && (rd.getUTCFullYear() === year || rd.getFullYear() === year);
             });
