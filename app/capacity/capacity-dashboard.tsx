@@ -82,6 +82,8 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
 
     // Form states
     const [newMember, setNewMember] = useState({ name: "", capacity: 40, teamId: "" });
+    const [assignmentMode, setAssignmentMode] = useState<'hours' | 'percent'>('hours');
+    const [loadPercent, setLoadPercent] = useState(50);
     const [newAssignment, setNewAssignment] = useState({
         description: "",
         hours: 0,
@@ -122,12 +124,28 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
 
     const handleAddAssignment = async () => {
         if (!selectedMemberId || !newAssignment.description) return;
+
+        let finalHours = Number(newAssignment.hours);
+        let finalDescription = newAssignment.description;
+
+        if (assignmentMode === 'percent') {
+            const member = allMembers.find(m => m.id === selectedMemberId);
+            const capacity = member?.weeklyCapacity || 40;
+            const start = new Date(newAssignment.startDate);
+            const end = new Date(newAssignment.endDate);
+            end.setHours(23, 59, 59, 999);
+
+            const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
+            finalHours = (days / 7) * capacity * (loadPercent / 100);
+            finalDescription = `[${loadPercent}%] ${newAssignment.description}`;
+        }
+
         startTransition(async () => {
             try {
                 await createAssignment({
                     memberId: selectedMemberId,
-                    description: newAssignment.description,
-                    hours: Number(newAssignment.hours),
+                    description: finalDescription,
+                    hours: finalHours,
                     startDate: new Date(newAssignment.startDate),
                     endDate: new Date(newAssignment.endDate)
                 });
@@ -356,14 +374,50 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                         onChange={(e) => setNewAssignment({ ...newAssignment, description: e.target.value })}
                                     />
                                 </div>
+                                <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tipo de Carga</label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant={assignmentMode === 'hours' ? 'default' : 'outline'}
+                                            onClick={() => setAssignmentMode('hours')}
+                                            className={cn("flex-1 h-8 text-[10px] rounded-lg font-black", assignmentMode === 'hours' ? "bg-dark-green" : "bg-white")}
+                                        >
+                                            HORAS TOTALES
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={assignmentMode === 'percent' ? 'default' : 'outline'}
+                                            onClick={() => setAssignmentMode('percent')}
+                                            className={cn("flex-1 h-8 text-[10px] rounded-lg font-black", assignmentMode === 'percent' ? "bg-dark-green" : "bg-white")}
+                                        >
+                                            % CAPACIDAD
+                                        </Button>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase text-slate-500">Horas Totales</label>
-                                        <Input
-                                            type="number"
-                                            value={newAssignment.hours}
-                                            onChange={(e) => setNewAssignment({ ...newAssignment, hours: Number(e.target.value) })}
-                                        />
+                                        <label className="text-xs font-bold uppercase text-slate-500">
+                                            {assignmentMode === 'hours' ? 'Horas Totales' : '% Carga Semanal'}
+                                        </label>
+                                        {assignmentMode === 'hours' ? (
+                                            <Input
+                                                type="number"
+                                                value={newAssignment.hours}
+                                                onChange={(e) => setNewAssignment({ ...newAssignment, hours: Number(e.target.value) })}
+                                            />
+                                        ) : (
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    value={loadPercent}
+                                                    onChange={(e) => setLoadPercent(Number(e.target.value))}
+                                                    className="pr-8"
+                                                />
+                                                <span className="absolute right-3 top-2.5 text-slate-400 font-bold">%</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold uppercase text-slate-500">Desde</label>

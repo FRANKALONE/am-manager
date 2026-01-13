@@ -182,17 +182,34 @@ export async function getTeamWorkload() {
             details: { tickets: [] as any[], assignments: [] as any[] }
         }));
 
-        // 1. Asignaciones Manuales (Carga fija prorrateada)
+        // 1. Asignaciones Manuales (Carga basada en fechas exactas)
         for (const asig of member.assignments) {
-            const weeklyAsigHours = asig.hours / numWeeks;
+            const asigStart = new Date(asig.startDate);
+            const asigEnd = new Date(asig.endDate);
+            asigEnd.setHours(23, 59, 59, 999);
+
+            // Duración total en días (inclusive)
+            const totalDays = Math.max(1, Math.round((asigEnd.getTime() - asigStart.getTime()) / (1000 * 3600 * 24)));
+            const hoursPerDay = asig.hours / totalDays;
+
             for (const week of memberWeeks) {
-                const hoursToConsume = Math.min(week.availableCapacity, weeklyAsigHours);
-                week.assignmentHours += hoursToConsume;
-                week.availableCapacity -= hoursToConsume;
-                week.details.assignments.push({
-                    description: asig.description,
-                    hours: hoursToConsume
-                });
+                // Intersección entre la semana y la asignación
+                const overlapStart = new Date(Math.max(week.start.getTime(), asigStart.getTime()));
+                const overlapEnd = new Date(Math.min(week.end.getTime(), asigEnd.getTime()));
+
+                if (overlapStart < overlapEnd) {
+                    const overlapDays = Math.max(1, Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 3600 * 24)));
+                    const hoursToConsume = Math.min(week.availableCapacity, hoursPerDay * overlapDays);
+
+                    if (hoursToConsume > 0) {
+                        week.assignmentHours += hoursToConsume;
+                        week.availableCapacity -= hoursToConsume;
+                        week.details.assignments.push({
+                            description: asig.description,
+                            hours: hoursToConsume
+                        });
+                    }
+                }
             }
         }
 
