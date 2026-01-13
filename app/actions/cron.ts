@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "./sync";
 import { limitConcurrency } from "@/lib/utils-sync";
+import { getBulkSyncStatus, setBulkSyncStatus, SyncJobStatus } from "./sync-jobs";
+import { getNow } from "@/lib/date-utils";
 
 async function isKillSwitchActive() {
     try {
@@ -154,5 +156,106 @@ export async function syncAllWorkPackages() {
         }).catch(() => { });
 
         return { success: false, error: error.message };
+    }
+}
+
+export async function startBulkManualSync(syncDays?: number) {
+    try {
+        const wps = await getEligibleWorkPackagesForSync();
+
+        if (wps.length === 0) {
+            return { error: "No work packages to sync" };
+        }
+
+        const startTime = Date.now();
+        const initialStatus: SyncJobStatus = {
+            isSyncing: true,
+            progress: 0,
+            currentIdx: 0,
+            totalWps: wps.length,
+            currentWpName: "",
+            startTime,
+            results: { success: 0, errors: 0 },
+            syncDays: syncDays || null,
+            lastUpdate: startTime
+        };
+
+        await setBulkSyncStatus(initialStatus);
+
+        // Run sync in the "background" (but still within this server action until done)
+        // Note: Real background tasks in Next.js require external queues, 
+        // but for this app, we'll process them and the client can refresh to see progress.
+
+        // We'll process them sequentially or with low concurrency to avoid overloading
+        for (let i = 0; i < wps.length; i++) {
+            const wp = wps[i];
+
+            // Re-fetch status to check for cancellation or stop
+            const currentStatus = await getBulkSyncStatus();
+            if (!currentStatus || !currentStatus.isSyncing) break;
+
+            // Update status for current WP
+            await setBulkSyncStatus({
+                ...currentStatus,
+                currentIdx: i + 1,
+                currentWpName: wp.name,
+                progress: (i / wps.length) * 100,
+                lastUpdate: Date.now()
+            });
+
+            try {
+                const res = await syncWorkPackage(wp.id, false, syncDays);
+
+                const updatedStatus = await getBulkSyncStatus();
+                if (updatedStatus) {
+                    if (res?.error) {
+                        updatedStatus.results.errors++;
+                    } else {
+                        updatedStatus.results.success++;
+                    }
+                    await setBulkSyncStatus(updatedStatus);
+                }
+            } catch (err) {
+                const updatedStatus = await getBulkSyncStatus();
+                if (updatedStatus) {
+                    updatedStatus.results.errors++;
+                    await setBulkSyncStatus(updatedStatus);
+                }
+            }
+        }
+
+        const finalStatus = await getBulkSyncStatus();
+        if (finalStatus) {
+            await setBulkSyncStatus({
+                ...finalStatus,
+                isSyncing: false,
+                progress: 100,
+                lastUpdate: Date.now()
+            });
+
+            // Save to ImportLog
+            await prisma.importLog.create({
+                data: {
+                    type: 'MANUAL_SYNC',
+                    status: finalStatus.results.errors === 0 ? 'SUCCESS' : (finalStatus.results.success > 0 ? 'PARTIAL' : 'ERROR'),
+                    filename: `manual_bulk_sync_${syncDays ? `fast_${syncDays}d` : 'total'}_${new Date().toISOString().split('T')[0]}`,
+                    totalRows: wps.length,
+                    processedCount: finalStatus.results.success,
+                    errors: JSON.stringify({
+                        totalProcessed: wps.length,
+                        success: finalStatus.results.success,
+                        errors: finalStatus.results.errors,
+                        executionTime: Date.now() - startTime,
+                        syncDays: syncDays || 'FULL'
+                    }),
+                    date: new Date()
+                }
+            });
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in startBulkManualSync:", error);
+        return { error: error.message };
     }
 }

@@ -67,7 +67,7 @@ function applyCorrectionModel(hours: number, wpCorrection: any): number {
     }
 }
 
-export async function syncWorkPackage(wpId: string, debug: boolean = false) {
+export async function syncWorkPackage(wpId: string, debug: boolean = false, syncDays?: number) {
     let fs: any = null;
     let path: any = null;
     try {
@@ -156,8 +156,17 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
         // Find earliest start date and latest end date across all periods
         const allStartDates = (wp.validityPeriods as any[]).map((p: any) => new Date(p.startDate).getTime());
         const allEndDates = (wp.validityPeriods as any[]).map((p: any) => new Date(p.endDate).getTime());
-        const earliestStart = new Date(Math.min(...allStartDates));
+        let earliestStart = new Date(Math.min(...allStartDates));
         const latestEnd = new Date(Math.max(...allEndDates));
+
+        if (syncDays && syncDays > 0) {
+            const syncCutoff = new Date();
+            syncCutoff.setDate(syncCutoff.getDate() - syncDays);
+            if (syncCutoff > earliestStart) {
+                earliestStart = syncCutoff;
+                addLog(`[INFO] Differential sync active: restricting start date to ${earliestStart.toISOString().split('T')[0]} (${syncDays} days)`);
+            }
+        }
 
         let totalTicketsSynced = 0;
         let validCount = 0;
@@ -468,7 +477,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId, but we now "obviar el WP" (ignore account) 
                     // to ensure all relevant hours are captured project-wide.
                     // Standardize JQL using field IDs for robustness
-                    const jql = `project IN (${projectKeys.join(',')}) AND issuetype = "Evolutivo" AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
+                    let jql = `project IN (${projectKeys.join(',')}) AND issuetype = "Evolutivo" AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
+
+                    if (syncDays && syncDays > 0) {
+                        jql += ` AND updated >= "-${syncDays}d"`;
+                        addLog(`[INFO] Restricting Evolutivo search to updated in last ${syncDays} days`);
+                    }
 
                     const jiraUrl = process.env.JIRA_URL?.trim();
                     const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
@@ -1094,10 +1108,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const projectKeys = (wp as any).jiraProjectKeys?.split(',').map((k: any) => k.trim()).join(', ') || '';
                 if (projectKeys) {
                     console.log('[EVENTS DEBUG] Project keys:', projectKeys);
-                    // Clear old tickets for this WP
-                    await prisma.ticket.deleteMany({
-                        where: { workPackageId: wp.id }
-                    });
+                    // Clear old tickets for this WP (if full sync)
+                    if (!syncDays) {
+                        await prisma.ticket.deleteMany({
+                            where: { workPackageId: wp.id }
+                        });
+                    }
 
                     // Get all tickets from the validity periods
                     const validityPeriods = await prisma.validityPeriod.findMany({
@@ -1129,7 +1145,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             addLog(`[INFO] Using restricted ticket types for Events: ${effectiveIssueTypes.join(', ')}`);
                         }
 
-                        const jql = `project in (${projectKeys}) AND created >= "${startDateStr}" AND created <= "${endDateStr}" AND issuetype in (${effectiveIssueTypes.map(t => `"${t}"`).join(', ')})`;
+                        let jql = `project in (${projectKeys}) AND created >= "${startDateStr}" AND created <= "${endDateStr}" AND issuetype in (${effectiveIssueTypes.map(t => `"${t}"`).join(', ')})`;
+
+                        if (syncDays && syncDays > 0) {
+                            jql += ` AND (updated >= "-${syncDays}d" OR created >= "-${syncDays}d")`;
+                        }
 
                         addLog(`[INFO] Fetching tickets for period ${startDateStr} to ${endDateStr}...`);
 
@@ -1224,20 +1244,44 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         }
 
-        // 9. Clear old metrics and worklog details
-        await prisma.monthlyMetric.deleteMany({
-            where: { workPackageId: wp.id }
-        });
-        await prisma.worklogDetail.deleteMany({
-            where: { workPackageId: wp.id }
-        });
+        // 9. Clear old metrics and worklog details (if full sync)
+        if (!syncDays) {
+            await prisma.monthlyMetric.deleteMany({
+                where: { workPackageId: wp.id }
+            });
+            await prisma.worklogDetail.deleteMany({
+                where: { workPackageId: wp.id }
+            });
+        } else {
+            // For differential sync, we only delete worklogs within the sync period
+            const syncCutoff = new Date();
+            syncCutoff.setDate(syncCutoff.getDate() - syncDays);
+
+            await prisma.worklogDetail.deleteMany({
+                where: {
+                    workPackageId: wp.id,
+                    startDate: { gte: syncCutoff }
+                }
+            });
+            // We don't delete MonthlyMetric because we will upsert them by month
+        }
 
         // 10. Save monthly metrics (already corrected per worklog)
         for (const [key, hours] of Array.from(monthlyHours.entries())) {
             const [year, month] = key.split('-').map(Number);
 
-            await prisma.monthlyMetric.create({
-                data: {
+            await prisma.monthlyMetric.upsert({
+                where: {
+                    workPackageId_year_month: {
+                        workPackageId: wp.id,
+                        year,
+                        month
+                    }
+                },
+                update: {
+                    consumedHours: hours
+                },
+                create: {
                     workPackageId: wp.id,
                     year,
                     month,

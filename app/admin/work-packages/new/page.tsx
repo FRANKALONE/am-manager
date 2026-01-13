@@ -331,7 +331,7 @@ export default async function WorkPackageFormPage({ params }: { params: { id?: s
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="totalQuantity">{t('workPackages.form.labels.scopeQuantity')}</Label>
-                                                <Input type="number" step="0.01" name="totalQuantity" defaultValue="600" required />
+                                                <Input type="number" step="0.01" name="totalQuantity" required />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="rate">{t('workPackages.form.labels.rate')} (€)</Label>

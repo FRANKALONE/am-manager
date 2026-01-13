@@ -25,7 +25,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
     const [newPeriod, setNewPeriod] = useState({
         startDate: "",
         endDate: "",
-        totalQuantity: 600,
+        totalQuantity: 0,
         rate: 50,
         billingType: "MENSUAL",
         isPremium: false,
@@ -62,7 +62,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             setNewPeriod({
                 startDate: "",
                 endDate: "",
-                totalQuantity: 600,
+                totalQuantity: 0,
                 rate: 50,
                 billingType: "MENSUAL",
                 isPremium: false,
@@ -81,7 +81,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
         setEditPeriod({
             startDate: p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : "",
             endDate: p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : "",
-            totalQuantity: p.totalQuantity || 600,
+            totalQuantity: p.totalQuantity || 0,
             rate: p.rate || 50,
             isPremium: p.isPremium || false,
             premiumPrice: p.premiumPrice || null,

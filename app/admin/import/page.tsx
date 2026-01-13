@@ -7,7 +7,6 @@ import { BulkSyncProposalsManager } from "./components/bulk-sync-proposals-manag
 import { BulkSyncJiraCustomersManager } from "./components/bulk-sync-jira-customers-manager";
 import { EvolutivosDiagnostic } from "./components/evolutivos-diagnostic";
 import { WpSyncDiagnostic } from "./components/wp-sync-diagnostic";
-import { BulkSyncClientManager } from "./components/bulk-sync-client-manager";
 import { SyncKillSwitch } from "../settings/components/sync-kill-switch";
 
 import { prisma } from "@/lib/prisma";
@@ -35,9 +34,8 @@ export default async function ImportPage() {
                 </div>
             </div>
 
-            <BulkSyncManager />
 
-            <BulkSyncClientManager />
+            <BulkSyncManager />
 
 
             <BulkSyncEvolutivosManager />
