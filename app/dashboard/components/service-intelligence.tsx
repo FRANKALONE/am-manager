@@ -197,31 +197,33 @@ export function ServiceIntelligence({
                     </CardHeader>
                     <CardContent className="pt-10 pb-6">
                         <div className="space-y-12">
-                            <div className="h-[200px] w-full flex items-end gap-3 px-2">
-                                {(metrics.stabilityTrend || []).map((item: any, i: number) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative h-full">
-                                        <div className="w-full flex-1 flex flex-col items-center justify-end gap-0.5 min-h-[140px]">
-                                            {/* Corrective Part */}
-                                            <div
-                                                className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500 relative"
-                                                style={{ height: `${item.correctivePct}%` }}
-                                            >
-                                                {item.correctivePct > 10 && (
-                                                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/40 rotate-90 whitespace-nowrap">FIX</span>
-                                                )}
+                            <div className="h-[220px] w-full overflow-x-auto pb-4">
+                                <div className="h-[200px] min-w-full flex items-end gap-3 px-2 w-fit mx-auto">
+                                    {(metrics.stabilityTrend || []).map((item: any, i: number) => (
+                                        <div key={i} className="flex-1 min-w-[36px] flex flex-col items-center gap-3 group relative h-full">
+                                            <div className="w-full flex-1 flex flex-col items-center justify-end gap-0.5 min-h-[140px]">
+                                                {/* Corrective Part */}
+                                                <div
+                                                    className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500 relative"
+                                                    style={{ height: `${item.correctivePct}%` }}
+                                                >
+                                                    {item.correctivePct > 10 && (
+                                                        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/40 rotate-90 whitespace-nowrap">FIX</span>
+                                                    )}
+                                                </div>
+                                                {/* Stabilization / Others Part */}
+                                                <div
+                                                    className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/30"
+                                                    style={{ height: `${100 - item.correctivePct}%` }}
+                                                />
                                             </div>
-                                            {/* Stabilization / Others Part */}
-                                            <div
-                                                className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/30"
-                                                style={{ height: `${100 - item.correctivePct}%` }}
-                                            />
+                                            <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded shadow-xl z-20 whitespace-nowrap">
+                                                Correctivo: <b>{item.correctivePct.toFixed(1)}%</b>
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center h-4">{item.month}</span>
                                         </div>
-                                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded shadow-xl z-20 whitespace-nowrap">
-                                            Correctivo: <b>{item.correctivePct.toFixed(1)}%</b>
-                                        </div>
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center h-4">{item.month}</span>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                             <div className="flex justify-center gap-10">
                                 <div className="flex items-center gap-2">
@@ -335,30 +337,32 @@ export function ServiceIntelligence({
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <div className="h-[180px] w-full flex items-end gap-6 px-4">
-                            {(metrics.volumeTrend || []).map((v: any, i: number) => {
-                                const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => mt.created || 0));
-                                return (
-                                    <div key={i} className="flex-1 flex flex-col justify-end gap-2 group relative">
-                                        <div className="flex gap-1.5 items-end h-[140px]">
-                                            <div
-                                                className="flex-1 bg-prussian/20 rounded-t-sm hover:bg-prussian/40 transition-colors"
-                                                style={{ height: `${((v.created || 0) / maxVal) * 100}%` }}
-                                            />
-                                            <div
-                                                className="flex-1 bg-malachite/30 rounded-t-sm hover:bg-malachite/50 transition-colors"
-                                                style={{ height: `${((v.resolved || 0) / maxVal) * 100}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{v.month}</span>
+                        <div className="h-[210px] w-full overflow-x-auto pb-4">
+                            <div className="h-[180px] min-w-full flex items-end gap-2 px-4 w-fit mx-auto">
+                                {(metrics.volumeTrend || []).map((v: any, i: number) => {
+                                    const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => mt.created || 0));
+                                    return (
+                                        <div key={i} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col justify-end gap-2 group relative">
+                                            <div className="flex gap-1 items-end h-[140px]">
+                                                <div
+                                                    className="flex-1 bg-prussian/20 rounded-t-sm hover:bg-prussian/40 transition-colors"
+                                                    style={{ height: `${((v.created || 0) / maxVal) * 100}%` }}
+                                                />
+                                                <div
+                                                    className="flex-1 bg-malachite/30 rounded-t-sm hover:bg-malachite/50 transition-colors"
+                                                    style={{ height: `${((v.resolved || 0) / maxVal) * 100}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{v.month}</span>
 
-                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-20 min-w-[80px] shadow-2xl">
-                                            <div className="flex justify-between gap-2"><span>Entrada:</span> <b>{v.created}</b></div>
-                                            <div className="flex justify-between gap-2"><span>Salida:</span> <b>{v.resolved}</b></div>
+                                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-20 min-w-[80px] shadow-2xl">
+                                                <div className="flex justify-between gap-2"><span>Entrada:</span> <b>{v.created}</b></div>
+                                                <div className="flex justify-between gap-2"><span>Salida:</span> <b>{v.resolved}</b></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div className="flex justify-center gap-8 mt-6">
                             <div className="flex items-center gap-2">
@@ -447,6 +451,6 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </div >
     );
 }
