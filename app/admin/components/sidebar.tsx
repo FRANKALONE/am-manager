@@ -48,6 +48,12 @@ export async function AdminSidebar() {
                     </SidebarLink>
                 )}
 
+                {perms.manage_capacity && (
+                    <SidebarLink href="/admin/capacity" label={t('sidebar.capacity')}>
+                        <Activity className="h-4 w-4" />
+                    </SidebarLink>
+                )}
+
                 <SidebarLink href="/admin/import" label={t('sidebar.importExport')}>
                     <FileInput className="h-4 w-4" />
                 </SidebarLink>

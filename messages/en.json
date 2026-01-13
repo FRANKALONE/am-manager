@@ -544,6 +544,8 @@
         "evolutivosManagementDesc": "Track milestones, owners and planning",
         "administration": "Administration",
         "administrationDesc": "Manage users, clients and system configuration",
+        "capacityManagement": "Capacity Management",
+        "capacityManagementDesc": "Team planning, workload, and AMA forecasting",
         "accessModule": "Access module",
         "jiraUsers": "Usuarios JIRA",
         "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
@@ -934,7 +936,8 @@
         "landings": "Landing Pages",
         "communications": "Communications",
         "jiraUsers": "JIRA Users",
-        "jiraRequests": "JIRA Requests"
+        "jiraRequests": "JIRA Requests",
+        "capacity": "Team Capacity"
     },
     "errors": {
         "required": "{field} is required",

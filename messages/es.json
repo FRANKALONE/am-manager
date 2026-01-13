@@ -546,6 +546,8 @@
         "administrationDesc": "Gestión de usuarios, clientes y configuración del sistema",
         "jiraUsers": "Usuarios JIRA",
         "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados",
+        "capacityManagement": "Gestión de Capacidades",
+        "capacityManagementDesc": "Planificación de equipo, carga de trabajo y previsiones AMA",
         "accessModule": "Acceder al módulo"
     },
     "user": {
@@ -934,7 +936,8 @@
         "landings": "Landing Pages",
         "communications": "Comunicaciones",
         "jiraUsers": "Usuarios JIRA",
-        "jiraRequests": "Solicitudes JIRA"
+        "jiraRequests": "Solicitudes JIRA",
+        "capacity": "Capacidad de Equipo"
     },
     "errors": {
         "required": "{field} es obligatorio",

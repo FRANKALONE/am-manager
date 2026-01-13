@@ -41,6 +41,7 @@ const PERMISSIONS: Permission[] = [
     { key: "manage_jira_requests", label: "Gestionar Solicitudes JIRA", section: "Administración" },
     { key: "manage_reviews", label: "Gestionar Reclamaciones (Admin)", section: "Administración" },
     { key: "view_reviews", label: "Ver Reclamaciones (Gerente)", section: "Administración" },
+    { key: "manage_capacity", label: "Gestionar Capacidad de Equipo", section: "Administración" },
 
     { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
     { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },

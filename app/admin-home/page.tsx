@@ -1,7 +1,7 @@
 import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users } from "lucide-react";
+import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users, Activity } from "lucide-react";
 import { getAuthSession, getEvolutivosUrl } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
@@ -66,6 +66,16 @@ export default async function AdminHomePage() {
             bg: "bg-slate-900/10",
             gradient: "from-slate-900 to-slate-700",
             visible: perms.manage_users || perms.manage_clients || perms.manage_wps || perms.manage_roles
+        },
+        {
+            title: t('adminHome.capacityManagement'),
+            description: t('adminHome.capacityManagementDesc'),
+            icon: Activity,
+            href: "/admin/capacity",
+            color: "text-rose-500",
+            bg: "bg-rose-500/10",
+            gradient: "from-rose-600 to-rose-400",
+            visible: perms.manage_capacity
         }
     ].filter(o => o.visible);
 
