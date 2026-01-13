@@ -301,7 +301,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components', 'reporter']
                 });
 
                 try {
@@ -377,7 +377,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
-                                component: component
+                                component: component,
+                                reporter: issue.fields.reporter?.displayName || 'Unknown'
                             });
                         });
                     }
@@ -482,7 +483,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                             maxResults,
                             nextPageToken,
                             // Include SLA fields in initial query for optimization
-                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components']
+                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components', 'reporter']
                         });
 
                         const evolutivosRes: any = await new Promise((resolve, reject) => {
@@ -599,7 +600,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
-                                component: component
+                                component: component,
+                                reporter: issue.fields.reporter?.displayName || 'Unknown'
                             });
 
                             if (isBolsa && issue.fields.timeoriginalestimate) {
@@ -765,7 +767,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'created', 'components', 'reporter']
                 });
 
                 try {
@@ -841,7 +843,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                                 slaResponseTime: resSla.time,
                                 slaResolution: resolSla.status,
                                 slaResolutionTime: resolSla.time,
-                                component: component
+                                component: component,
+                                reporter: issue.fields.reporter?.displayName || 'Unknown'
                             });
                         });
                     }
@@ -1269,10 +1272,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
             }
         }
 
-        // Also add Evolutivos and Hitos that might not have worklogs in this period
+        // 10.7. Also ensure all fetched tickets from issueDetails are in uniqueTickets (even if no worklogs)
         for (const [id, details] of Array.from(issueDetails.entries())) {
-            const isEvoOrHito = details.issueType === 'Evolutivo' || details.issueType === 'Hitos Evolutivos';
-            if (isEvoOrHito && !uniqueTickets.has(details.key)) {
+            if (!uniqueTickets.has(details.key)) {
                 uniqueTickets.set(details.key, {
                     issueKey: details.key,
                     issueSummary: details.summary,
@@ -1286,13 +1288,19 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     createdDate: details.created ? new Date(details.created) : new Date(),
                     year: details.created ? new Date(details.created).getFullYear() : new Date().getFullYear(),
                     month: details.created ? new Date(details.created).getMonth() + 1 : new Date().getMonth() + 1,
-                    reporter: 'Unknown',
+                    reporter: details.reporter || 'Unknown',
                     billingMode: details.billingMode || null,
                     assignee: details.assignee || null,
                     dueDate: details.dueDate ? new Date(details.dueDate) : null,
                     parentKey: details.parentKey || null,
                     component: details.component || null
                 });
+            } else {
+                // Update reporter if it was 'Unknown' from worklogs
+                const existing = uniqueTickets.get(details.key);
+                if (existing.reporter === 'Unknown' && details.reporter) {
+                    existing.reporter = details.reporter;
+                }
             }
         }
 
