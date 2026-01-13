@@ -1326,7 +1326,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false) {
                     assignee: ticketData.assignee,
                     dueDate: ticketData.dueDate,
                     parentKey: ticketData.parentKey,
-                    component: ticketData.component
+                    component: ticketData.component,
+                    reporter: ticketData.reporter
                 },
                 create: {
                     workPackageId: wp.id,
