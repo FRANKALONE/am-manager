@@ -35,6 +35,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
     DialogFooter
 } from "@/components/ui/dialog";
@@ -75,7 +76,9 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
     // UI State
     const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
     const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [selectedMemberId, setSelectedMemberId] = useState("");
+    const [selectedWeekDetail, setSelectedWeekDetail] = useState<any>(null);
 
     // Form states
     const [newMember, setNewMember] = useState({ name: "", capacity: 40, teamId: "" });
@@ -219,7 +222,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                     <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-72 bg-white" align="start">
+                            <DropdownMenuContent className="w-72 bg-white" align="start" side="bottom" sideOffset={8}>
                                 <DropdownMenuLabel className="font-black text-[10px] uppercase tracking-widest text-slate-400">Seleccionar Equipos</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem
@@ -453,7 +456,17 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                                 const color = week.utilization > 100 ? 'bg-rose-500' : (week.utilization > 80 ? 'bg-amber-500' : 'bg-emerald-500');
                                                 return (
                                                     <td key={idx} className="px-6 py-5">
-                                                        <div className="space-y-1.5 flex flex-col items-center">
+                                                        <div
+                                                            className="space-y-1.5 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
+                                                            onClick={() => {
+                                                                setSelectedWeekDetail({
+                                                                    memberName: member.name,
+                                                                    weekStart: week.weekStart,
+                                                                    ...week.details
+                                                                });
+                                                                setIsDetailDialogOpen(true);
+                                                            }}
+                                                        >
                                                             <div className="flex justify-between w-full max-w-[120px] text-[10px] font-black mb-1">
                                                                 <span className={week.utilization > 100 ? 'text-rose-600' : 'text-slate-500'}>{week.totalLoad.toFixed(1)}h</span>
                                                                 <span className={week.utilization > 100 ? 'text-rose-600' : 'text-slate-900'}>{week.utilization.toFixed(0)}%</span>
@@ -624,6 +637,82 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                     </CardContent>
                 </Card>
             </div>
+            {/* Detail Dialog */}
+            <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+                <DialogContent className="max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-indigo-500" />
+                            Detalle de Carga - {selectedWeekDetail?.memberName}
+                        </DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">
+                            Semana del {selectedWeekDetail?.weekStart && new Date(selectedWeekDetail.weekStart).toLocaleDateString()}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        {/* Tickets Section */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center justify-between">
+                                <span>Tickets Jira</span>
+                                <Badge variant="outline" className="bg-slate-50">{selectedWeekDetail?.tickets?.length || 0}</Badge>
+                            </h4>
+                            <div className="grid gap-2">
+                                {selectedWeekDetail?.tickets?.length > 0 ? (
+                                    selectedWeekDetail.tickets.map((t: any, i: number) => (
+                                        <div key={i} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white transition-colors flex items-center justify-between group">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-black text-indigo-600 px-1.5 py-0.5 bg-indigo-50 rounded border border-indigo-100">{t.key}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{t.type}</span>
+                                                    {t.isUrgent && <Badge className="bg-rose-500 text-white text-[8px] h-4">URGENTE</Badge>}
+                                                </div>
+                                                <p className="text-sm font-bold text-slate-800 truncate group-hover:text-dark-green transition-colors">{t.summary}</p>
+                                                {t.dueDate && (
+                                                    <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> F.Vence: {new Date(t.dueDate).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="ml-4 text-right">
+                                                <p className="text-sm font-black text-slate-900">{t.hours.toFixed(1)}h</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">Esfuerzo</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-slate-400 italic py-4 text-center border border-dashed rounded-xl">No hay tickets asignados para esta semana</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Assignments Section */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center justify-between">
+                                <span>Tareas Manuales</span>
+                                <Badge variant="outline" className="bg-slate-50">{selectedWeekDetail?.assignments?.length || 0}</Badge>
+                            </h4>
+                            <div className="grid gap-2">
+                                {selectedWeekDetail?.assignments?.length > 0 ? (
+                                    selectedWeekDetail.assignments.map((asig: any, i: number) => (
+                                        <div key={i} className="p-4 rounded-xl border border-indigo-50 bg-indigo-50/20 flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-indigo-900">{asig.description}</p>
+                                            </div>
+                                            <div className="ml-4 text-right">
+                                                <p className="text-sm font-black text-indigo-600">{asig.hours.toFixed(1)}h</p>
+                                                <p className="text-[9px] font-bold text-indigo-400 uppercase">Prorrateo</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-slate-400 italic py-4 text-center border border-dashed rounded-xl">No hay tareas manuales para esta semana</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

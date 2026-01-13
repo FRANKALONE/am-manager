@@ -259,16 +259,17 @@ export async function getTeamWorkload() {
 
         const memberWeeks = await Promise.all(weeks.map(async (week: { start: Date, end: Date }, weekIdx: number) => {
             let ticketHours = 0;
+            const details: { tickets: any[], assignments: any[] } = { tickets: [], assignments: [] };
 
             for (const t of activeTicketsDb) {
                 let estimate = 0;
 
                 if (t.issueType === 'Evolutivo') {
-                    const details = ticketDetails.get(t.issueKey);
-                    if (details && details.remainingSeconds > 0) {
-                        estimate = details.remainingSeconds / 3600;
+                    const d = ticketDetails.get(t.issueKey);
+                    if (d && d.remainingSeconds > 0) {
+                        estimate = d.remainingSeconds / 3600;
                     } else {
-                        const spent = details?.timeSpentSeconds ? (details.timeSpentSeconds / 3600) : 0;
+                        const spent = d?.timeSpentSeconds ? (d.timeSpentSeconds / 3600) : 0;
                         estimate = Math.max(0, (t.originalEstimate || 0) - spent);
                     }
 
@@ -290,19 +291,32 @@ export async function getTeamWorkload() {
                 // Prioridad absoluta: SLA muy corto o Hito vencido/esta semana
                 const isUrgent = slaUrgency < 24 || (dueDate && dueDate <= weeks[0].end);
 
+                let assignedHours = 0;
                 if (isUrgent) {
-                    if (weekIdx === 0) ticketHours += estimate;
+                    if (weekIdx === 0) assignedHours = estimate;
                 } else if (dueDate && dueDate <= week.end) {
                     // Distribuimos la carga hasta el hito/vencimiento
                     const daysToDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
                     const weeksToDue = Math.ceil(daysToDue / 7);
 
                     if (weekIdx < weeksToDue) {
-                        ticketHours += estimate / weeksToDue;
+                        assignedHours = estimate / weeksToDue;
                     }
                 } else if (!dueDate) {
                     // Si no tiene fecha, lo cargamos en las primeras 2 semanas para que no "desaparezca"
-                    if (weekIdx < 2) ticketHours += estimate / 2;
+                    if (weekIdx < 2) assignedHours = estimate / 2;
+                }
+
+                if (assignedHours > 0) {
+                    ticketHours += assignedHours;
+                    details.tickets.push({
+                        key: t.issueKey,
+                        summary: t.issueSummary,
+                        type: t.issueType,
+                        hours: assignedHours,
+                        dueDate: dueDate,
+                        isUrgent
+                    });
                 }
             }
 
@@ -318,7 +332,12 @@ export async function getTeamWorkload() {
                 if (overlapStart < overlapEnd) {
                     const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 3600 * 24);
                     const totalDays = Math.max(1, (asigEnd.getTime() - asigStart.getTime()) / (1000 * 3600 * 24));
-                    assignmentHours += (asig.hours / totalDays) * overlapDays;
+                    const currentHours = (asig.hours / totalDays) * overlapDays;
+                    assignmentHours += currentHours;
+                    details.assignments.push({
+                        description: asig.description,
+                        hours: currentHours
+                    });
                 }
             });
 
@@ -331,7 +350,8 @@ export async function getTeamWorkload() {
                 ticketHours,
                 assignmentHours,
                 totalLoad,
-                utilization
+                utilization,
+                details
             };
         }));
 
