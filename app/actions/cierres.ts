@@ -265,6 +265,12 @@ export async function getPendingCierres(month: number, year: number) {
                 alreadyInvoicedAmount = monthProcessedReg.quantity;
             }
 
+            // Check if specifically BILLED (not just revenue recognized)
+            const isBilledThisMonth = monthProcessedReg && (
+                (monthProcessedReg.type === 'EXCESS' && monthProcessedReg.isBilled === true) ||
+                monthProcessedReg.type === 'APPROVED_EXCESS'
+            );
+
             while (safety < 1200) {
                 const y = iterDate.getFullYear();
                 const m = iterDate.getMonth() + 1;
@@ -321,7 +327,8 @@ export async function getPendingCierres(month: number, year: number) {
                 reportSentBy: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentBy
             };
 
-            if (hasProcessedThisMonth) {
+            // Only add to "processed" list if ACTUALLY BILLED (not just revenue recognized)
+            if (isBilledThisMonth) {
                 processed.push({
                     ...candidateData,
                     suggestedAmount: alreadyInvoicedAmount,
