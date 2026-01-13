@@ -43,7 +43,7 @@ export async function createTeamMember(data: { name: string, weeklyCapacity: num
             linkedUserId: data.linkedUserId
         }
     });
-    revalidatePath("/admin/capacity");
+    revalidatePath("/capacity");
     return member;
 }
 
@@ -52,7 +52,7 @@ export async function updateTeamMember(id: string, data: any) {
         where: { id },
         data
     });
-    revalidatePath("/admin/capacity");
+    revalidatePath("/capacity");
     return member;
 }
 
@@ -75,13 +75,13 @@ export async function createAssignment(data: {
             endDate: data.endDate
         }
     });
-    revalidatePath("/admin/capacity");
+    revalidatePath("/capacity");
     return assignment;
 }
 
 export async function deleteAssignment(id: string) {
     await prisma.capacityAssignment.delete({ where: { id } });
-    revalidatePath("/admin/capacity");
+    revalidatePath("/capacity");
 }
 
 /**
@@ -267,7 +267,7 @@ export async function syncTeamsFromTempo() {
             }
         }
 
-        revalidatePath("/admin/capacity");
+        revalidatePath("/capacity");
         return { success: true, count: tempoTeams.length };
     } catch (error) {
         console.error("Error syncing Tempo teams:", error);

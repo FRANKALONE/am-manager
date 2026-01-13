@@ -71,7 +71,7 @@ export default async function AdminHomePage() {
             title: t('adminHome.capacityManagement'),
             description: t('adminHome.capacityManagementDesc'),
             icon: Activity,
-            href: "/admin/capacity",
+            href: "/capacity",
             color: "text-rose-500",
             bg: "bg-rose-500/10",
             gradient: "from-rose-600 to-rose-400",
