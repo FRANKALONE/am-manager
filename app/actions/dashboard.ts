@@ -1517,19 +1517,73 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
             density[day][hour]++;
         });
 
-        // Projection
-        const last3Months = sortedMonths.slice(-3);
-        const avgTicketsPerMonth = last3Months.length > 0
-            ? last3Months.reduce((sum, m) => {
-                const parts = m.split('/');
-                const month = parseInt(parts[0]);
-                const year = parseInt(parts[1]);
-                return sum + periodTickets.filter(t => {
-                    const d = new Date(t.createdDate);
-                    return d.getMonth() + 1 === month && d.getFullYear() === year;
-                }).length;
-            }, 0) / last3Months.length
-            : periodTickets.length / (sortedMonths.length || 1);
+        // 6. System Stability Trend (Client Focus)
+        const stabilityTrend = sortedMonths.map(m => {
+            const monthTickets = periodTickets.filter(t => {
+                const d = new Date(t.createdDate);
+                return `${d.getMonth() + 1}/${d.getFullYear()}` === m;
+            });
+            const corrective = monthTickets.filter(t => (t.issueType || '').includes('Incidencia') || (t.issueType || '').includes('Correctivo')).length;
+            const total = monthTickets.length || 1;
+            return {
+                month: m,
+                correctivePct: (corrective / total) * 100,
+                total
+            };
+        });
+
+        // 7. Operational Noise (User Training Opportunities)
+        const noiseByReporter: Record<string, number> = {};
+        const noiseByComponent: Record<string, number> = {};
+
+        periodTickets.filter(t => (t.issueType || '').includes('Consulta') || (t.issueType || '').includes('Soporte')).forEach(t => {
+            noiseByReporter[t.reporter] = (noiseByReporter[t.reporter] || 0) + 1;
+            const comp = t.component || 'Sin especificar';
+            noiseByComponent[comp] = (noiseByComponent[comp] || 0) + 1;
+        });
+
+        // 8. Module Risk Radar (Criticality Density)
+        const moduleRisk: Record<string, { criticalCount: number; totalCount: number }> = {};
+        periodTickets.forEach(t => {
+            const comp = t.component || 'Sin especificar';
+            if (!moduleRisk[comp]) moduleRisk[comp] = { criticalCount: 0, totalCount: 0 };
+            moduleRisk[comp].totalCount++;
+            if (t.priority === 'Crítica' || t.priority === 'Alta') {
+                moduleRisk[comp].criticalCount++;
+            }
+        });
+
+        const riskRadar = Object.entries(moduleRisk)
+            .map(([name, data]) => ({
+                name,
+                riskScore: (data.criticalCount / data.totalCount) * 100,
+                criticalCount: data.criticalCount,
+                totalCount: data.totalCount
+            }))
+            .sort((a, b) => b.riskScore - a.riskScore)
+            .filter(r => r.totalCount >= 2); // Only significant modules
+
+        // 9. Recommendation Engine (Logic-based)
+        const recommendations: string[] = [];
+
+        // Check stability trend
+        if (stabilityTrend.length >= 2) {
+            const last = stabilityTrend[stabilityTrend.length - 1].correctivePct;
+            const prev = stabilityTrend[stabilityTrend.length - 2].correctivePct;
+            if (last < prev) recommendations.push("La estabilidad del sistema está mejorando. El ratio de correctivos ha bajado respecto al mes anterior.");
+            else if (last > prev + 10) recommendations.push("Se observa un repunte en incidencias correctivas. Se recomienda revisar cambios recientes en el sistema.");
+        }
+
+        // Check noise
+        const topNoiseModule = Object.entries(noiseByComponent).sort((a, b) => b[1] - a[1])[0];
+        if (topNoiseModule && topNoiseModule[1] > 5) {
+            recommendations.push(`El módulo '${topNoiseModule[0]}' genera un alto volumen de consultas (${topNoiseModule[1]}). Considerar sesiones de formación para usuarios finales.`);
+        }
+
+        // Check risk
+        if (riskRadar.length > 0 && riskRadar[0].riskScore > 30) {
+            recommendations.push(`El componente '${riskRadar[0].name}' presenta una alta densidad de incidencias críticas (${riskRadar[0].riskScore.toFixed(0)}%). Considerar revisión técnica o refactorización.`);
+        }
 
         return {
             slaTrend,
@@ -1561,6 +1615,14 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
                 nextMonth: Math.round(avgTicketsPerMonth * 1.05),
                 confidence: 85
             },
+            // New Client-Centric Metrics
+            stabilityTrend,
+            operationalNoise: {
+                byReporter: Object.entries(noiseByReporter).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5),
+                byComponent: Object.entries(noiseByComponent).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5)
+            },
+            riskRadar: riskRadar.slice(0, 5),
+            recommendations: recommendations.length > 0 ? recommendations : ["El servicio se mantiene en parámetros estables. No se detectan anomalías críticas en la distribución de la demanda."],
             isPremium: selectedPeriod.isPremium || false
         };
 

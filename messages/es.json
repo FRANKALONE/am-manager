@@ -187,11 +187,18 @@
             "sun": "Dom",
             "created": "Creados",
             "resolved": "Resueltos",
-            "whatIf": "Simulación What-if",
-            "impactResolution": "Si redujéramos el tiempo de resolución en un 10%",
-            "projectedSavings": "Ahorro proyectado de capacidad",
+            "whatIf": "Simulación de Impacto Estratégico",
+            "impactResolution": "Reducción de Tiempo de Respuesta",
+            "projectedSavings": "Capacidad Liberada Estimada",
             "noData": "No hay datos suficientes para generar análisis de inteligencia.",
-            "premiumOnly": "Esta sección requiere una suscripción Premium."
+            "premiumOnly": "Esta sección requiere una suscripción Premium.",
+            "executiveSummary": "Resumen Ejecutivo y Recomendaciones",
+            "stabilityIndex": "Índice de Estabilidad del Sistema",
+            "stabilizationTrend": "Tendencia de Estabilización (Pérdida de Correctivos %)",
+            "operationalNoise": "Ruido Operacional y Formación",
+            "trainingOpportunities": "Oportunidades de formación según demanda",
+            "riskRadar": "Radar de Riesgo por Módulo",
+            "criticalDensity": "Densidad de Incidencias Críticas"
         }
     },
     "admin": {

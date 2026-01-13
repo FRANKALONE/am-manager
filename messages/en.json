@@ -187,11 +187,18 @@
             "sun": "Sun",
             "created": "Created",
             "resolved": "Resolved",
-            "whatIf": "What-if Simulation",
-            "impactResolution": "If we reduce resolution time by 10%",
-            "projectedSavings": "Projected capacity savings",
+            "whatIf": "Strategic Impact Simulation",
+            "impactResolution": "Resolution Time Reduction",
+            "projectedSavings": "Estimated Released Capacity",
             "noData": "Insufficient data for intelligence analytics.",
-            "premiumOnly": "This section requires a Premium subscription."
+            "premiumOnly": "This section requires a Premium subscription.",
+            "executiveSummary": "Executive Summary & Recommendations",
+            "stabilityIndex": "System Stability Index",
+            "stabilizationTrend": "Stabilization Trend (Corrective % Loss)",
+            "operationalNoise": "Operational Noise & Training",
+            "trainingOpportunities": "On-demand training opportunities",
+            "riskRadar": "By-Module Risk Radar",
+            "criticalDensity": "Critical Incident Density"
         }
     },
     "admin": {
