@@ -1570,14 +1570,29 @@ export async function getServiceIntelligenceMetrics(wpId: string, validityPeriod
         if (stabilityTrend.length >= 2) {
             const last = stabilityTrend[stabilityTrend.length - 1].correctivePct;
             const prev = stabilityTrend[stabilityTrend.length - 2].correctivePct;
-            if (last < prev) recommendations.push("La estabilidad del sistema está mejorando. El ratio de correctivos ha bajado respecto al mes anterior.");
-            else if (last > prev + 10) recommendations.push("Se observa un repunte en incidencias correctivas. Se recomienda revisar cambios recientes en el sistema.");
+            const diff = last - prev;
+
+            if (diff < -5) {
+                recommendations.push(`La estabilidad del sistema está mejorando significativamente. El ratio de correctivos ha bajado un ${Math.abs(diff).toFixed(0)}% este mes.`);
+            } else if (diff > 5) {
+                recommendations.push(`Se observa un incremento del ${diff.toFixed(0)}% en incidencias correctivas respecto al periodo anterior. Se recomienda revisar cambios recientes en el sistema.`);
+            }
         }
 
         // Check noise
         const topNoiseModule = Object.entries(noiseByComponent).sort((a, b) => b[1] - a[1])[0];
-        if (topNoiseModule && topNoiseModule[1] > 5) {
-            recommendations.push(`El módulo '${topNoiseModule[0]}' genera un alto volumen de consultas (${topNoiseModule[1]}). Considerar sesiones de formación para usuarios finales.`);
+        if (topNoiseModule && topNoiseModule[1] > 3) {
+            recommendations.push(`El módulo '${topNoiseModule[0]}' concentra un alto volumen de consultas (${topNoiseModule[1]} tickets de soporte). Considerar una sesión de refuerzo para los usuarios clave.`);
+        }
+
+        // Check risk
+        if (riskRadar.length > 0 && riskRadar[0].riskScore > 25) {
+            const risk = riskRadar[0];
+            recommendations.push(`Foco de atención: el componente '${risk.name}' presenta una densidad de criticidad del ${risk.riskScore.toFixed(0)}% (${risk.criticalCount} de ${risk.totalCount} incidencias son críticas/altas).`);
+        }
+
+        if (recommendations.length === 0) {
+            recommendations.push("El servicio se mantiene en parámetros estables. No se detectan anomalías en la distribución de la demanda para este Work Package.");
         }
         // Projection
         const last3Months = sortedMonths.slice(-3);
