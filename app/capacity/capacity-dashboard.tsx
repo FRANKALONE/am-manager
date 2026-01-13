@@ -15,7 +15,9 @@ import {
     Briefcase,
     Zap,
     RefreshCw,
-    Filter
+    Filter,
+    Check,
+    ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,15 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface CapacityDashboardProps {
     initialWorkload: {
@@ -56,7 +67,10 @@ interface CapacityDashboardProps {
 export function CapacityDashboard({ initialWorkload, forecast, members: allMembers, teams }: CapacityDashboardProps) {
     const [isPending, startTransition] = useTransition();
     const [workload, setWorkload] = useState(initialWorkload);
-    const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
+
+    // Initialize with teams starting with "AMA"
+    const amaTeamIds = teams.filter(t => t.name.startsWith("AMA")).map(t => t.id);
+    const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(amaTeamIds.length > 0 ? amaTeamIds : []);
 
     // UI State
     const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
@@ -124,11 +138,11 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
     };
 
     // Filtered workload
-    const filteredMembers = selectedTeamId === "all"
+    const filteredMembers = selectedTeamIds.length === 0
         ? workload.members
         : workload.members.filter(m => {
             const memberInfo = allMembers.find(am => am.id === m.id);
-            return memberInfo?.teamId === selectedTeamId;
+            return memberInfo?.teamId && selectedTeamIds.includes(memberInfo.teamId);
         });
 
     const totalCapacity = filteredMembers.reduce((sum, m) => sum + m.capacity, 0);
@@ -144,14 +158,18 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                         <Users className="w-12 h-12" />
                     </div>
                     <CardContent className="pt-6">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Equipo AMA</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                            {selectedTeamIds.length > 0 && selectedTeamIds.every(id => teams.find(t => t.id === id)?.name.startsWith("AMA"))
+                                ? "EQUIPO AMA"
+                                : "MIEMBROS SELECCIONADOS"}
+                        </p>
                         <h3 className="text-2xl font-black text-slate-900">{filteredMembers.length} <span className="text-sm font-medium text-slate-400">miembros</span></h3>
                     </CardContent>
                 </Card>
 
                 <Card className="bg-white border-slate-200/60 shadow-sm overflow-hidden relative group">
                     <CardContent className="pt-6">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Capacidad {selectedTeamId !== 'all' ? 'del Equipo' : 'Total'}</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Capacidad Seleccionada</p>
                         <h3 className="text-2xl font-black text-slate-900">{totalCapacity} <span className="text-sm font-medium text-slate-400">h / semana</span></h3>
                     </CardContent>
                 </Card>
@@ -186,17 +204,56 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                         <Filter className="w-5 h-5 text-dark-green" />
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
-                        <label className="text-xs font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">Filtrar por Equipo:</label>
-                        <select
-                            className="bg-slate-50 border-none rounded-xl h-10 px-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-dark-green outline-none min-w-[200px]"
-                            value={selectedTeamId}
-                            onChange={(e) => setSelectedTeamId(e.target.value)}
-                        >
-                            <option value="all">Todos los Equipos</option>
-                            {teams.map(t => (
-                                <option key={t.id} value={t.id}>{t.name} ({t._count.members})</option>
-                            ))}
-                        </select>
+                        <label className="text-xs font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">Equipos Filtrados:</label>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 min-w-[240px] justify-between">
+                                    <span className="truncate">
+                                        {selectedTeamIds.length === 0
+                                            ? "Todos los equipos"
+                                            : selectedTeamIds.length === 1
+                                                ? teams.find(t => t.id === selectedTeamIds[0])?.name
+                                                : `${selectedTeamIds.length} equipos seleccionados`}
+                                    </span>
+                                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-72 bg-white" align="start">
+                                <DropdownMenuLabel className="font-black text-[10px] uppercase tracking-widest text-slate-400">Seleccionar Equipos</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedTeamIds.length === 0}
+                                    onCheckedChange={() => setSelectedTeamIds([])}
+                                    className="font-bold text-slate-600"
+                                >
+                                    Todos los equipos
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuSeparator />
+                                {teams.map((team) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={team.id}
+                                        checked={selectedTeamIds.includes(team.id)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedTeamIds(prev =>
+                                                checked
+                                                    ? [...prev, team.id]
+                                                    : prev.filter(id => id !== team.id)
+                                            );
+                                        }}
+                                        className={cn(
+                                            "font-medium",
+                                            team.name.startsWith("AMA") && "text-dark-green font-bold"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            <span>{team.name}</span>
+                                            <Badge variant="outline" className="ml-2 text-[8px] font-black h-4 px-1">{team._count.members}</Badge>
+                                        </div>
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -337,7 +394,9 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
             <Card className="border-slate-100 shadow-xl rounded-3xl overflow-hidden bg-white">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <CardTitle className="text-xl font-black text-slate-800 tracking-tight">Cargabilidad {selectedTeamId !== 'all' ? teams.find(t => t.id === selectedTeamId)?.name : 'del Equipo'}</CardTitle>
+                        <CardTitle className="text-xl font-black text-slate-800 tracking-tight">
+                            Cargabilidad {selectedTeamIds.length === 0 ? 'Total' : 'Equipos Seleccionados'}
+                        </CardTitle>
                         <CardDescription className="text-xs font-medium">Esfuerzo total considerando tickets de Jira y tareas manuales asignadas.</CardDescription>
                     </div>
                     <div className="flex items-center gap-4 flex-wrap">
@@ -444,7 +503,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             {allMembers.flatMap(m => m.assignments.map((as: any) => ({ ...as, memberName: m.name, teamName: m.team?.name }))).length > 0 ? (
                                 allMembers.flatMap(m => m.assignments.map((as: any) => ({ ...as, memberName: m.name, teamName: m.team?.name })))
-                                    .filter(asig => selectedTeamId === 'all' || allMembers.find(m => m.id === asig.memberId)?.teamId === selectedTeamId)
+                                    .filter(asig => selectedTeamIds.length === 0 || (allMembers.find(m => m.id === asig.memberId)?.teamId && selectedTeamIds.includes(allMembers.find(m => m.id === asig.memberId)!.teamId!)))
                                     .map((asig: any) => (
                                         <div key={asig.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between group hover:border-indigo-200 transition-all shadow-sm">
                                             <div className="flex items-center gap-4">
