@@ -1000,7 +1000,7 @@
         },
         "CONTRACT_TYPE": {
             "B": "Bolsa de Horas",
-            "BD": "BD (Bolsa + Días)",
+            "BD": "BAJO DEMANDA",
             "E": "Eventos"
         }
     }

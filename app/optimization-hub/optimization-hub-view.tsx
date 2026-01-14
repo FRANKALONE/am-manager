@@ -23,7 +23,8 @@ import {
     Zap,
     Clock,
     CheckCircle2,
-    Send
+    Send,
+    Brain
 } from "lucide-react";
 import { getDashboardClients, getClientOptimizationMetrics } from "@/app/actions/dashboard";
 import { generateProposalAction, generateAnalysisRequestAction } from "@/app/actions/proposals";

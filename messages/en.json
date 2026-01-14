@@ -998,7 +998,7 @@
         },
         "CONTRACT_TYPE": {
             "B": "Hours Package",
-            "BD": "BD (Package + Days)",
+            "BD": "ON DEMAND",
             "E": "Events"
         }
     }
