@@ -1,10 +1,10 @@
 // lib/ama-evolutivos/jira.ts
 // Cliente JIRA específico para el módulo AMA Evolutivos
+// Busca en TODOS los proyectos de tipo Service Desk
 
-const JIRA_DOMAIN = process.env.NEXT_PUBLIC_JIRA_DOMAIN || process.env.JIRA_DOMAIN || '';
-const JIRA_EMAIL = process.env.JIRA_EMAIL || '';
+const JIRA_DOMAIN = process.env.JIRA_URL || process.env.JIRA_DOMAIN || '';
+const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
-const JIRA_PROJECT_KEY = process.env.AMA_JIRA_PROJECT_KEY || 'AMA';
 const EVOLUTIVO_TYPE = process.env.AMA_EVOLUTIVO_TYPE || 'Epic';
 const HITO_TYPE = process.env.AMA_HITO_TYPE || 'Story';
 
@@ -61,13 +61,15 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 }
 
 export async function getEvolutivos(): Promise<any[]> {
-    const jql = `project = "${JIRA_PROJECT_KEY}" AND type = "${EVOLUTIVO_TYPE}" ORDER BY created DESC`;
+    // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
+    const jql = `type = "${EVOLUTIVO_TYPE}" AND project.type = "service_desk" ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
             'summary',
             'status',
             'assignee',
+            'project',
             'customfield_10014', // Epic Link / Parent
             'timeoriginalestimate',
             'timespent',
@@ -83,7 +85,8 @@ export async function getEvolutivos(): Promise<any[]> {
 }
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
-    let jql = `project = "${JIRA_PROJECT_KEY}" AND type = "${HITO_TYPE}"`;
+    // Buscar en TODOS los proyectos de tipo Service Desk
+    let jql = `type = "${HITO_TYPE}" AND project.type = "service_desk"`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
@@ -98,6 +101,7 @@ export async function getHitos(evolutivoKey?: string): Promise<any[]> {
             'duedate',
             'assignee',
             'parent',
+            'project',
             'created',
             'updated',
         ]);

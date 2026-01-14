@@ -1,1 +1,8 @@
-{}
+{
+    "crons": [
+        {
+            "path": "/api/ama-evolutivos/sync-daily",
+            "schedule": "0 2 * * *"
+        }
+    ]
+}

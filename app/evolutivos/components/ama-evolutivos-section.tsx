@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Layers, AlertTriangle, Calendar, Clock, ListTodo, User, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Layers, AlertTriangle, Calendar, Clock, ListTodo, User, AlertCircle, ArrowUpRight, Save, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -15,6 +15,8 @@ export function AMAEvolutivosSection() {
     const [error, setError] = useState('');
     const [evolutivosList, setEvolutivosList] = useState<JiraIssue[]>([]);
     const [selectedManager, setSelectedManager] = useState<string>('');
+    const [syncing, setSyncing] = useState(false);
+    const [syncSuccess, setSyncSuccess] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
@@ -55,6 +57,32 @@ export function AMAEvolutivosSection() {
         }
         fetchEvolutivos();
     }, []);
+
+    const handleSyncDaily = async () => {
+        setSyncing(true);
+        setSyncSuccess(false);
+        try {
+            const res = await fetch('/api/ama-evolutivos/sync-daily', {
+                method: 'POST',
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                setSyncSuccess(true);
+                console.log('Daily metric saved:', result);
+
+                // Reset success message after 3 seconds
+                setTimeout(() => setSyncSuccess(false), 3000);
+            } else {
+                throw new Error('Error saving daily metric');
+            }
+        } catch (error) {
+            console.error('Error syncing daily:', error);
+            alert('Error al guardar métrica diaria');
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const getFilteredEvolutivosStats = () => {
         let list = evolutivosList;
@@ -145,14 +173,15 @@ export function AMAEvolutivosSection() {
                     <p className="text-gray-600 mt-1 ml-4">Gestión y seguimiento de evolutivos del proyecto AMA</p>
                 </div>
 
-                {/* Manager Filter */}
-                <div className="ml-4">
+                {/* Manager Filter and Sync Button */}
+                <div className="flex items-center gap-3 ml-4">
                     <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 transition-all">
                         <User className="w-5 h-5 text-blue-600" />
                         <select
                             className="bg-transparent font-medium text-gray-700 outline-none cursor-pointer pr-2"
                             value={selectedManager}
                             onChange={(e) => setSelectedManager(e.target.value)}
+                            title="Filtrar por gestor"
                         >
                             <option value="">Todos los Gestores</option>
                             <option value="unassigned">⚠️ Sin asignar</option>
@@ -161,6 +190,33 @@ export function AMAEvolutivosSection() {
                             ))}
                         </select>
                     </div>
+
+                    {/* Manual Sync Button */}
+                    <button
+                        onClick={handleSyncDaily}
+                        disabled={syncing}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border font-medium text-sm transition-all ${syncSuccess
+                                ? 'bg-green-50 border-green-200 text-green-700'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                            } ${syncing ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow'}`}
+                    >
+                        {syncing ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                Guardando...
+                            </>
+                        ) : syncSuccess ? (
+                            <>
+                                <CheckCircle className="w-4 h-4" />
+                                Guardado
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" />
+                                Guardar Métrica Hoy
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
