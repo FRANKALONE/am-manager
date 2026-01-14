@@ -2,7 +2,7 @@
 // Cliente JIRA específico para el módulo AMA Evolutivos
 // Busca en TODOS los proyectos de tipo Service Desk
 
-const JIRA_DOMAIN = process.env.JIRA_URL || process.env.JIRA_DOMAIN || '';
+const JIRA_DOMAIN = (process.env.JIRA_URL || process.env.JIRA_DOMAIN || '').replace(/\/$/, '');
 const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
 const EVOLUTIVO_TYPE = process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo';
@@ -63,7 +63,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
 export async function getEvolutivos(): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
-    const jql = `type = "${EVOLUTIVO_TYPE}" AND project.type = "service_desk" ORDER BY created DESC`;
+    const jql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -88,7 +88,7 @@ export async function getEvolutivos(): Promise<any[]> {
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk
-    let jql = `type = "${HITO_TYPE}" AND project.type = "service_desk"`;
+    let jql = `type = "${HITO_TYPE}" AND projectType = "service_desk"`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
