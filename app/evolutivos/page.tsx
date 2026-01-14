@@ -4,6 +4,7 @@ import { getCurrentUser, getAuthSession, hasPermission } from "@/lib/auth";
 import { getClientsWithEvolutivos, getEvolutivosByClient } from "@/app/actions/evolutivos";
 import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
+import { AMAEvolutivosSection } from "./components/ama-evolutivos-section";
 
 export default async function EvolutivosPage() {
     const user = await getCurrentUser();
@@ -45,6 +46,13 @@ export default async function EvolutivosPage() {
                     initialClientId={initialClientId}
                     permissions={session.permissions}
                 />
+
+                {/* AMA Evolutivos Section - ADMIN Only */}
+                {isAdmin && (
+                    <div className="mt-16 pt-8 border-t-4 border-blue-200">
+                        <AMAEvolutivosSection />
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -122,6 +122,9 @@ model User {
   createdLandings   TemporaryLanding[] @relation("LandingCreator")
   landingViews      LandingView[] @relation("LandingViews")
 
+  // AMA Evolutivos Module
+  linkedEvolUser    EVOLEvolutivoUser?
+
   @@index([locale])
 }
 
@@ -545,4 +548,34 @@ model CapacityAssignment {
 
   @@index([memberId])
   @@index([startDate, endDate])
+}
+
+// ============================================
+// MÓDULO: Control AMA Evolutivos (Prefijo: EVOL)
+// ============================================
+
+model EVOLDailyMetric {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique
+  count     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EVOLEvolutivoUser {
+  id                 Int      @id @default(autoincrement())
+  email              String   @unique
+  password           String
+  name               String?
+  role               String   @default("USER") // "ADMIN" | "USER"
+  avatar             String?
+  jiraGestorName     String?
+  mustChangePassword Boolean  @default(false)
+  lastLogin          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Relación opcional con usuarios principales de Manager AM
+  linkedUserId       String?  @unique
+  linkedUser         User?    @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
 }
