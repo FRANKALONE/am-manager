@@ -226,7 +226,7 @@ export async function getTeamWorkload() {
             }
         });
 
-        // 3. Obtener datos precisos de Jira
+        // 3. Obtener datos precisos de Jira y detectar soporte DES
         const ticketDetails = await Promise.all(activeTicketsDb.map(async (t: any) => {
             let hours = 0;
             let priorityValue = 2; // Medium
@@ -234,7 +234,7 @@ export async function getTeamWorkload() {
             let dueDate = t.dueDate;
 
             try {
-                const jiraData = await fetchJira(`/issue/${t.issueKey}?fields=timetracking,issuetype,summary,priority,duedate`);
+                const jiraData = await fetchJira(`/issue/${t.issueKey}?fields=timetracking,issuetype,summary,priority,duedate,customfield_10119,customfield_10120,customfield_10121`);
                 const tracking = jiraData?.fields?.timetracking;
                 const rem = tracking?.remainingEstimateSeconds || 0;
                 const spent = tracking?.timeSpentSeconds || 0;
@@ -257,12 +257,47 @@ export async function getTeamWorkload() {
                 if (jiraData?.fields?.priority?.name === 'Highest' || jiraData?.fields?.priority?.name === 'High') priorityValue = 1;
                 summary = jiraData?.fields?.summary || summary;
                 dueDate = jiraData?.fields?.duedate ? new Date(jiraData?.fields?.duedate) : dueDate;
+
+                // Check for "Responsable adicional" in common custom fields
+                // Try customfield_10119, customfield_10120, etc.
+                const hasAdditionalResponsible = !!(
+                    jiraData?.fields?.customfield_10119 ||
+                    jiraData?.fields?.customfield_10120
+                );
+
+                // Solo dividir carga si HAY un responsable adicional asignado
+                if (hasAdditionalResponsible) {
+                    needsDESSupport = true;
+                }
             } catch (e) {
                 console.error(`Error fetching Jira for ${t.issueKey}:`, e);
                 hours = t.originalEstimate || 4.0;
             }
 
-            return { key: t.issueKey, summary, hours, dueDate, priority: priorityValue };
+            // Detectar si este ticket necesita soporte DES
+            // Si el assignee es de AMA-FI o AMA-LO Y tiene responsable adicional, dividir la carga
+            const assigneeTeam = members.find((m: any) => m.name === member.name)?.team?.name;
+            const isConsultantTeam = assigneeTeam === 'AMA-FI' || assigneeTeam === 'AMA-LO';
+
+            let assigneeHours = hours;
+            let desSupportHours = 0;
+
+            if (needsDESSupport && hours > 0) {
+                // Ratio 70% assignee / 30% DES
+                assigneeHours = hours * 0.70;
+                desSupportHours = hours * 0.30;
+            }
+
+            return {
+                key: t.issueKey,
+                summary,
+                hours: assigneeHours,  // Horas ajustadas para el assignee
+                desSupportHours,       // Horas para distribuir en DES
+                totalHours: hours,     // Horas totales originales
+                dueDate,
+                priority: priorityValue,
+                needsDESSupport
+            };
         }));
 
         // Ordenar: Prioridad 1 primero, luego por DueDate
@@ -314,6 +349,115 @@ export async function getTeamWorkload() {
             })
         };
     }));
+
+    // SEGUNDA PASADA: Distribuir carga de soporte DES
+    // Recopilar todos los tickets con soporte DES
+    const allDESSupportTickets: { key: string; summary: string; hours: number; priority: number; dueDate: Date | null; assignedTo: string }[] = [];
+
+    for (const memberResult of workloadByMember) {
+        const memberData = members.find((m: any) => m.id === memberResult.id);
+        if (!memberData) continue;
+
+        const assigneeTeam = memberData.team?.name;
+        const needsDESSupport = assigneeTeam === 'AMA-FI' || assigneeTeam === 'AMA-LO';
+
+        if (needsDESSupport) {
+            // Buscar tickets activos de este miembro
+            const memberTickets = await (prisma as any).ticket.findMany({
+                where: {
+                    assignee: memberData.name,
+                    status: {
+                        notIn: [
+                            'Cerrado', 'Resuelto', 'Closed', 'Resolved', 'Finalizado', 'Done',
+                            'Propuesta de solución', 'Entregado en PRO', 'Enviado a Gerente', 'Enviado a Cliente'
+                        ]
+                    }
+                }
+            });
+
+            for (const ticket of memberTickets) {
+                try {
+                    const jiraData = await fetchJira(`/issue/${ticket.issueKey}?fields=timetracking,summary,priority,duedate`);
+                    const tracking = jiraData?.fields?.timetracking;
+                    let hours = 0;
+
+                    const rem = tracking?.remainingEstimateSeconds || 0;
+                    const spent = tracking?.timeSpentSeconds || 0;
+                    const orig = tracking?.originalEstimateSeconds || 0;
+
+                    if (rem > 0) hours = rem / 3600;
+                    else if (orig > 0) hours = Math.max(0, (orig - spent) / 3600);
+                    if (hours === 0) hours = ticket.originalEstimate || 4.0;
+
+                    const desSupportHours = hours * 0.30;
+
+                    if (desSupportHours > 0) {
+                        const priorityName = jiraData?.fields?.priority?.name || 'Medium';
+                        let priorityValue = 2;
+                        if (priorityName === 'Highest' || priorityName === 'High') priorityValue = 1;
+
+                        allDESSupportTickets.push({
+                            key: ticket.issueKey,
+                            summary: jiraData?.fields?.summary || ticket.issueSummary,
+                            hours: desSupportHours,
+                            dueDate: jiraData?.fields?.duedate ? new Date(jiraData?.fields?.duedate) : ticket.dueDate,
+                            priority: priorityValue,
+                            assignedTo: memberData.name
+                        });
+                    }
+                } catch (e) {
+                    // Silently skip if can't fetch
+                }
+            }
+        }
+    }
+
+    // Ordenar tickets DES por prioridad
+    allDESSupportTickets.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        if (a.dueDate && b.dueDate) return a.dueDate.getTime() - b.dueDate.getTime();
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+    });
+
+    // Distribuir entre miembros de AMA-DES
+    const desMembers = workloadByMember.filter(m => {
+        const memberData = members.find((mem: any) => mem.id === m.id);
+        return memberData?.team?.name === 'AMA-DES';
+    });
+
+    if (desMembers.length > 0 && allDESSupportTickets.length > 0) {
+        for (const desMember of desMembers) {
+            for (const desTicket of allDESSupportTickets) {
+                const sharePerMember = desTicket.hours / desMembers.length;
+                let remaining = sharePerMember;
+
+                for (const week of desMember.weeks as any[]) {
+                    if (remaining <= 0) break;
+                    const availableCap = (week.capacity || 40) - week.totalLoad;
+                    if (availableCap <= 0) continue;
+
+                    const consume = Math.min(availableCap, remaining);
+                    week.ticketHours += consume;
+                    week.totalLoad += consume;
+                    remaining -= consume;
+
+                    week.details.tickets.push({
+                        key: `${desTicket.key} (Soporte)`,
+                        summary: `[Soporte a ${desTicket.assignedTo}] ${desTicket.summary}`,
+                        hours: consume,
+                        isDESSupport: true
+                    });
+                }
+            }
+
+            // Recalcular utilización
+            for (const week of desMember.weeks as any[]) {
+                week.utilization = Math.round((week.totalLoad / desMember.capacity) * 100);
+            }
+        }
+    }
 
     return {
         weeks: weeks.map(w => ({ start: w.start, end: w.end })),

@@ -127,7 +127,6 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                     initialWpId={selectedWP.id}
                     readOnly={true}
                     isAdmin={isAdmin}
-                    isPremium={user.isPremium || false}
                 />
             </div>
         );

@@ -1606,8 +1606,52 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             .sort((a, b) => b.riskScore - a.riskScore)
             .filter(r => r.totalCount >= 2); // Only significant modules
 
-        // 9. Recommendation Engine (Logic-based)
+        // 9. Repetitive Incident Detection
+        const summaryGroups: Record<string, { count: number; totalHours: number; items: any[] }> = {};
+        periodTickets.forEach(t => {
+            // Basic normalization: lowercase, remove ticket keys and common prefixes
+            const normalized = (t.issueSummary || '')
+                .toLowerCase()
+                .replace(/\[.*?\]/g, '') // remove brackets
+                .replace(/[a-z]+-\d+/g, '') // remove issue keys
+                .trim();
+
+            if (normalized.length < 10) return; // Ignore very short summaries
+
+            if (!summaryGroups[normalized]) {
+                summaryGroups[normalized] = { count: 0, totalHours: 0, items: [] };
+            }
+            summaryGroups[normalized].count++;
+
+            // Try to find matching worklogs for this ticket to get hours
+            const ticketWorklogs = wp.worklogDetails.filter(w => w.issueKey === t.issueKey);
+            const ticketHours = ticketWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+
+            summaryGroups[normalized].totalHours += ticketHours;
+            summaryGroups[normalized].items.push(t);
+        });
+
+        const repetitiveIssues = Object.entries(summaryGroups)
+            .filter(([_, data]) => data.count >= 2) // At least 2 similar tickets
+            .map(([summary, data]) => ({
+                summary: data.items[0].issueSummary, // Use first original summary
+                normalized: summary,
+                count: data.count,
+                totalHours: data.totalHours,
+                avgHours: data.totalHours / data.count,
+                component: data.items[0].component || 'Varios'
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        // 10. Recommendation Engine (Enhanced with Repetitive Data)
         const recommendations: string[] = [];
+
+        // Check repetitive issues
+        if (repetitiveIssues.length > 0) {
+            const top = repetitiveIssues[0];
+            recommendations.push(`Detector de redundancia: se han identificado ${top.count} incidencias similares relacionadas con '${top.summary}'. Resolver la causa raíz podría liberar ~${top.totalHours.toFixed(1)}h.`);
+        }
 
         // Check stability trend
         if (stabilityTrend.length >= 2) {
@@ -1690,7 +1734,7 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             riskRadar: riskRadar.slice(0, 5),
             recommendations: recommendations.length > 0 ? recommendations : ["El servicio se mantiene en parámetros estables. No se detectan anomalías críticas en la distribución de la demanda."],
             isPremium: wp.validityPeriods[0]?.isPremium || false,
-            // 10. Historical Averages for Forecasting
+            // 11. Historical Averages for Forecasting
             avgHoursByType: {
                 corrective: parseFloat((wp.worklogDetails
                     .filter((w: any) => (w.issueType || '').toLowerCase().includes('incidencia') || (w.issueType || '').toLowerCase().includes('correctivo'))
@@ -1705,7 +1749,8 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                     .reduce((sum: number, w: any) => sum + w.timeSpentHours, 0) /
                     (wp.tickets.filter(t => (t.issueType || '').toLowerCase().includes('evolutivo')).length || 1)).toFixed(1)),
                 iaas: (wp as any).hasIaasService ? 1.0 : 0 // Constant factor if IAAS is active
-            }
+            },
+            optimizationOpportunities: repetitiveIssues
         };
 
     } catch (error) {
@@ -1713,4 +1758,5 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
         return null;
     }
 }
+
 

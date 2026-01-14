@@ -34,8 +34,7 @@ export function DashboardView({
     initialClientId = "",
     initialWpId = "",
     readOnly = false,
-    isAdmin = false,
-    isPremium = false
+    isAdmin = false
 }: {
     clients: { id: string, name: string }[],
     permissions: Record<string, boolean>,
@@ -43,8 +42,7 @@ export function DashboardView({
     initialClientId?: string,
     initialWpId?: string,
     readOnly?: boolean,
-    isAdmin?: boolean,
-    isPremium?: boolean
+    isAdmin?: boolean
 }) {
     const { t, locale } = useTranslations();
     const [selectedClient, setSelectedClient] = useState<string>(initialClientId);
@@ -411,7 +409,7 @@ export function DashboardView({
                                     : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
-                                <Brain className={`w-4 h-4 ${isPremium ? 'text-primary' : 'text-slate-400'}`} />
+                                <Brain className="w-4 h-4 text-primary" />
                                 {t('dashboard.intelligence.title')}
                             </button>
                         )}
@@ -555,7 +553,6 @@ export function DashboardView({
                                                             scopeUnit={metrics.scopeUnit}
                                                             isEventos={metrics.isEventos || false}
                                                             permissions={permissions}
-                                                            isPremium={isPremium}
                                                             isAdmin={isAdmin}
                                                             selectedWorklogs={selectedWorklogs}
                                                             onWorklogSelect={handleWorklogSelect}
@@ -607,7 +604,7 @@ export function DashboardView({
                             <ServiceIntelligence
                                 wpId={selectedWp}
                                 selectedPeriodId={selectedPeriodId}
-                                isPremium={isPremium}
+                                permissions={permissions}
                             />
                         </div>
                     )}

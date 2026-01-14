@@ -34,6 +34,7 @@
     },
     "auth": {
         "login": "Login",
+        "loggingIn": "Signing in...",
         "logout": "Logout",
         "email": "Email",
         "password": "Password",

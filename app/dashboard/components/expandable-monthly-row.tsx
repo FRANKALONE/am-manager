@@ -15,7 +15,6 @@ interface MonthlyRowProps {
     scopeUnit?: string;
     isEventos?: boolean;
     permissions: Record<string, boolean>;
-    isPremium?: boolean;
     isAdmin?: boolean;
     selectedWorklogs: any[];
     onWorklogSelect: (worklog: any, isSelected: boolean) => void;
@@ -29,7 +28,6 @@ export function ExpandableMonthlyRow({
     scopeUnit = 'HORAS',
     isEventos = false,
     permissions,
-    isPremium = false,
     isAdmin = false,
     selectedWorklogs,
     onWorklogSelect,
@@ -362,7 +360,7 @@ export function ExpandableMonthlyRow({
 
                                                                     {isTicketExpanded && (
                                                                         <div className="p-3 bg-card animate-in fade-in slide-in-from-top-1 duration-200">
-                                                                            {permissions.request_review && isPremium && worklogs.some((w: any) => selectedWorklogs.some(sw => sw.id === w.id)) && (
+                                                                            {permissions.request_review && worklogs.some((w: any) => selectedWorklogs.some(sw => sw.id === w.id)) && (
                                                                                 <div className="flex justify-start mb-2">
                                                                                     <Button
                                                                                         size="sm"
@@ -382,7 +380,7 @@ export function ExpandableMonthlyRow({
                                                                             <table className="w-full text-xs border-collapse">
                                                                                 <thead className="bg-muted/50">
                                                                                     <tr className="border-b">
-                                                                                        {permissions.request_review && isPremium && <th className="p-2 w-8"></th>}
+                                                                                        {permissions.request_review && <th className="p-2 w-8"></th>}
                                                                                         <th className="p-2 text-left">{t('dashboard.details.date')}</th>
                                                                                         {!worklogs[0]?.tipoImputacion?.includes('Evolutivo') && <th className="p-2 text-left">{t('dashboard.details.author')}</th>}
                                                                                         <th className="p-2 text-left">{t('dashboard.details.imputationType')}</th>
@@ -398,7 +396,7 @@ export function ExpandableMonthlyRow({
                                                                                         const isRefunded = w.isRefunded || false;
                                                                                         return (
                                                                                             <tr key={i} className={`border-b last:border-0 ${isSelected ? 'bg-primary/5' : ''} ${isClaimed ? 'bg-orange-50/50' : ''} ${isRefunded ? 'bg-red-50/30' : ''}`}>
-                                                                                                {permissions.request_review && isPremium && (
+                                                                                                {permissions.request_review && (
                                                                                                     <td className="p-2 text-center text-xs">
                                                                                                         <input
                                                                                                             type="checkbox"

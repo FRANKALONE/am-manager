@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useFormState, useFormStatus } from "react-dom";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,37 @@ import Link from "next/link";
 import { authenticate } from "@/app/actions/users";
 import { LanguageSelector } from "./components/language-selector";
 import { useTranslations } from "@/lib/use-translations";
+import { Loader2 } from "lucide-react";
 
 const initialState = {
     error: "",
     redirect: ""
 };
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    const { t } = useTranslations();
+
+    return (
+        <Button
+            type="submit"
+            className={`w-full transition-all duration-300 ${pending
+                    ? 'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/50 scale-[1.02]'
+                    : 'bg-malachite hover:bg-jade'
+                }`}
+            disabled={pending}
+        >
+            {pending ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('auth.loggingIn')}
+                </>
+            ) : (
+                t('auth.login')
+            )}
+        </Button>
+    );
+}
 
 export default function LoginPage() {
     const router = useRouter();
@@ -52,7 +78,7 @@ export default function LoginPage() {
                 <CardContent>
                     <form action={formAction} className="space-y-4">
                         {state?.error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm animate-in fade-in slide-in-from-top-1 duration-200">
                                 {state.error}
                             </div>
                         )}
@@ -90,9 +116,7 @@ export default function LoginPage() {
                         <div className="space-y-3">
                             <LanguageSelector />
 
-                            <Button type="submit" className="w-full bg-malachite hover:bg-jade transition-colors">
-                                {t('auth.login')}
-                            </Button>
+                            <SubmitButton />
                         </div>
                     </form>
 
