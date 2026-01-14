@@ -141,6 +141,7 @@ export function AMAEvolutivosSection() {
                         <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
                         Control AMA Evolutivos
                     </h2>
+                    <p className="text-sm text-gray-500 mt-1 ml-4 italic">Control de evolutivos de AM</p>
                     <p className="text-gray-600 mt-1 ml-4">Gestión y seguimiento de evolutivos del proyecto AMA</p>
                 </div>
 
