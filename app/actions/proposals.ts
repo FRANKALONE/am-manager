@@ -11,6 +11,38 @@ export async function generateProposalAction(clientId: string, type: string, ins
 
         if (!client) throw new Error("Cliente no encontrado");
 
+        // --- SPECIFIC RECOMMENDATION ENGINE ---
+        const getRecommendations = (cat: string) => {
+            if (cat.includes('Finanzas')) return [
+                "• Automatización de conciliación bancaria mediante algoritmos de casación estándar.",
+                "• Optimización del cockpit de cierre contable para reducir tiempos de ejecución.",
+                "• Implementación de validaciones en tiempo real para reducir errores en asientos manuales."
+            ];
+            if (cat.includes('Logística')) return [
+                "• Revisión del maestro de materiales para asegurar integridad de datos y procesos de reaprovisionamiento.",
+                "• Optimización de la gestión de stocks mediante estrategias de picking y ubicación avanzadas.",
+                "• Automatización de la verificación de facturas logísticas para reducir discrepancias."
+            ];
+            if (cat.includes('Producción')) return [
+                "• Implementación de grafos y hojas de ruta optimizadas para mejorar la planificación de capacidad.",
+                "• Integración de plantas mediante terminales de captura de datos en tiempo real.",
+                "• Revisión de controles de calidad integrados en el flujo de materiales."
+            ];
+            if (cat.includes('Tecnología') || cat.includes('BTP')) return [
+                "• Migración de transacciones críticas a SAP Fiori para mejorar la experiencia de usuario y productividad.",
+                "• Análisis de rendimiento ABAP y optimización de jobs de fondo recurrentes.",
+                "• Revisión de la arquitectura de integraciones mediante SAP Integration Suite."
+            ];
+            // Default
+            return [
+                "• Auditoría de procesos: Revisión detallada de los flujos funcionales detectados.",
+                "• Corrección técnica / Evolutivo: Implementación de mejoras para prevenir errores recurrentes.",
+                "• Formación a Usuarios: Capacitación focalizada para reducir consultas operativas."
+            ];
+        };
+
+        const recs = getRecommendations(type);
+
         const doc = new Document({
             sections: [
                 {
@@ -146,7 +178,7 @@ export async function generateProposalAction(clientId: string, type: string, ins
                         }),
                         ...(insightData.sampleTickets || []).map((t: any) =>
                             new Paragraph({
-                                text: `• [${t.key}] ${t.summary} (${new Date(t.date).toLocaleDateString()} )`,
+                                text: `• [${t.key}] ${t.summary} (${t.date}) `,
                                 spacing: { after: 100 }
                             })
                         ),
@@ -158,12 +190,10 @@ export async function generateProposalAction(clientId: string, type: string, ins
                             spacing: { before: 500, after: 300 }
                         }),
                         new Paragraph({
-                            text: "Para mitigar este ruido operativo, se proponen las siguientes líneas de actuación:",
+                            text: "Para optimizar el servicio en este área, Altim propone seguir las mejores prácticas de SAP mediante:",
                             spacing: { after: 200 }
                         }),
-                        new Paragraph({ text: "• Auditoría de procesos: [DETALLAR AQUÍ PASOS ESPECÍFICOS]", spacing: { before: 100 } }),
-                        new Paragraph({ text: "• Corrección técnica / Evolutivo: Implementación de mejoras en los componentes detectados para automatizar o prevenir estos errores." }),
-                        new Paragraph({ text: "• Formación a Usuarios: Si el ruido es funcional, realizar una sesión de capacitación para reducir el volumen de consultas." }),
+                        ...recs.map(r => new Paragraph({ text: r, spacing: { before: 100 } })),
 
                         // --- SECTION 4: ROI ---
                         new Paragraph({
@@ -180,7 +210,7 @@ export async function generateProposalAction(clientId: string, type: string, ins
                             ]
                         }),
                         new Paragraph({
-                            text: `Potencial de liberación de capacidad: ~${(insightData.hours * 0.5).toFixed(0)} - ${(insightData.hours * 0.7).toFixed(0)} horas anuales que podrán reinvertirse en proyectos de innovación sin aumentar el presupuesto de mantenimiento.`
+                            text: `Potencial de liberación de capacidad: ~${(insightData.hours * 0.4).toFixed(0)} - ${(insightData.hours * 0.6).toFixed(0)} horas anuales que podrán reinvertirse en proyectos de innovación sin aumentar el presupuesto total.`
                         }),
 
                         new Paragraph({
@@ -193,7 +223,7 @@ export async function generateProposalAction(clientId: string, type: string, ins
                                     italics: true
                                 }),
                                 new TextRun({
-                                    text: "Altim AM Manager Advisor V1.0",
+                                    text: "Altim AM Manager Advisor V1.1",
                                     size: 14,
                                     bold: true,
                                     italics: true
@@ -213,6 +243,89 @@ export async function generateProposalAction(clientId: string, type: string, ins
         };
     } catch (error: any) {
         console.error("Error generating Word proposal:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function generateAnalysisRequestAction(clientId: string, type: string, insightData: any) {
+    try {
+        const client = await prisma.client.findUnique({
+            where: { id: clientId }
+        });
+
+        if (!client) throw new Error("Cliente no encontrado");
+
+        const doc = new Document({
+            sections: [
+                {
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            text: "SOLICITUD DE ANÁLISIS TÉCNICO-FUNCIONAL",
+                            heading: HeadingLevel.HEADING_1,
+                            alignment: AlignmentType.CENTER,
+                            spacing: { before: 1000, after: 500 }
+                        }),
+                        new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            children: [
+                                new TextRun({ text: `Cliente: ${client.name}`, bold: true }),
+                                new TextRun({ text: ` | Área: ${type}`, italics: true })
+                            ]
+                        }),
+                        new Paragraph({
+                            text: "PARA: Equipo de Consultoría / SAP Director",
+                            spacing: { before: 500, after: 500 }
+                        }),
+                        new Paragraph({
+                            text: "1. Justificación del Sistema (Manager Advisor)",
+                            heading: HeadingLevel.HEADING_2,
+                            spacing: { after: 200 }
+                        }),
+                        new Paragraph({
+                            text: insightData.justification,
+                            spacing: { after: 300 }
+                        }),
+                        new Paragraph({
+                            text: `Evidencia técnica: ${insightData.count} tickets detectados sumando ${insightData.hours} horas de carga operativa.`,
+                            spacing: { after: 200 }
+                        }),
+                        new Paragraph({
+                            text: "2. Casuística de ejemplo",
+                            heading: HeadingLevel.HEADING_2,
+                            spacing: { after: 200 }
+                        }),
+                        ...(insightData.sampleTickets || []).map((t: any) =>
+                            new Paragraph({
+                                text: `• [${t.key}] ${t.summary} (${t.date})`,
+                                spacing: { after: 100 }
+                            })
+                        ),
+                        new Paragraph({
+                            text: "3. Análisis del Consultor (Espacio para completar)",
+                            heading: HeadingLevel.HEADING_2,
+                            spacing: { before: 500, after: 1000 }
+                        }),
+                        new Paragraph({ text: "____________________________________________________________________________" }),
+                        new Paragraph({ text: "____________________________________________________________________________" }),
+                        new Paragraph({ text: "____________________________________________________________________________" })
+                    ]
+                }
+            ]
+        });
+
+        const b64 = await Packer.toBase64String(doc);
+
+        // Trigger notification to manager/consultants
+        await notifyProposalRequestAction(clientId, `ANÁLISIS TÉCNICO: ${type}`, insightData);
+
+        return {
+            success: true,
+            data: b64,
+            filename: `Solicitud_Análisis_${client.name.replace(/\s+/g, '_')}_${type.replace(/\s+/g, '_')}.docx`
+        };
+    } catch (error: any) {
+        console.error("Error generating analysis request:", error);
         return { success: false, error: error.message };
     }
 }

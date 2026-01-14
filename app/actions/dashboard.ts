@@ -1872,21 +1872,36 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
             startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
         }
 
-        // Aggregate tickets and worklogs from all WPs
+        // Aggregate tickets and worklogs from all WPs using Maps for performance
         const allTickets: any[] = [];
-        const allWorklogs: any[] = [];
+        const worklogsByTicket: Record<string, any[]> = {};
+
+        // Filter for user errors (keywords that indicate the ticket shouldn't be analyzed)
+        const errorKeywords = ['borrar', 'error de usuario', 'creado por error', 'anulado por error', 'test', 'prueba'];
 
         client.workPackages.forEach(wp => {
+            // Index worklogs by issueKey for O(1) lookup
+            wp.worklogDetails.forEach(w => {
+                if (w.issueKey) {
+                    if (!worklogsByTicket[w.issueKey]) worklogsByTicket[w.issueKey] = [];
+                    worklogsByTicket[w.issueKey].push(w);
+                }
+            });
+
             wp.tickets.forEach(t => {
                 const d = new Date(t.createdDate);
                 if (d >= startDate) {
-                    allTickets.push(t);
-                    // Match worklogs for this ticket
-                    const tWorklogs = wp.worklogDetails.filter(w => w.issueKey === t.issueKey);
-                    allWorklogs.push(...tWorklogs);
+                    const summaryLower = t.issueSummary.toLowerCase();
+                    const isUserError = errorKeywords.some(k => summaryLower.includes(k));
+
+                    if (!isUserError) {
+                        allTickets.push(t);
+                    }
                 }
             });
         });
+
+        const allWorklogs = allTickets.flatMap(t => worklogsByTicket[t.issueKey] || []);
 
         // 1. Repetitive Issues (Top 5)
         const issueGroups: Record<string, { summary: string; component: string; count: number; totalHours: number }> = {};
@@ -1896,23 +1911,26 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
                 issueGroups[key] = { summary: t.issueSummary, component: t.component || 'General', count: 0, totalHours: 0 };
             }
             issueGroups[key].count++;
-            const tWorklogs = allWorklogs.filter(w => w.issueKey === t.issueKey);
+            const tWorklogs = worklogsByTicket[t.issueKey] || [];
             issueGroups[key].totalHours += tWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
         });
 
         const repetitiveIssues = Object.values(issueGroups)
-            .filter(g => g.count >= 2)
+            .filter(g => g.count >= 2 && g.totalHours >= 50) // 50h Threshold
             .sort((a, b) => b.totalHours - a.totalHours)
             .map(g => {
-                // Find sample tickets for justification
                 const samples = allTickets
                     .filter(t => t.issueSummary === g.summary && (t.component || 'General') === g.component)
                     .slice(0, 5)
-                    .map(t => ({ key: t.issueKey, summary: t.issueSummary, date: t.createdDate }));
+                    .map(t => ({
+                        key: t.issueKey,
+                        summary: t.issueSummary,
+                        date: new Date(t.createdDate).toLocaleDateString('es-ES') // Format date early
+                    }));
 
                 return {
                     ...g,
-                    justification: `Se han detectado ${g.count} incidencias recurrentes con el patrón "${g.summary}" en el módulo ${g.component}, acumulando un total de ${g.totalHours.toFixed(1)} horas de soporte. Esta recurrencia sugiere una oportunidad de mejora en el proceso o una necesidad de corrección definitiva en el sistema.`,
+                    justification: `Se han detectado ${g.count} incidencias recurrentes con el patrón "${g.summary}" en el módulo ${g.component}, acumulando ${g.totalHours.toFixed(1)} horas. Esta recurrencia sugiere una oportunidad de mejora estructural o automatización para liberar esta capacidad operativa.`,
                     sampleTickets: samples
                 };
             })
@@ -1952,7 +1970,7 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
                         moduleCounts[category] = { count: 0, hours: 0, subModules: new Set(), sampleKeys: new Set() };
                     }
                     moduleCounts[category].count++;
-                    const tWorklogs = allWorklogs.filter(w => w.issueKey === t.issueKey);
+                    const tWorklogs = worklogsByTicket[t.issueKey] || [];
                     moduleCounts[category].hours += tWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
                     if (moduleCounts[category].sampleKeys.size < 5) {
                         moduleCounts[category].sampleKeys.add(t.issueKey);
@@ -1965,10 +1983,15 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
         });
 
         const sapEvolution = Object.entries(moduleCounts)
+            .filter(([_, data]) => data.hours >= 50) // 50h Threshold
             .map(([name, data]) => {
                 const samples = allTickets
                     .filter(t => data.sampleKeys.has(t.issueKey))
-                    .map(t => ({ key: t.issueKey, summary: t.issueSummary, date: t.createdDate }));
+                    .map(t => ({
+                        key: t.issueKey,
+                        summary: t.issueSummary,
+                        date: new Date(t.createdDate).toLocaleDateString('es-ES')
+                    }));
 
                 const mainModule = data.subModules.size > 0 ? Array.from(data.subModules)[0] : name;
 
@@ -1978,7 +2001,7 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
                     hours: Math.round(data.hours),
                     subModules: Array.from(data.subModules),
                     score: (data.hours * 0.7) + (data.count * 0.3),
-                    justification: `El motor de análisis ha identificado una carga operativa significativa en ${name} (${data.hours.toFixed(1)}h repartidas en ${data.count} tickets). La alta frecuencia de consultas o errores en este ámbito justifica proponer una evolución hacia módulos estándar como ${mainModule} o una optimización de los procesos actuales para liberar esta capacidad.`,
+                    justification: `El motor de análisis ha identificado una carga operativa significativa en ${name} (${data.hours.toFixed(1)}h). Se aconseja evaluar la implementación de mejoras en ${mainModule} para optimizar el servicio y reducir los costes recurrentes.`,
                     sampleTickets: samples
                 };
             })
@@ -1989,7 +2012,7 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
         const totalResolved = allTickets.length;
         const totalHours = allWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
 
-        // Data sufficiency check: min 15 tickets and 30 hours for robust analysis
+        // Data sufficiency check: min 15 tickets and 30 hours
         const isSufficient = totalResolved >= 15 && totalHours >= 30;
 
         return {
