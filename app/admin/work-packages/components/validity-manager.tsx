@@ -363,13 +363,11 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                     <div className="space-y-1">
                                                         <Input type="number" step="0.01" value={data.rate} onChange={e => setEditPeriod({ ...editPeriod, rate: parseFloat(e.target.value) })} className="text-xs h-7" placeholder={t('workPackages.validity.rate')} />
                                                         <Input type="number" step="0.01" value={data.rateEvolutivo || ""} onChange={e => setEditPeriod({ ...editPeriod, rateEvolutivo: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder={t('workPackages.validity.rateEvolutivo')} />
-                                                        <Input type="number" step="0.01" value={data.correctionFactor} onChange={e => setEditPeriod({ ...editPeriod, correctionFactor: parseFloat(e.target.value) })} className="text-xs h-7" placeholder="Factor" />
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
                                                         <div>{t('workPackages.validity.rate')}: {data.rate} €/h</div>
                                                         {data.rateEvolutivo && <div className="text-green-600 font-medium">{t('workPackages.validity.rateEvolutivo')}: {data.rateEvolutivo} €/h</div>}
-                                                        <div className="text-muted-foreground">x{data.correctionFactor}</div>
                                                     </div>
                                                 )}
                                             </td>

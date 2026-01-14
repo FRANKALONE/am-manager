@@ -63,7 +63,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
 export async function getEvolutivos(): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
-    const jql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" ORDER BY created DESC`;
+    const jql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done") ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -88,7 +88,7 @@ export async function getEvolutivos(): Promise<any[]> {
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk
-    let jql = `type = "${HITO_TYPE}" AND projectType = "service_desk"`;
+    let jql = `type = "${HITO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done")`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
