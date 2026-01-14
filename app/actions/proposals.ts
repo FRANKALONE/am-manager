@@ -4,12 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
 
 export async function generateProposalAction(clientId: string, type: string, insightData: any) {
+    console.log('[PROPOSAL-SERVER] Starting generation:', { clientId, type, sampleTickets: insightData.sampleTickets?.length });
+
     try {
         const client = await prisma.client.findUnique({
             where: { id: clientId }
         });
 
         if (!client) throw new Error("Cliente no encontrado");
+
+        console.log('[PROPOSAL-SERVER] Client found:', client.name);
 
         // --- SPECIFIC RECOMMENDATION ENGINE ---
         const getRecommendations = (cat: string) => {
@@ -42,6 +46,8 @@ export async function generateProposalAction(clientId: string, type: string, ins
         };
 
         const recs = getRecommendations(type);
+
+        console.log('[PROPOSAL-SERVER] Creating document...');
 
         const doc = new Document({
             sections: [
@@ -176,7 +182,8 @@ export async function generateProposalAction(clientId: string, type: string, ins
                             ],
                             spacing: { before: 300, after: 200 }
                         }),
-                        ...(insightData.sampleTickets || []).map((t: any) =>
+                        // Limit to max 5 tickets to prevent document overflow
+                        ...(insightData.sampleTickets || []).slice(0, 5).map((t: any) =>
                             new Paragraph({
                                 text: `• [${t.key}] ${t.summary} (${t.date}) `,
                                 spacing: { after: 100 }
@@ -235,14 +242,17 @@ export async function generateProposalAction(clientId: string, type: string, ins
             ]
         });
 
+        console.log('[PROPOSAL-SERVER] Document created, converting to base64...');
         const b64 = await Packer.toBase64String(doc);
+        console.log('[PROPOSAL-SERVER] Base64 conversion complete, size:', b64.length);
+
         return {
             success: true,
             data: b64,
             filename: `Propuesta_Optimizacion_${client.name.replace(/\s+/g, '_')}_${type.replace(/\s+/g, '_')}.docx`
         };
     } catch (error: any) {
-        console.error("Error generating Word proposal:", error);
+        console.error("[PROPOSAL-SERVER] Error generating Word proposal:", error);
         return { success: false, error: error.message };
     }
 }

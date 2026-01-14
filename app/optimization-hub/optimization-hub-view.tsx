@@ -94,19 +94,27 @@ export default function OptimizationHubView({ clients: initialClients, permissio
         if (generating) return;
         setGenerating(true);
         toast.info("Generando propuesta profesional...");
+
+        console.log("[PROPOSAL] Starting generation for:", { type, clientId: selectedClient, dataSize: JSON.stringify(insightData).length });
+
         try {
             const result = await generateProposalAction(selectedClient, type, insightData);
+            console.log("[PROPOSAL] Generation result:", { success: result.success, hasData: !!result.data, error: result.error });
+
             if (result.success && result.data) {
                 const link = document.createElement("a");
                 link.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${result.data}`;
                 link.download = result.filename || "Propuesta.docx";
                 link.click();
                 toast.success("Propuesta generada correctamente");
+                console.log("[PROPOSAL] Download triggered successfully");
             } else {
-                toast.error("Error al generar el documento: " + result.error);
+                console.error("[PROPOSAL] Generation failed:", result.error);
+                toast.error("Error al generar el documento: " + (result.error || "Error desconocido"));
             }
-        } catch (error) {
-            toast.error("Error inesperado al generar la propuesta");
+        } catch (error: any) {
+            console.error("[PROPOSAL] Unexpected error:", error);
+            toast.error("Error inesperado: " + (error?.message || "Por favor, contacta soporte"));
         } finally {
             setGenerating(false);
         }
