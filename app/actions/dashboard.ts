@@ -1817,4 +1817,146 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
     }
 }
 
+/**
+ * Get aggregated optimization metrics for a whole client (all its WPs)
+ */
+export async function getClientOptimizationMetrics(clientId: string, range: string = 'last_12m') {
+    "use server";
+
+    try {
+        const client = await prisma.client.findUnique({
+            where: { id: clientId },
+            include: {
+                workPackages: {
+                    include: {
+                        tickets: true,
+                        worklogDetails: true
+                    }
+                }
+            }
+        });
+
+        if (!client) return null;
+
+        let startDate: Date;
+        const now = new Date();
+
+        if (range === 'last_month') {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        } else if (range === 'last_quarter') {
+            startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        } else if (range === 'last_6m') {
+            startDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+        } else {
+            // Default last_12m
+            startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+        }
+
+        // Aggregate tickets and worklogs from all WPs
+        const allTickets: any[] = [];
+        const allWorklogs: any[] = [];
+
+        client.workPackages.forEach(wp => {
+            wp.tickets.forEach(t => {
+                const d = new Date(t.createdDate);
+                if (d >= startDate) {
+                    allTickets.push(t);
+                    // Match worklogs for this ticket
+                    const tWorklogs = wp.worklogDetails.filter(w => w.issueKey === t.issueKey);
+                    allWorklogs.push(...tWorklogs);
+                }
+            });
+        });
+
+        // 1. Repetitive Issues (Top 5)
+        const issueGroups: Record<string, { summary: string; component: string; count: number; totalHours: number }> = {};
+        allTickets.forEach(t => {
+            const key = `${t.issueSummary}-${t.component || 'General'}`;
+            if (!issueGroups[key]) {
+                issueGroups[key] = { summary: t.issueSummary, component: t.component || 'General', count: 0, totalHours: 0 };
+            }
+            issueGroups[key].count++;
+            const tWorklogs = allWorklogs.filter(w => w.issueKey === t.issueKey);
+            issueGroups[key].totalHours += tWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+        });
+
+        const repetitiveIssues = Object.values(issueGroups)
+            .filter(g => g.count >= 2)
+            .sort((a, b) => b.totalHours - a.totalHours)
+            .slice(0, 5);
+
+        // 2. SAP Evolution Engine
+        const moduleMapping: Record<string, { modules: string[]; keywords: string[] }> = {
+            'Finanzas y Control': {
+                modules: ['FI', 'CO', 'AA', 'FSCM'],
+                keywords: ['pago', 'factura', 'asiento', 'contable', 'iva', 'activo', 'banco', 'tesoreria', 'coste', 'liquidación']
+            },
+            'Logística y Compras': {
+                modules: ['MM', 'WM', 'EWM', 'SD'],
+                keywords: ['pedido', 'stock', 'almacen', 'facturacion', 'cliente', 'proveedor', 'material', 'envio', 'transporte', 'compra']
+            },
+            'Producción y Calidad': {
+                modules: ['PP', 'QM', 'PM', 'PS'],
+                keywords: ['fabricacion', 'orden', 'mantenimiento', 'inspeccion', 'proyecto', 'grafo', 'notificacion', 'calidad']
+            },
+            'Recursos Humanos': {
+                modules: ['HCM', 'SF'],
+                keywords: ['nomina', 'empleado', 'vacaciones', 'personal', 'baja', 'formacion', 'successfactors']
+            },
+            'Tecnología y BTP': {
+                modules: ['ABAP', 'BTP', 'Fiori', 'Basis'],
+                keywords: ['error', 'dump', 'rendimiento', 'fiori', 'portal', 'api', 'interfaz', 'seguridad', 'permisos', 'basix']
+            }
+        };
+
+        const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string> }> = {};
+
+        allTickets.forEach(t => {
+            const text = `${t.issueSummary} ${t.component || ''}`.toLowerCase();
+            Object.entries(moduleMapping).forEach(([category, map]) => {
+                if (map.keywords.some(k => text.includes(k))) {
+                    if (!moduleCounts[category]) {
+                        moduleCounts[category] = { count: 0, hours: 0, subModules: new Set() };
+                    }
+                    moduleCounts[category].count++;
+                    const tWorklogs = allWorklogs.filter(w => w.issueKey === t.issueKey);
+                    moduleCounts[category].hours += tWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+                    map.modules.forEach(m => {
+                        if (text.includes(m.toLowerCase())) moduleCounts[category].subModules.add(m);
+                    });
+                }
+            });
+        });
+
+        const sapEvolution = Object.entries(moduleCounts)
+            .map(([name, data]) => ({
+                name,
+                count: data.count,
+                hours: Math.round(data.hours),
+                subModules: Array.from(data.subModules),
+                score: (data.hours * 0.7) + (data.count * 0.3)
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+
+        // 3. Stats for ROI
+        const totalResolved = allTickets.length;
+        const totalHours = allWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+
+        return {
+            optimizationOpportunities: repetitiveIssues,
+            sapEvolution,
+            stats: {
+                totalResolved,
+                totalHours: Math.round(totalHours),
+                period: range
+            }
+        };
+
+    } catch (error) {
+        console.error("Error loading client optimization metrics:", error);
+        return null;
+    }
+}
+
 

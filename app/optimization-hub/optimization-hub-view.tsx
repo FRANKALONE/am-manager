@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getServiceIntelligenceMetrics } from "@/app/actions/dashboard";
+import { getClientOptimizationMetrics } from "@/app/actions/dashboard";
 import {
     Brain,
     TrendingUp,
@@ -35,31 +35,20 @@ export function OptimizationHubView({
     permissions: Record<string, boolean>
 }) {
     const [selectedClient, setSelectedClient] = useState<string>(clients[0]?.id || "");
-    const [selectedWP, setSelectedWP] = useState<string>("");
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(false);
-    const [range, setRange] = useState("last_12m");
-
-    const currentClient = clients.find(c => c.id === selectedClient);
-    const workPackages = currentClient?.workPackages || [];
 
     useEffect(() => {
-        if (workPackages.length > 0 && !selectedWP) {
-            setSelectedWP(workPackages[0].id);
-        }
-    }, [workPackages, selectedWP]);
-
-    useEffect(() => {
-        if (!selectedWP) return;
+        if (!selectedClient) return;
         setLoading(true);
-        getServiceIntelligenceMetrics(selectedWP, range).then(data => {
+        getClientOptimizationMetrics(selectedClient, "last_12m").then(data => {
             setMetrics(data);
             setLoading(false);
         }).catch(err => {
-            console.error("Error loading intelligence metrics:", err);
+            console.error("Error loading client optimization metrics:", err);
             setLoading(false);
         });
-    }, [selectedWP, range]);
+    }, [selectedClient]);
 
     if (!clients || clients.length === 0) {
         return (
@@ -72,7 +61,7 @@ export function OptimizationHubView({
 
     return (
         <div className="container mx-auto p-6 space-y-8 pb-20">
-            {/* Header with Selectors */}
+            {/* Header with Selector */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[2rem] shadow-xl border border-slate-100 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-malachite/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
 
@@ -89,12 +78,9 @@ export function OptimizationHubView({
                 </div>
 
                 <div className="flex flex-wrap gap-4 w-full md:w-auto relative">
-                    <div className="space-y-1.5 min-w-[200px]">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cliente</label>
-                        <Select value={selectedClient} onValueChange={(val) => {
-                            setSelectedClient(val);
-                            setSelectedWP("");
-                        }}>
+                    <div className="space-y-1.5 min-w-[300px]">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cliente para Análisis Estratégico</label>
+                        <Select value={selectedClient} onValueChange={setSelectedClient}>
                             <SelectTrigger className="bg-slate-50 border-none h-12 font-bold shadow-inner">
                                 <SelectValue placeholder="Seleccionar cliente" />
                             </SelectTrigger>
@@ -102,35 +88,6 @@ export function OptimizationHubView({
                                 {clients.map(c => (
                                     <SelectItem key={c.id} value={c.id} className="font-semibold">{c.name}</SelectItem>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5 min-w-[240px]">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Service Contract / WP</label>
-                        <Select value={selectedWP} onValueChange={setSelectedWP}>
-                            <SelectTrigger className="bg-slate-50 border-none h-12 font-bold shadow-inner">
-                                <SelectValue placeholder="Seleccionar WP" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {workPackages.map((wp: any) => (
-                                    <SelectItem key={wp.id} value={wp.id} className="font-semibold">{wp.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5 min-w-[160px]">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Periodo de Análisis</label>
-                        <Select value={range} onValueChange={setRange}>
-                            <SelectTrigger className="bg-slate-50 border-none h-12 font-bold shadow-inner">
-                                <SelectValue placeholder="Rango" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="last_month" className="font-semibold">Último Mes</SelectItem>
-                                <SelectItem value="last_quarter" className="font-semibold">Último Trimestre</SelectItem>
-                                <SelectItem value="last_6m" className="font-semibold">Últimos 6 meses</SelectItem>
-                                <SelectItem value="last_12m" className="font-semibold">Último Año</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -196,7 +153,7 @@ export function OptimizationHubView({
                                                 </div>
                                                 <p className="text-[11px] font-medium text-slate-200">
                                                     <span className="text-indigo-400 font-bold tracking-widest uppercase text-[9px] block mb-1">Oportunidad Consultoría</span>
-                                                    Proponer proyecto de optimización o implementación de {evo.subModules[0] || evo.name} para reducir costes operativos un {(evo.hours / (metrics.volumeTrend?.reduce((sum: number, v: any) => sum + (v.resolved || 0), 0) * (metrics.avgHoursByType?.corrective || 1) || 1) * 100).toFixed(1)}%.
+                                                    Proponer proyecto de optimización o implementación de {evo.subModules[0] || evo.name} para reducir costes operativos un {(evo.hours / (metrics.stats?.totalHours || 1) * 100).toFixed(1)}%.
                                                 </p>
                                             </div>
                                             <button className="w-full py-3 bg-white text-slate-900 font-black rounded-xl hover:bg-malachite transition-colors uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
@@ -279,7 +236,7 @@ export function OptimizationHubView({
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <p className="text-sm font-medium leading-relaxed opacity-90">
-                                    Basado en los datos analizados, este cliente tiene un <span className="font-black text-white underline decoration-white/30 decoration-4">{(metrics.optimizationOpportunities?.reduce((sum: number, op: any) => sum + op.totalHours, 0) / (metrics.volumeTrend?.reduce((sum: number, v: any) => sum + (v.resolved || 0), 0) * (metrics.avgHoursByType?.corrective || 1) || 1) * 100).toFixed(1)}%</span> de ruido operativo.
+                                    Basado en los datos analizados, este cliente tiene un <span className="font-black text-white underline decoration-white/30 decoration-4">{(metrics.optimizationOpportunities?.reduce((sum: number, op: any) => sum + op.totalHours, 0) / (metrics.stats?.totalHours || 1) * 100).toFixed(1)}%</span> de ruido operativo optimizable.
                                 </p>
 
                                 <div className="bg-white/10 p-5 rounded-2xl space-y-2 border border-white/20 shadow-inner">

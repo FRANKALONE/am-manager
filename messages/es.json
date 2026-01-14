@@ -549,6 +549,8 @@
         "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados",
         "capacityManagement": "Gestión de Capacidades",
         "capacityManagementDesc": "Planificación de equipo, carga de trabajo y previsiones AMA",
+        "optimizationHub": "Optimization Hub",
+        "optimizationHubDesc": "Análisis estratégico y evolución de sistemas SAP",
         "accessModule": "Acceder al módulo"
     },
     "user": {

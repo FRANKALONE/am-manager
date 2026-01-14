@@ -80,7 +80,7 @@ export function NewUserDialog({ open, onOpenChange, clientId, jiraUsers }: NewUs
         }
     };
 
-    const availableJiraUsers = jiraUsers.filter(u => !u.linkedUser && u.emailAddress);
+    const availableJiraUsers = (jiraUsers || []).filter(u => !u.linkedUser && u.emailAddress);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

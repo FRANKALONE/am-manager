@@ -1,7 +1,7 @@
 import { SharedHeader } from "@/app/components/shared-header";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users, Activity } from "lucide-react";
+import { BarChart3, FileCheck, Settings, Calendar, LayoutDashboard, ArrowRight, Zap, Shield, Sparkles, Users, Activity, Brain } from "lucide-react";
 import { getAuthSession, getEvolutivosUrl } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "@/lib/get-translations";
@@ -76,6 +76,16 @@ export default async function AdminHomePage() {
             bg: "bg-rose-500/10",
             gradient: "from-rose-600 to-rose-400",
             visible: perms.manage_capacity
+        },
+        {
+            title: t('adminHome.optimizationHub'),
+            description: t('adminHome.optimizationHubDesc'),
+            icon: Brain,
+            href: "/optimization-hub",
+            color: "text-indigo-500",
+            bg: "bg-indigo-500/10",
+            gradient: "from-indigo-600 to-indigo-400",
+            visible: perms.view_optimization_hub || perms.view_manager_dashboard || session.userRole === 'ADMIN'
         }
     ].filter(o => o.visible);
 

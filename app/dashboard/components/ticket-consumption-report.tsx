@@ -28,7 +28,9 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
     const [loadingWorklogs, setLoadingWorklogs] = useState<Set<string>>(new Set());
     const [exporting, setExporting] = useState(false);
 
-    const hasAdvancedAccess = isAdmin || data.isPremium;
+    const hasAdvancedAccess = isAdmin || (data?.isPremium ?? false);
+
+    if (!data) return null;
 
     // Get unique ticket types for filter - MUST be before early return
     const ticketTypes = useMemo(() => {
