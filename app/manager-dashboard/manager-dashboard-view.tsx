@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { Calendar, ArrowRight, Building2, LayoutDashboard, History, Zap, TrendingUp, Info } from "lucide-react";
+import { Calendar, ArrowRight, Building2, LayoutDashboard, History, Zap, TrendingUp, Info, Brain, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getWorkPackages } from "@/app/actions/work-packages";
@@ -339,55 +339,45 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-2xl bg-gradient-to-br from-amber-500 to-orange-600 md:col-span-1 border-none text-white overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                            <Calendar className="w-32 h-32" />
-                        </div>
-                        <CardHeader className="relative p-6">
-                            <CardTitle className="text-2xl flex items-center gap-2 mb-2">
-                                <Calendar className="w-6 h-6" />
-                                Evolutivos
-                            </CardTitle>
-                            <CardDescription className="text-orange-100 text-sm leading-relaxed">
-                                Planificación, hitos y seguimiento de proyectos evolutivos de tus clientes.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="relative pt-4 p-6">
-                            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-8 border border-white/20">
-                                <ul className="space-y-4">
-                                    <li className="flex items-start gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center text-[10px] font-bold mt-0.5">1</div>
-                                        <p className="text-sm">Visualiza cronogramas</p>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center text-[10px] font-bold mt-0.5">2</div>
-                                        <p className="text-sm">Gestiona hitos críticos</p>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center text-[10px] font-bold mt-0.5">3</div>
-                                        <p className="text-sm">Control de propuestas</p>
-                                    </li>
-                                </ul>
-                            </div>
-                            {(permissions.view_evolutivos_admin || isAdmin) && (
-                                <Link href="/evolutivos">
-                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
-                                        Ir al Centro de Trabajo
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                                    </Button>
-                                </Link>
-                            )}
-                            {!isAdmin && !permissions.view_evolutivos_admin && permissions.view_evolutivos_client && (
-                                <Link href="/dashboard/evolutivos">
-                                    <Button className="w-full bg-white text-orange-600 hover:bg-orange-50 h-14 text-lg font-bold flex items-center gap-2 group transition-all shadow-lg shadow-orange-900/20">
-                                        Ir al Centro de Trabajo
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                                    </Button>
-                                </Link>
-                            )}
-                        </CardContent>
-                    </Card>
                 </div>
+
+                {/* 4. Optimization Hub & Consultancy Access */}
+                <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-900 text-white overflow-hidden relative group rounded-[2rem]">
+                    <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                        <Sparkles className="w-48 h-48 text-malachite" />
+                    </div>
+                    <CardHeader className="p-8">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-14 h-14 bg-malachite/20 rounded-2xl flex items-center justify-center">
+                                <Brain className="w-8 h-8 text-malachite" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-3xl font-black tracking-tight">Optimization Hub & Consultancy</CardTitle>
+                                <CardDescription className="text-slate-400 text-lg font-medium">
+                                    Analiza oportunidades de mejora y venta cruzada SAP basadas en datos reales.
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-0 flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div className="flex-1 space-y-4">
+                            <p className="text-slate-300 leading-relaxed max-w-2xl font-medium">
+                                Utiliza nuestro motor de inteligencia para identificar qué módulos SAP (FI, MM, SD, PP, etc.) están generando más ruido operativo y ofrece a tus clientes soluciones estratégicas que liberen capacidad.
+                            </p>
+                            <div className="flex flex-wrap gap-4">
+                                <Badge className="bg-white/10 text-malachite border-white/10 uppercase font-black text-[10px] px-3">SAP Evolution Engine</Badge>
+                                <Badge className="bg-white/10 text-indigo-400 border-white/10 uppercase font-black text-[10px] px-3">Consultancy Assistant</Badge>
+                                <Badge className="bg-white/10 text-amber-400 border-white/10 uppercase font-black text-[10px] px-3">ROI Analysis</Badge>
+                            </div>
+                        </div>
+                        <Link href="/optimization-hub">
+                            <Button className="bg-malachite hover:bg-jade text-dark-green h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-malachite/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
+                                Abrir Centro de Optimización
+                                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Renewal Comparison Popup */}

@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe, Send, History, Layout } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe, Send, History, Layout, Brain } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { getAuthSession } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
@@ -16,6 +16,12 @@ export async function AdminSidebar() {
                 <SidebarLink href="/admin" label={t('admin.dashboard.title')}>
                     <LayoutDashboard className="h-4 w-4" />
                 </SidebarLink>
+
+                {(perms.view_manager_dashboard || session.userRole === 'ADMIN') && (
+                    <SidebarLink href="/optimization-hub" label="Optimization Hub">
+                        <Brain className="h-4 w-4 text-malachite" />
+                    </SidebarLink>
+                )}
 
                 <div className="h-4" /> {/* Spacer */}
                 {perms.manage_clients && (

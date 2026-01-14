@@ -1750,7 +1750,65 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                     (wp.tickets.filter(t => (t.issueType || '').toLowerCase().includes('evolutivo')).length || 1)).toFixed(1)),
                 iaas: (wp as any).hasIaasService ? 1.0 : 0 // Constant factor if IAAS is active
             },
-            optimizationOpportunities: repetitiveIssues
+            optimizationOpportunities: repetitiveIssues,
+            // 12. SAP Evolution Engine (Manager Tool)
+            sapEvolution: (() => {
+                const moduleMapping: Record<string, { modules: string[]; keywords: string[] }> = {
+                    'Finanzas y Control': {
+                        modules: ['FI', 'CO', 'AA', 'FSCM'],
+                        keywords: ['pago', 'factura', 'asiento', 'contable', 'iva', 'activo', 'banco', 'tesoreria', 'coste', 'liquidación']
+                    },
+                    'Logística y Compras': {
+                        modules: ['MM', 'WM', 'EWM', 'SD'],
+                        keywords: ['pedido', 'stock', 'almacen', 'facturacion', 'cliente', 'proveedor', 'material', 'envio', 'transporte', 'compra']
+                    },
+                    'Producción y Calidad': {
+                        modules: ['PP', 'QM', 'PM', 'PS'],
+                        keywords: ['fabricacion', 'orden', 'mantenimiento', 'inspeccion', 'proyecto', 'grafo', 'notificacion', 'calidad']
+                    },
+                    'Recursos Humanos': {
+                        modules: ['HCM', 'SF'],
+                        keywords: ['nomina', 'empleado', 'vacaciones', 'personal', 'baja', 'formacion', 'successfactors']
+                    },
+                    'Tecnología y BTP': {
+                        modules: ['ABAP', 'BTP', 'Fiori', 'Basis'],
+                        keywords: ['error', 'dump', 'rendimiento', 'fiori', 'portal', 'api', 'interfaz', 'seguridad', 'permisos', 'basix']
+                    }
+                };
+
+                const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string> }> = {};
+
+                periodTickets.forEach(t => {
+                    const text = `${t.issueSummary} ${t.component || ''}`.toLowerCase();
+                    Object.entries(moduleMapping).forEach(([category, map]) => {
+                        if (map.keywords.some(k => text.includes(k))) {
+                            if (!moduleCounts[category]) {
+                                moduleCounts[category] = { count: 0, hours: 0, subModules: new Set() };
+                            }
+                            moduleCounts[category].count++;
+
+                            const ticketWorklogs = wp.worklogDetails.filter(w => w.issueKey === t.issueKey);
+                            moduleCounts[category].hours += ticketWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+
+                            // Try to match specific submodules
+                            map.modules.forEach(m => {
+                                if (text.includes(m.toLowerCase())) moduleCounts[category].subModules.add(m);
+                            });
+                        }
+                    });
+                });
+
+                return Object.entries(moduleCounts)
+                    .map(([name, data]) => ({
+                        name,
+                        count: data.count,
+                        hours: Math.round(data.hours),
+                        subModules: Array.from(data.subModules),
+                        score: (data.hours * 0.7) + (data.count * 0.3) // Weighted score for relevance
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 3);
+            })()
         };
 
     } catch (error) {
