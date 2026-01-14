@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ChevronLeft,
@@ -39,8 +39,8 @@ const CATEGORY_COLORS: Record<string, string> = {
     unplanned: 'text-purple-600 bg-purple-50 border-purple-100',
 };
 
-export default function HitosListPage({ params }: { params: Promise<{ category: string }> }) {
-    const { category } = use(params);
+export default function HitosListPage({ params }: { params: { category: string } }) {
+    const { category } = params;
     const router = useRouter();
     const searchParams = useSearchParams();
     const managerId = searchParams.get('manager') || '';

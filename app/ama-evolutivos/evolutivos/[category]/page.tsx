@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ChevronLeft,
@@ -17,8 +17,8 @@ import { es } from 'date-fns/locale';
 import type { JiraIssue } from '@/lib/ama-evolutivos/types';
 import { cn } from '@/lib/utils';
 
-export default function EvolutivosListPage({ params }: { params: Promise<{ category: string }> }) {
-    const { category } = use(params);
+export default function EvolutivosListPage({ params }: { params: { category: string } }) {
+    const { category } = params;
     const router = useRouter();
     const searchParams = useSearchParams();
     const managerId = searchParams.get('manager') || '';
