@@ -1,59 +1,89 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getClientOptimizationMetrics } from "@/app/actions/dashboard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Brain,
-    TrendingUp,
-    Zap,
-    Target,
-    ShieldAlert,
-    Lightbulb,
-    ChevronRight,
-    LayoutDashboard,
-    ArrowRight,
-    Sparkles,
-    Briefcase,
-    History,
+    Brain, Sparkles, TrendingUp, ArrowRight, Info, Download,
+    AlertTriangle, FileText, Calendar, Lightbulb, History,
+    Briefcase, Target, LayoutDashboard, ShieldAlert, ChevronRight,
     Search
 } from "lucide-react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { getDashboardClients, getClientOptimizationMetrics } from "@/app/actions/dashboard";
+import { generateProposalAction } from "@/app/actions/proposals";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export function OptimizationHubView({
-    clients,
-    permissions
-}: {
-    clients: any[],
-    permissions: Record<string, boolean>
-}) {
-    const [selectedClient, setSelectedClient] = useState<string>(clients[0]?.id || "");
+export default function OptimizationHubView() {
+    const [clients, setClients] = useState<any[]>([]);
+    const [selectedClient, setSelectedClient] = useState<string>("");
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [showJustify, setShowJustify] = useState<{ show: boolean, data: any }>({ show: false, data: null });
 
     useEffect(() => {
-        if (!selectedClient) return;
-        setLoading(true);
-        getClientOptimizationMetrics(selectedClient, "last_12m").then(data => {
-            setMetrics(data);
-            setLoading(false);
-        }).catch(err => {
-            console.error("Error loading client optimization metrics:", err);
-            setLoading(false);
-        });
+        const loadClients = async () => {
+            const data = await getDashboardClients();
+            setClients(data);
+            if (data.length > 0) {
+                setSelectedClient(data[0].id);
+            }
+        };
+        loadClients();
+    }, []);
+
+    useEffect(() => {
+        const loadMetrics = async () => {
+            if (!selectedClient) return;
+            setLoading(true);
+            try {
+                const data = await getClientOptimizationMetrics(selectedClient);
+                setMetrics(data);
+            } catch (error) {
+                console.error("Error loading metrics:", error);
+                toast.error("Error al cargar los datos del cliente");
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadMetrics();
     }, [selectedClient]);
+
+    const handleGenerateProposal = async (type: string, insightData: any) => {
+        if (generating) return;
+        setGenerating(true);
+        toast.info("Generando propuesta profesional...");
+        try {
+            const result = await generateProposalAction(selectedClient, type, insightData);
+            if (result.success && result.data) {
+                const link = document.createElement("a");
+                link.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${result.data}`;
+                link.download = result.filename || "Propuesta.docx";
+                link.click();
+                toast.success("Propuesta generada correctamente");
+            } else {
+                toast.error("Error al generar el documento: " + result.error);
+            }
+        } catch (error) {
+            toast.error("Error inesperado al generar la propuesta");
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const stats = metrics?.stats || { totalResolved: 0, totalHours: 0, isSufficient: true };
+    const roiHours = Math.round(stats.totalHours * 0.15); // Estimated 15% noise reduction
+    const roiMoney = roiHours * 65; // Avg blended rate
 
     if (!clients || clients.length === 0) {
         return (
             <div className="p-12 text-center text-muted-foreground">
-                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <Info className="w-12 h-12 mx-auto mb-4 opacity-20" />
                 <p>No se han encontrado clientes asignados.</p>
             </div>
         );
@@ -81,7 +111,7 @@ export function OptimizationHubView({
                     <div className="space-y-1.5 min-w-[300px]">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cliente para Análisis Estratégico</label>
                         <Select value={selectedClient} onValueChange={setSelectedClient}>
-                            <SelectTrigger className="bg-slate-50 border-none h-12 font-bold shadow-inner">
+                            <SelectTrigger className="bg-slate-50 border-none h-12 font-bold shadow-inner text-slate-900">
                                 <SelectValue placeholder="Seleccionar cliente" />
                             </SelectTrigger>
                             <SelectContent>
@@ -93,6 +123,17 @@ export function OptimizationHubView({
                     </div>
                 </div>
             </div>
+
+            {/* Data Sufficiency Warning */}
+            {metrics && !stats.isSufficient && (
+                <Alert className="bg-amber-50 border-amber-200 text-amber-900 rounded-3xl">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    <AlertTitle className="font-black uppercase tracking-widest text-[10px] mb-1">¡Aviso de Calidad de Datos!</AlertTitle>
+                    <AlertDescription className="text-sm font-medium">
+                        Este cliente tiene un volumen histórico bajo ({stats.totalResolved} tickets / {stats.totalHours}h). Los análisis de ROI y previsiones de SAP Evolution podrían no ser totalmente precisos debido a la falta de masa crítica de datos.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center p-40 gap-4">
@@ -156,8 +197,12 @@ export function OptimizationHubView({
                                                     Proponer proyecto de optimización o implementación de {evo.subModules[0] || evo.name} para reducir costes operativos un {(evo.hours / (metrics.stats?.totalHours || 1) * 100).toFixed(1)}%.
                                                 </p>
                                             </div>
-                                            <button className="w-full py-3 bg-white text-slate-900 font-black rounded-xl hover:bg-malachite transition-colors uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
-                                                Generar Propuesta
+                                            <button
+                                                disabled={generating}
+                                                onClick={() => handleGenerateProposal(`Evolutivo ${evo.name}`, evo)}
+                                                className="w-full py-3 bg-white text-slate-900 font-black rounded-xl hover:bg-malachite disabled:opacity-50 transition-colors uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                                            >
+                                                {generating ? "Generando..." : "Generar Propuesta"}
                                                 <ArrowRight className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -167,7 +212,7 @@ export function OptimizationHubView({
                         </CardContent>
                     </Card>
 
-                    {/* Optimization Opportunities Panel - Reusing logic from Service Intelligence but centered for manager */}
+                    {/* Optimization Opportunities Panel */}
                     <Card className="lg:col-span-8 shadow-xl border-slate-100 overflow-hidden relative group">
                         <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                             <div className="flex justify-between items-center">
@@ -203,9 +248,19 @@ export function OptimizationHubView({
                                                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Coste Real</div>
                                                 </div>
                                             </div>
-                                            <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end">
-                                                <button className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase hover:translate-x-1 transition-transform">
-                                                    Justificar Mejora <ChevronRight className="w-4 h-4" />
+                                            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                                <button
+                                                    disabled={generating}
+                                                    onClick={() => handleGenerateProposal(`Optimización ${op.summary}`, op)}
+                                                    className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase hover:bg-indigo-50 px-4 py-2 rounded-lg transition-colors"
+                                                >
+                                                    <Download className="w-4 h-4" /> Generar Propuesta
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowJustify({ show: true, data: op })}
+                                                    className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase hover:translate-x-1 transition-transform"
+                                                >
+                                                    Ver Justificación <ChevronRight className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>
@@ -286,6 +341,86 @@ export function OptimizationHubView({
                     <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-sm animate-pulse">Iniciando Dashboard de Consultoría...</p>
                 </div>
             )}
+
+            {/* Justification Modal */}
+            <Dialog open={showJustify.show} onOpenChange={(open) => setShowJustify({ ...showJustify, show: open })}>
+                <DialogContent className="max-w-3xl rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
+                    <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-8 text-white">
+                        <DialogHeader>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-malachite/20 rounded-lg">
+                                    <Brain className="w-5 h-5 text-malachite" />
+                                </div>
+                                <Badge variant="outline" className="text-[10px] font-black border-white/20 text-slate-300 uppercase tracking-widest">{showJustify.data?.component || 'General'}</Badge>
+                            </div>
+                            <DialogTitle className="text-2xl font-black tracking-tight">{showJustify.data?.summary || showJustify.data?.name}</DialogTitle>
+                            <DialogDescription className="text-slate-400 font-medium">Análisis detallado de causa raíz y propuesta de optimización.</DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <ScrollArea className="max-h-[60vh] p-8">
+                        <div className="space-y-8">
+                            <section className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-indigo-600" />
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Justificación Técnica</h4>
+                                </div>
+                                <p className="text-sm font-medium leading-relaxed text-slate-600 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                    {showJustify.data?.justification}
+                                </p>
+                            </section>
+
+                            <section className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <History className="w-4 h-4 text-indigo-600" />
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Evidencias (Tickets Recientes)</h4>
+                                </div>
+                                <div className="grid gap-3">
+                                    {showJustify.data?.sampleTickets?.map((t: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-100 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-400">{t.key}</div>
+                                                <span className="text-xs font-bold text-slate-700">{t.summary}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                                                <Calendar className="w-3 h-3" />
+                                                {new Date(t.date).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600">Impacto Proyectado</h4>
+                                </div>
+                                <p className="text-xs font-bold text-indigo-900/70 leading-relaxed">
+                                    La resolución definitiva de este patrón no solo reduciría en un <span className="text-indigo-600 font-extrabold">20-30%</span> el ruido operativo de este módulo, sino que mejoraría la percepción del servicio por parte de los usuarios clave que reportan estas incidencias periódicamente.
+                                </p>
+                            </section>
+                        </div>
+                    </ScrollArea>
+
+                    <DialogFooter className="p-8 bg-slate-50 border-t border-slate-100">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowJustify({ show: false, data: null })}
+                            className="rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                        >
+                            Cerrar
+                        </Button>
+                        <Button
+                            onClick={() => handleGenerateProposal(showJustify.data?.summary || showJustify.data?.name, showJustify.data)}
+                            disabled={generating}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-[10px] gap-2 px-6"
+                        >
+                            {generating ? "Generando..." : <><Download className="w-4 h-4" /> Descargar Propuesta .DOCX</>}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

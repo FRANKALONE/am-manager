@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { BookOpen, BarChart3, Calendar, ArrowRight, Users } from "lucide-react";
+import { BookOpen, BarChart3, Calendar, ArrowRight, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
+import { notifyProposalRequestAction } from "@/app/actions/proposals";
+import { toast } from "sonner";
 
 type Props = {
     user: any;
@@ -19,6 +21,29 @@ type Props = {
 export function ClientDashboard({ user, workPackages, clients, permissions }: Props) {
     const [selectedWpId, setSelectedWpId] = useState<string>("");
     const [showDashboard, setShowDashboard] = useState(false);
+    const [requesting, setRequesting] = useState(false);
+
+    const handleRequestProposal = async () => {
+        if (requesting) return;
+        setRequesting(true);
+        toast.info("Enviando solicitud al gestor...");
+
+        try {
+            const result = await notifyProposalRequestAction(user.clientId, "Optimización General", {
+                justification: "El cliente ha solicitado una propuesta de optimización directamente desde su dashboard principal."
+            });
+
+            if (result.success) {
+                toast.success("Solicitud enviada. Tu gestor AM se pondrá en contacto contigo pronto.");
+            } else {
+                toast.error("Error al enviar solicitud: " + (result.error || "Desconocido"));
+            }
+        } catch (error) {
+            toast.error("Error inesperado al solicitar propuesta");
+        } finally {
+            setRequesting(false);
+        }
+    };
 
     // Filter WPs based on user's client and assigned WPs
     const availableWPs = workPackages.filter(wp => {
@@ -242,6 +267,32 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
                                 </Link>
+                            </CardContent>
+                        </Card>
+
+                        {/* Optimization Card for Client */}
+                        <Card className="shadow-2xl bg-gradient-to-br from-indigo-700 to-purple-800 border-none text-white overflow-hidden relative group flex-1">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                <Sparkles className="w-24 h-24" />
+                            </div>
+                            <CardHeader className="relative p-6">
+                                <CardTitle className="text-2xl flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-6 h-6" />
+                                    Optimization Hub
+                                </CardTitle>
+                                <CardDescription className="text-indigo-100 text-sm leading-relaxed">
+                                    ¿Buscas optimizar tus procesos? Solicita una propuesta de consultoría personalizada.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="relative pt-2 p-6">
+                                <Button
+                                    onClick={handleRequestProposal}
+                                    disabled={requesting}
+                                    className="w-full bg-malachite text-dark-green hover:bg-jade h-14 text-lg font-black flex items-center gap-2 group transition-all shadow-lg shadow-indigo-900/40"
+                                >
+                                    {requesting ? "Enviando..." : "Solicitar Propuesta"}
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </Button>
                             </CardContent>
                         </Card>
                     </div>

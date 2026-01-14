@@ -1450,6 +1450,11 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             return d >= startDate && d <= endDate;
         });
 
+        const periodWorklogDetails = wp.worklogDetails.filter(w => {
+            const d = new Date(w.startDate);
+            return d >= startDate && d <= endDate;
+        });
+
         // 1. SLA Performance Trend (Refined)
         // Only Incidencia de Correctivo and Consulta, and only those with SLA defined
         const slaTrend: any[] = [];
@@ -1776,21 +1781,21 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                     }
                 };
 
-                const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string> }> = {};
+                const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string>; sampleKeys: Set<string> }> = {};
 
                 periodTickets.forEach(t => {
                     const text = `${t.issueSummary} ${t.component || ''}`.toLowerCase();
                     Object.entries(moduleMapping).forEach(([category, map]) => {
                         if (map.keywords.some(k => text.includes(k))) {
                             if (!moduleCounts[category]) {
-                                moduleCounts[category] = { count: 0, hours: 0, subModules: new Set() };
+                                moduleCounts[category] = { count: 0, hours: 0, subModules: new Set(), sampleKeys: new Set() };
                             }
                             moduleCounts[category].count++;
-
                             const ticketWorklogs = wp.worklogDetails.filter(w => w.issueKey === t.issueKey);
                             moduleCounts[category].hours += ticketWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
-
-                            // Try to match specific submodules
+                            if (moduleCounts[category].sampleKeys.size < 5) {
+                                moduleCounts[category].sampleKeys.add(t.issueKey);
+                            }
                             map.modules.forEach(m => {
                                 if (text.includes(m.toLowerCase())) moduleCounts[category].subModules.add(m);
                             });
@@ -1799,16 +1804,31 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                 });
 
                 return Object.entries(moduleCounts)
-                    .map(([name, data]) => ({
-                        name,
-                        count: data.count,
-                        hours: Math.round(data.hours),
-                        subModules: Array.from(data.subModules),
-                        score: (data.hours * 0.7) + (data.count * 0.3) // Weighted score for relevance
-                    }))
+                    .map(([name, data]) => {
+                        const samples = periodTickets
+                            .filter(t => data.sampleKeys.has(t.issueKey))
+                            .map(t => ({ key: t.issueKey, summary: t.issueSummary, date: t.createdDate }));
+
+                        const mainModule = data.subModules.size > 0 ? Array.from(data.subModules)[0] : name;
+
+                        return {
+                            name,
+                            count: data.count,
+                            hours: Math.round(data.hours),
+                            subModules: Array.from(data.subModules),
+                            score: (data.hours * 0.7) + (data.count * 0.3),
+                            justification: `Basado en la actividad del contrato, se ha detectado una carga recurrente en ${name} (${data.hours.toFixed(1)}h). Se aconseja evaluar la implementación de mejoras en ${mainModule} para optimizar el servicio.`,
+                            sampleTickets: samples
+                        };
+                    })
                     .sort((a, b) => b.score - a.score)
                     .slice(0, 3);
-            })()
+            })(),
+            stats: {
+                totalResolved: periodTickets.length,
+                totalHours: Math.round(periodWorklogDetails.reduce((sum: number, w: any) => sum + w.timeSpentHours, 0)),
+                isSufficient: periodTickets.length >= 10 && periodWorklogDetails.length >= 20
+            }
         };
 
     } catch (error) {
@@ -1883,6 +1903,19 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
         const repetitiveIssues = Object.values(issueGroups)
             .filter(g => g.count >= 2)
             .sort((a, b) => b.totalHours - a.totalHours)
+            .map(g => {
+                // Find sample tickets for justification
+                const samples = allTickets
+                    .filter(t => t.issueSummary === g.summary && (t.component || 'General') === g.component)
+                    .slice(0, 5)
+                    .map(t => ({ key: t.issueKey, summary: t.issueSummary, date: t.createdDate }));
+
+                return {
+                    ...g,
+                    justification: `Se han detectado ${g.count} incidencias recurrentes con el patrón "${g.summary}" en el módulo ${g.component}, acumulando un total de ${g.totalHours.toFixed(1)} horas de soporte. Esta recurrencia sugiere una oportunidad de mejora en el proceso o una necesidad de corrección definitiva en el sistema.`,
+                    sampleTickets: samples
+                };
+            })
             .slice(0, 5);
 
         // 2. SAP Evolution Engine
@@ -1909,18 +1942,21 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
             }
         };
 
-        const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string> }> = {};
+        const moduleCounts: Record<string, { count: number; hours: number; subModules: Set<string>; sampleKeys: Set<string> }> = {};
 
         allTickets.forEach(t => {
             const text = `${t.issueSummary} ${t.component || ''}`.toLowerCase();
             Object.entries(moduleMapping).forEach(([category, map]) => {
                 if (map.keywords.some(k => text.includes(k))) {
                     if (!moduleCounts[category]) {
-                        moduleCounts[category] = { count: 0, hours: 0, subModules: new Set() };
+                        moduleCounts[category] = { count: 0, hours: 0, subModules: new Set(), sampleKeys: new Set() };
                     }
                     moduleCounts[category].count++;
                     const tWorklogs = allWorklogs.filter(w => w.issueKey === t.issueKey);
                     moduleCounts[category].hours += tWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+                    if (moduleCounts[category].sampleKeys.size < 5) {
+                        moduleCounts[category].sampleKeys.add(t.issueKey);
+                    }
                     map.modules.forEach(m => {
                         if (text.includes(m.toLowerCase())) moduleCounts[category].subModules.add(m);
                     });
@@ -1929,19 +1965,32 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
         });
 
         const sapEvolution = Object.entries(moduleCounts)
-            .map(([name, data]) => ({
-                name,
-                count: data.count,
-                hours: Math.round(data.hours),
-                subModules: Array.from(data.subModules),
-                score: (data.hours * 0.7) + (data.count * 0.3)
-            }))
-            .sort((a, b) => b.score - a.score)
+            .map(([name, data]) => {
+                const samples = allTickets
+                    .filter(t => data.sampleKeys.has(t.issueKey))
+                    .map(t => ({ key: t.issueKey, summary: t.issueSummary, date: t.createdDate }));
+
+                const mainModule = data.subModules.size > 0 ? Array.from(data.subModules)[0] : name;
+
+                return {
+                    name,
+                    count: data.count,
+                    hours: Math.round(data.hours),
+                    subModules: Array.from(data.subModules),
+                    score: (data.hours * 0.7) + (data.count * 0.3),
+                    justification: `El motor de análisis ha identificado una carga operativa significativa en ${name} (${data.hours.toFixed(1)}h repartidas en ${data.count} tickets). La alta frecuencia de consultas o errores en este ámbito justifica proponer una evolución hacia módulos estándar como ${mainModule} o una optimización de los procesos actuales para liberar esta capacidad.`,
+                    sampleTickets: samples
+                };
+            })
+            .sort((a: any, b: any) => b.score - a.score)
             .slice(0, 3);
 
         // 3. Stats for ROI
         const totalResolved = allTickets.length;
         const totalHours = allWorklogs.reduce((sum, w) => sum + w.timeSpentHours, 0);
+
+        // Data sufficiency check: min 15 tickets and 30 hours for robust analysis
+        const isSufficient = totalResolved >= 15 && totalHours >= 30;
 
         return {
             optimizationOpportunities: repetitiveIssues,
@@ -1949,7 +1998,8 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
             stats: {
                 totalResolved,
                 totalHours: Math.round(totalHours),
-                period: range
+                period: range,
+                isSufficient
             }
         };
 
