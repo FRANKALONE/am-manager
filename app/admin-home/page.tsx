@@ -159,7 +159,7 @@ export default async function AdminHomePage() {
 
                     {/* Bottom Row: 5th Card (if exists) */}
                     {options.length > 4 && (
-                        <div className="w-full">
+                        <div className="w-full flex flex-col gap-10">
                             {options.slice(4).map((option) => (
                                 <Link key={option.href} href={option.href} className="group outline-none">
                                     <Card className="border-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_45px_80px_-20px_rgba(0,0,0,0.15)] transition-all duration-700 hover:-translate-y-2 cursor-pointer bg-white/70 backdrop-blur-2xl ring-1 ring-slate-200/50 hover:ring-slate-300 relative overflow-hidden flex flex-row items-center rounded-[2.5rem] group min-h-[160px]">
