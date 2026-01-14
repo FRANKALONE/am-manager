@@ -554,6 +554,7 @@ export function DashboardView({
                                                             isEventos={metrics.isEventos || false}
                                                             permissions={permissions}
                                                             isAdmin={isAdmin}
+                                                            isPremium={metrics.isPremium || false}
                                                             selectedWorklogs={selectedWorklogs}
                                                             onWorklogSelect={handleWorklogSelect}
                                                             onRequestReview={() => setIsReviewModalOpen(true)}

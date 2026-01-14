@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { getEvolutivosByClient, syncClientEvolutivos } from "@/app/actions/evolutivos";
 import { EvolutivoTimeline } from "./evolutivo-timeline";
 import { ProposalsPanel } from "./proposals-panel";
-import { RefreshCw, Search, Eye, Loader2, ChevronDown } from "lucide-react";
+import { RefreshCw, Search, Eye, Loader2, ChevronDown, Filter } from "lucide-react";
+import { formatShortDate, formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 
 interface Props {
@@ -35,6 +36,10 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
     const [billingFilter, setBillingFilter] = useState("all");
     const [selectedEvolutivo, setSelectedEvolutivo] = useState<any>(null);
     const [timelineOpen, setTimelineOpen] = useState(false);
+    const [monthFilter, setMonthFilter] = useState("all");
+    const [yearFilter, setYearFilter] = useState("all");
+    const [reporterFilter, setReporterFilter] = useState("");
+    const [assigneeFilter, setAssigneeFilter] = useState("");
 
     const currentClient = useMemo(() => {
         return clients.find((c: any) => c.id === selectedClientId);
@@ -67,6 +72,12 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
         setTimelineOpen(true);
     };
 
+    const toggleStatus = (status: string) => {
+        setStatusFilter(prev =>
+            prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+        );
+    };
+
     // Filter evolutivos
     const filteredEvolutivos = useMemo(() => {
         return data.evolutivos.filter((evo: any) => {
@@ -77,12 +88,27 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
             const matchesStatus = statusFilter.length === 0 || statusFilter.includes(evo.status);
             const matchesBilling = billingFilter === "all" || evo.billingMode === billingFilter;
 
-            return matchesSearch && matchesStatus && matchesBilling;
+            const matchesReporter = reporterFilter === "" ||
+                (evo.reporter || "").toLowerCase().includes(reporterFilter.toLowerCase());
+
+            const matchesAssignee = assigneeFilter === "" ||
+                (evo.assignee || "").toLowerCase().includes(assigneeFilter.toLowerCase());
+
+            // Date processing
+            const created = new Date(evo.createdDate);
+            const matchesMonth = monthFilter === "all" || (created.getMonth() + 1).toString() === monthFilter;
+            const matchesYear = yearFilter === "all" || created.getFullYear().toString() === yearFilter;
+
+            return matchesSearch && matchesStatus && matchesBilling && matchesReporter && matchesAssignee && matchesMonth && matchesYear;
         });
-    }, [data.evolutivos, searchTerm, statusFilter, billingFilter]);
+    }, [data.evolutivos, searchTerm, statusFilter, billingFilter, reporterFilter, assigneeFilter, monthFilter, yearFilter]);
 
     const uniqueStatuses = useMemo(() => {
         return Array.from(new Set(data.evolutivos.map((e: any) => e.status))).sort();
+    }, [data.evolutivos]);
+
+    const uniqueYears = useMemo(() => {
+        return Array.from(new Set(data.evolutivos.map((e: any) => new Date(e.createdDate).getFullYear()))).sort((a: any, b: any) => (b as number) - (a as number));
     }, [data.evolutivos]);
 
     const uniqueBillingModes = useMemo(() => {
@@ -119,76 +145,110 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                 </CardHeader>
 
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div className="md:col-span-2">
-                            <Label htmlFor="search">Buscar</Label>
+                    {/* Advanced Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Búsqueda</Label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                                 <Input
                                     id="search"
-                                    placeholder="Buscar por ticket o resumen..."
+                                    placeholder="Ticket o descripción..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10"
+                                    className="pl-10 bg-white dark:bg-slate-950"
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <Label htmlFor="status-filter">Estado</Label>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between font-normal" id="status-filter">
-                                        <span className="truncate">
-                                            {statusFilter.length === 0
-                                                ? "Todos"
-                                                : statusFilter.length === 1
-                                                    ? statusFilter[0]
-                                                    : `${statusFilter.length} seleccionados`}
-                                        </span>
-                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[200px]">
-                                    <DropdownMenuCheckboxItem
-                                        checked={statusFilter.length === 0}
-                                        onCheckedChange={() => setStatusFilter([])}
-                                    >
-                                        Todos
-                                    </DropdownMenuCheckboxItem>
-                                    <div className="h-px bg-slate-100 my-1" />
-                                    {uniqueStatuses.map((status: any) => (
-                                        <DropdownMenuCheckboxItem
-                                            key={status}
-                                            checked={statusFilter.includes(status)}
-                                            onCheckedChange={(checked) => {
-                                                if (checked) {
-                                                    setStatusFilter([...statusFilter, status]);
-                                                } else {
-                                                    setStatusFilter(statusFilter.filter(s => s !== status));
-                                                }
-                                            }}
-                                        >
-                                            {status}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha Creación (Mes / Año)</Label>
+                            <div className="flex gap-2">
+                                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                                    <SelectTrigger className="bg-white dark:bg-slate-950">
+                                        <SelectValue placeholder="Mes" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Cualquier mes</SelectItem>
+                                        {Array.from({ length: 12 }).map((_, i) => (
+                                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                                {formatDate(new Date(2024, i, 1), { month: 'long' })}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select value={yearFilter} onValueChange={setYearFilter}>
+                                    <SelectTrigger className="bg-white dark:bg-slate-950">
+                                        <SelectValue placeholder="Año" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Cualquier año</SelectItem>
+                                        {(uniqueYears as any[]).map((year: any) => (
+                                            <SelectItem key={year.toString()} value={year.toString()}>{year}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
-                        <div>
-                            <Label htmlFor="billing-filter">Modo Facturación</Label>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Informador / Solicitante</Label>
+                            <Input
+                                placeholder="Nombre informador..."
+                                value={reporterFilter}
+                                onChange={(e) => setReporterFilter(e.target.value)}
+                                className="bg-white dark:bg-slate-950"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Responsable / Assignee</Label>
+                            <Input
+                                placeholder="Nombre responsable..."
+                                value={assigneeFilter}
+                                onChange={(e) => setAssigneeFilter(e.target.value)}
+                                className="bg-white dark:bg-slate-950"
+                            />
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Modo Facturación</Label>
                             <Select value={billingFilter} onValueChange={setBillingFilter}>
-                                <SelectTrigger id="billing-filter">
+                                <SelectTrigger id="billing-filter" className="bg-white dark:bg-slate-950">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="all">Todos los modos</SelectItem>
                                     {uniqueBillingModes.map((mode: any) => (
                                         <SelectItem key={mode} value={mode}>{mode}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex justify-between">
+                                Estados <span>{statusFilter.length > 0 && `(${statusFilter.length} seleccionados)`}</span>
+                            </Label>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge
+                                    variant={statusFilter.length === 0 ? "default" : "outline"}
+                                    className={`cursor-pointer transition-colors ${statusFilter.length === 0 ? 'bg-jade hover:bg-jade/80' : 'hover:bg-slate-100'}`}
+                                    onClick={() => setStatusFilter([])}
+                                >
+                                    Todos
+                                </Badge>
+                                {uniqueStatuses.map((status: any) => (
+                                    <Badge
+                                        key={status}
+                                        variant={statusFilter.includes(status) ? "default" : "outline"}
+                                        className={`cursor-pointer transition-colors ${statusFilter.includes(status) ? 'bg-jade hover:bg-jade/80' : 'hover:bg-slate-100'}`}
+                                        onClick={() => toggleStatus(status)}
+                                    >
+                                        {status}
+                                    </Badge>
+                                ))}
+                            </div>
                         </div>
                     </div>
 

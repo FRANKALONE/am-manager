@@ -16,6 +16,7 @@ interface MonthlyRowProps {
     isEventos?: boolean;
     permissions: Record<string, boolean>;
     isAdmin?: boolean;
+    isPremium?: boolean;
     selectedWorklogs: any[];
     onWorklogSelect: (worklog: any, isSelected: boolean) => void;
     onRequestReview?: () => void;
@@ -29,6 +30,7 @@ export function ExpandableMonthlyRow({
     isEventos = false,
     permissions,
     isAdmin = false,
+    isPremium = false,
     selectedWorklogs,
     onWorklogSelect,
     onRequestReview
@@ -41,6 +43,7 @@ export function ExpandableMonthlyRow({
     const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
 
     const { t, locale } = useTranslations();
+    const hasAdvancedAccess = isAdmin || isPremium;
 
     const isExceeded = month.monthlyBalance < 0;
     const isAccumExceeded = month.accumulated < 0;
@@ -119,7 +122,7 @@ export function ExpandableMonthlyRow({
         }
     };
 
-    const downloadCSV = () => {
+    const downloadExcel = () => {
         if (selectedTickets.size === 0) return;
 
         const selectedWorklogs: any[] = [];
@@ -131,37 +134,64 @@ export function ExpandableMonthlyRow({
             });
         });
 
-        if (selectedWorklogs.length === 0) return;
+        // Create styled HTML for Excel
+        const SMA_GREEN = "#58D68D";
+        const SMA_DARK = "#008580";
 
-        // Header for CSV
-        const headers = [
-            t('dashboard.details.date'),
-            t('dashboard.ticketsDetail.issueId'),
-            t('dashboard.ticketsDetail.summary'),
-            t('dashboard.details.author'),
-            t('dashboard.details.imputationType'),
-            t('dashboard.details.hours')
-        ];
+        let html = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+                <style>
+                    table { border-collapse: collapse; font-family: Calibri, sans-serif; }
+                    th { background-color: ${SMA_GREEN}; color: white; border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
+                    .header-cell { background-color: #f2f2f2; font-weight: bold; }
+                    .total-row { font-weight: bold; background-color: #e8f8f5; }
+                </style>
+            </head>
+            <body>
+                <h2>Detalle de Consumo - ${month.month}</h2>
+                <br/>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${t('dashboard.details.date')}</th>
+                            <th>${t('dashboard.ticketsReport.issueId')}</th>
+                            <th>${t('dashboard.ticketsReport.description')}</th>
+                            <th>${t('dashboard.details.author')}</th>
+                            <th>${t('dashboard.details.imputationType')}</th>
+                            <th>${t('dashboard.details.hours')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
 
-        const rows = selectedWorklogs.map(w => [
-            formatDate(w.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' }),
-            w.issueKey,
-            `"${(w.issueSummary || '').replace(/"/g, '""')}"`,
-            w.author || '',
-            w.tipoImputacion || '',
-            w.timeSpentHours.toFixed(2).replace('.', ',')
-        ]);
+        selectedWorklogs.forEach(w => {
+            html += `
+                <tr>
+                    <td>${formatDate(w.startDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}</td>
+                    <td>${w.issueKey}</td>
+                    <td>${w.issueSummary || ''}</td>
+                    <td>${w.author || ''}</td>
+                    <td>${w.tipoImputacion || ''}</td>
+                    <td style="text-align: right;">${w.timeSpentHours.toFixed(2).replace('.', ',')}</td>
+                </tr>
+            `;
+        });
 
-        const csvContent = [
-            headers.join(';'),
-            ...rows.map(r => r.join(';'))
-        ].join('\n');
+        html += `
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
 
-        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(["\ufeff" + html], { type: 'application/vnd.ms-excel' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Detalle_Consumo_${month.month.replace('/', '_')}.csv`);
+        link.setAttribute("download", `Detalle_Consumo_${month.month.replace('/', '_')}.xls`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -248,16 +278,18 @@ export function ExpandableMonthlyRow({
                                                 {selectedTickets.size} {t('dashboard.details.tickets')} seleccionados
                                             </span>
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                                            onClick={downloadCSV}
-                                            disabled={selectedTickets.size === 0}
-                                        >
-                                            <FileSpreadsheet className="h-4 w-4" />
-                                            {t('dashboard.details.exportExcel')}
-                                        </Button>
+                                        {hasAdvancedAccess && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                                onClick={downloadExcel}
+                                                disabled={selectedTickets.size === 0}
+                                            >
+                                                <FileSpreadsheet className="h-4 w-4" />
+                                                {t('dashboard.details.exportExcel')}
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
 
