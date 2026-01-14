@@ -5,8 +5,8 @@
 const JIRA_DOMAIN = process.env.JIRA_URL || process.env.JIRA_DOMAIN || '';
 const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
-const EVOLUTIVO_TYPE = process.env.AMA_EVOLUTIVO_TYPE || 'Epic';
-const HITO_TYPE = process.env.AMA_HITO_TYPE || 'Story';
+const EVOLUTIVO_TYPE = process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo';
+const HITO_TYPE = process.env.AMA_HITO_TYPE || 'Hitos Evolutivos';
 
 const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
 
