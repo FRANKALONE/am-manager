@@ -10,19 +10,27 @@ export async function GET(request: Request) {
         const hitos = await getHitos();
         const evolutivos = await getEvolutivos();
 
-        // Extraer gestores únicos del campo customfield_10051 de los evolutivos
+        // Extraer gestores únicos del campo customfield_10254 (Gestor del ticket)
         const gestoresMap = new Map();
-        evolutivos.forEach((evo: any) => {
-            const gestor = evo.fields?.customfield_10051; // Campo Gestor
+
+        const extractGestor = (issue: any) => {
+            const gestor = issue.fields?.customfield_10254; // Campo Gestor del ticket
             if (gestor && gestor.accountId) {
-                gestoresMap.set(gestor.accountId, {
+                return {
                     id: gestor.accountId,
                     name: gestor.displayName,
                     displayName: gestor.displayName,
                     avatarUrl: gestor.avatarUrls?.['48x48'],
                     emailAddress: gestor.emailAddress,
-                });
+                };
             }
+            return null;
+        };
+
+        // Procesar todos para extraer gestores
+        [...evolutivos, ...hitos].forEach(issue => {
+            const g = extractGestor(issue);
+            if (g) gestoresMap.set(g.id, g);
         });
 
         // Procesar hitos y clasificarlos
@@ -32,9 +40,15 @@ export async function GET(request: Request) {
         in7Days.setDate(in7Days.getDate() + 7);
 
         const processedIssues: JiraIssue[] = hitos.map((issue: any) => {
-            // Buscar el gestor del evolutivo padre
-            const parentEvo = evolutivos.find((evo: any) => evo.key === issue.fields.parent?.key);
-            const gestor = parentEvo?.fields?.customfield_10051;
+            // Intentar obtener gestor del hito o del evolutivo padre
+            let gestor = extractGestor(issue);
+
+            if (!gestor && issue.fields.parent?.key) {
+                const parentEvo = evolutivos.find((evo: any) => evo.key === issue.fields.parent?.key);
+                if (parentEvo) {
+                    gestor = extractGestor(parentEvo);
+                }
+            }
 
             return {
                 key: issue.key,
@@ -43,9 +57,9 @@ export async function GET(request: Request) {
                 issueType: issue.fields.issuetype.name,
                 dueDate: issue.fields.duedate,
                 gestor: gestor ? {
-                    id: gestor.accountId,
-                    name: gestor.displayName,
-                    avatarUrl: gestor.avatarUrls?.['48x48'],
+                    id: gestor.id,
+                    name: gestor.name,
+                    avatarUrl: gestor.avatarUrl,
                 } : undefined,
                 parentKey: issue.fields.parent?.key,
                 pendingHitos: 0, // Se calculará después

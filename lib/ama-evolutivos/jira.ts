@@ -10,47 +10,48 @@ const HITO_TYPE = process.env.AMA_HITO_TYPE || 'Hitos Evolutivos';
 
 const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
 
-interface JiraSearchResponse {
-    issues: any[];
-    total: number;
-    maxResults: number;
-    startAt: number;
-}
-
 export async function searchJiraIssues(jql: string, fields: string[] = ['*all']): Promise<any[]> {
-    const url = `${JIRA_DOMAIN}/rest/api/3/search`;
+    // Asegurarse de que el dominio no termine en /
+    const baseUrl = JIRA_DOMAIN.replace(/\/$/, '');
+    const url = `${baseUrl}/rest/api/3/search/jql`;
     const allIssues: any[] = [];
-    let startAt = 0;
-    const maxResults = 100;
+    let nextPageToken: string | undefined = undefined;
 
     try {
         while (true) {
+            const body: any = {
+                jql,
+                maxResults: 100,
+                fields,
+            };
+
+            if (nextPageToken) {
+                body.nextPageToken = nextPageToken;
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Authorization': authHeader,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    jql,
-                    startAt,
-                    maxResults,
-                    fields,
-                }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
-                throw new Error(`JIRA API error: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`JIRA API error: ${response.status} ${response.statusText} - ${errorText}`);
             }
 
-            const data: JiraSearchResponse = await response.json();
-            allIssues.push(...data.issues);
+            const data = await response.json();
+            const issues = data.issues || [];
+            allIssues.push(...issues);
 
-            if (allIssues.length >= data.total) {
+            nextPageToken = data.nextPageToken;
+
+            if (!nextPageToken || issues.length === 0) {
                 break;
             }
-
-            startAt += maxResults;
         }
 
         return allIssues;
@@ -71,6 +72,7 @@ export async function getEvolutivos(): Promise<any[]> {
             'assignee',
             'project',
             'customfield_10014', // Epic Link / Parent
+            'customfield_10254', // Gestor del ticket
             'timeoriginalestimate',
             'timespent',
             'created',
@@ -102,6 +104,7 @@ export async function getHitos(evolutivoKey?: string): Promise<any[]> {
             'assignee',
             'parent',
             'project',
+            'customfield_10254', // Gestor del ticket
             'created',
             'updated',
         ]);

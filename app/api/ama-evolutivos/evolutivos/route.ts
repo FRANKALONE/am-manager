@@ -29,15 +29,17 @@ export async function GET(request: Request) {
                 (h: any) => h.fields.status.name !== 'Cerrado' && h.fields.status.name !== 'Done'
             ).length;
 
+            const gestorField = evo.fields?.customfield_10254;
+
             return {
                 key: evo.key,
                 summary: evo.fields.summary,
                 status: evo.fields.status.name,
                 issueType: evo.fields.issuetype.name,
-                gestor: evo.fields.assignee ? {
-                    id: evo.fields.assignee.accountId,
-                    name: evo.fields.assignee.displayName,
-                    avatarUrl: evo.fields.assignee.avatarUrls?.['48x48'],
+                gestor: gestorField ? {
+                    id: gestorField.accountId,
+                    name: gestorField.displayName,
+                    avatarUrl: gestorField.avatarUrls?.['48x48'],
                 } : undefined,
                 pendingHitos,
                 timeoriginalestimate: evo.fields.timeoriginalestimate || 0,
