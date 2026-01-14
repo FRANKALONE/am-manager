@@ -232,6 +232,7 @@ export async function getTeamWorkload() {
             let priorityValue = 2; // Medium
             let summary = t.issueSummary;
             let dueDate = t.dueDate;
+            let needsDESSupport = false;
 
             try {
                 const jiraData = await fetchJira(`/issue/${t.issueKey}?fields=timetracking,issuetype,summary,priority,duedate,customfield_10119,customfield_10120,customfield_10121`);
