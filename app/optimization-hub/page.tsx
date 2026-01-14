@@ -3,7 +3,7 @@ import { getCurrentUser, getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SharedHeader } from "@/app/components/shared-header";
 import { Footer } from "@/app/components/footer";
-import { OptimizationHubView } from "./optimization-hub-view";
+import OptimizationHubView from "./optimization-hub-view";
 
 export default async function OptimizationHubPage() {
     const user = await getCurrentUser();

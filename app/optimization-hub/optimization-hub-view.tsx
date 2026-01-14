@@ -18,8 +18,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export default function OptimizationHubView() {
-    const [clients, setClients] = useState<any[]>([]);
+type Props = {
+    clients: any[];
+    permissions: Record<string, boolean>;
+};
+
+export default function OptimizationHubView({ clients: initialClients, permissions }: Props) {
+    const [clients, setClients] = useState<any[]>(initialClients || []);
     const [selectedClient, setSelectedClient] = useState<string>("");
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -27,15 +32,19 @@ export default function OptimizationHubView() {
     const [showJustify, setShowJustify] = useState<{ show: boolean, data: any }>({ show: false, data: null });
 
     useEffect(() => {
-        const loadClients = async () => {
-            const data = await getDashboardClients();
-            setClients(data);
-            if (data.length > 0) {
-                setSelectedClient(data[0].id);
-            }
-        };
-        loadClients();
-    }, []);
+        if (!clients || clients.length === 0) {
+            const loadClients = async () => {
+                const data = await getDashboardClients();
+                setClients(data);
+                if (data.length > 0) {
+                    setSelectedClient(data[0].id);
+                }
+            };
+            loadClients();
+        } else if (clients.length > 0 && !selectedClient) {
+            setSelectedClient(clients[0].id);
+        }
+    }, [clients]);
 
     useEffect(() => {
         const loadMetrics = async () => {
