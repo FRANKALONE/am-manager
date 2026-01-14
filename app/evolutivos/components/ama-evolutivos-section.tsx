@@ -167,9 +167,8 @@ export function AMAEvolutivosSection() {
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
-                        Control AMA Evolutivos
+                        Control de evolutivos de AM
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1 ml-4 italic">Control de evolutivos de AM</p>
                     <p className="text-gray-600 mt-1 ml-4">Gestión y seguimiento de evolutivos del proyecto AMA</p>
                 </div>
 
@@ -196,8 +195,8 @@ export function AMAEvolutivosSection() {
                         onClick={handleSyncDaily}
                         disabled={syncing}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border font-medium text-sm transition-all ${syncSuccess
-                                ? 'bg-green-50 border-green-200 text-green-700'
-                                : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                            ? 'bg-green-50 border-green-200 text-green-700'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
                             } ${syncing ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow'}`}
                     >
                         {syncing ? (
