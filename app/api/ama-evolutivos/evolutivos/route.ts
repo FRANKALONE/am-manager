@@ -34,8 +34,8 @@ export async function GET(request: Request) {
             return {
                 key: evo.key,
                 summary: evo.fields.summary,
-                status: evo.fields.status.name,
-                issueType: evo.fields.issuetype.name,
+                status: evo.fields.status?.name || 'Unknown',
+                issueType: evo.fields.issuetype?.name || 'Unknown',
                 gestor: gestorField ? {
                     id: gestorField.accountId,
                     name: gestorField.displayName,

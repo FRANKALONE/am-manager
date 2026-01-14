@@ -53,8 +53,8 @@ export async function GET(request: Request) {
             return {
                 key: issue.key,
                 summary: issue.fields.summary,
-                status: issue.fields.status.name,
-                issueType: issue.fields.issuetype.name,
+                status: issue.fields.status?.name || 'Unknown',
+                issueType: issue.fields.issuetype?.name || 'Unknown',
                 dueDate: issue.fields.duedate,
                 gestor: gestor ? {
                     id: gestor.id,
