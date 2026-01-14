@@ -342,42 +342,44 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                 </div>
 
                 {/* 4. Optimization Hub & Consultancy Access */}
-                <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-900 text-white overflow-hidden relative group rounded-[2rem]">
-                    <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-1000">
-                        <Sparkles className="w-48 h-48 text-malachite" />
-                    </div>
-                    <CardHeader className="p-8">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-14 h-14 bg-malachite/20 rounded-2xl flex items-center justify-center">
-                                <Brain className="w-8 h-8 text-malachite" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-3xl font-black tracking-tight">Optimization Hub & Consultancy</CardTitle>
-                                <CardDescription className="text-slate-400 text-lg font-medium">
-                                    Analiza oportunidades de mejora y venta cruzada SAP basadas en datos reales.
-                                </CardDescription>
-                            </div>
+                {(permissions.view_optimization_hub || isAdmin) && (
+                    <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-900 text-white overflow-hidden relative group rounded-[2rem]">
+                        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                            <Sparkles className="w-48 h-48 text-malachite" />
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-8 pt-0 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div className="flex-1 space-y-4">
-                            <p className="text-slate-300 leading-relaxed max-w-2xl font-medium">
-                                Utiliza nuestro motor de inteligencia para identificar qué módulos SAP (FI, MM, SD, PP, etc.) están generando más ruido operativo y ofrece a tus clientes soluciones estratégicas que liberen capacidad.
-                            </p>
-                            <div className="flex flex-wrap gap-4">
-                                <Badge className="bg-white/10 text-malachite border-white/10 uppercase font-black text-[10px] px-3">SAP Evolution Engine</Badge>
-                                <Badge className="bg-white/10 text-indigo-400 border-white/10 uppercase font-black text-[10px] px-3">Consultancy Assistant</Badge>
-                                <Badge className="bg-white/10 text-amber-400 border-white/10 uppercase font-black text-[10px] px-3">ROI Analysis</Badge>
+                        <CardHeader className="p-8">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-14 h-14 bg-malachite/20 rounded-2xl flex items-center justify-center">
+                                    <Brain className="w-8 h-8 text-malachite" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-3xl font-black tracking-tight">Optimization Hub & Consultancy</CardTitle>
+                                    <CardDescription className="text-slate-400 text-lg font-medium">
+                                        Analiza oportunidades de mejora y venta cruzada SAP basadas en datos reales.
+                                    </CardDescription>
+                                </div>
                             </div>
-                        </div>
-                        <Link href="/optimization-hub">
-                            <Button className="bg-malachite hover:bg-jade text-dark-green h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-malachite/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
-                                Abrir Centro de Optimización
-                                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent className="p-8 pt-0 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="flex-1 space-y-4">
+                                <p className="text-slate-300 leading-relaxed max-w-2xl font-medium">
+                                    Utiliza nuestro motor de inteligencia para identificar qué módulos SAP (FI, MM, SD, PP, etc.) están generando más ruido operativo y ofrece a tus clientes soluciones estratégicas que liberen capacidad.
+                                </p>
+                                <div className="flex flex-wrap gap-4">
+                                    <Badge className="bg-white/10 text-malachite border-white/10 uppercase font-black text-[10px] px-3">SAP Evolution Engine</Badge>
+                                    <Badge className="bg-white/10 text-indigo-400 border-white/10 uppercase font-black text-[10px] px-3">Consultancy Assistant</Badge>
+                                    <Badge className="bg-white/10 text-amber-400 border-white/10 uppercase font-black text-[10px] px-3">ROI Analysis</Badge>
+                                </div>
+                            </div>
+                            <Link href="/optimization-hub">
+                                <Button className="bg-malachite hover:bg-jade text-dark-green h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-malachite/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
+                                    Abrir Centro de Optimización
+                                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             {/* Renewal Comparison Popup */}

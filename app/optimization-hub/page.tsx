@@ -13,7 +13,7 @@ export default async function OptimizationHubPage() {
         redirect("/login");
     }
 
-    if (!session.permissions.view_manager_dashboard && session.userRole !== 'ADMIN') {
+    if (!session.permissions.view_optimization_hub && session.userRole !== 'ADMIN') {
         redirect("/dashboard");
     }
 

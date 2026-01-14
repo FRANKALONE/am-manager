@@ -27,6 +27,7 @@ const PERMISSIONS: Permission[] = [
     { key: "view_evolutivos_admin", label: "Ver Gestión Evolutivos (Admin/Manager)", section: "Dashboards" },
     { key: "view_evolutivos_client", label: "Ver Dashboard Evolutivos (Cliente)", section: "Dashboards" },
     { key: "view_service_intelligence", label: "Ver Service Intelligence (Premium)", section: "Dashboards" },
+    { key: "view_optimization_hub", label: "Ver Optimization Hub & Consultoría (Gerentes)", section: "Dashboards" },
 
     { key: "view_cierres", label: "Ver Gestión de Cierres", section: "General" },
     { key: "manage_evolutivos", label: "Gestionar Evolutivos", section: "General" },

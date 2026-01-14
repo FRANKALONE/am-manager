@@ -17,7 +17,7 @@ export async function AdminSidebar() {
                     <LayoutDashboard className="h-4 w-4" />
                 </SidebarLink>
 
-                {(perms.view_manager_dashboard || session.userRole === 'ADMIN') && (
+                {(perms.view_optimization_hub || session.userRole === 'ADMIN') && (
                     <SidebarLink href="/optimization-hub" label="Optimization Hub">
                         <Brain className="h-4 w-4 text-malachite" />
                     </SidebarLink>
