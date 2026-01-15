@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/use-translations";
 
 interface ValidityPeriod {
     id: number;
@@ -80,7 +80,7 @@ interface Props {
 }
 
 export function ContractValidityView({ initialData }: Props) {
-    const t = useTranslations("admin.analytics");
+    const { t } = useTranslations();
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedPeriod, setSelectedPeriod] = useState<(ValidityPeriod & { wpName: string, clientName: string, renewalType: string, contractType: string }) | null>(null);
     const [filters, setFilters] = useState({
@@ -204,14 +204,14 @@ export function ContractValidityView({ initialData }: Props) {
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                                <User className="w-3 h-3" /> {t("filters.client")}
+                                <User className="w-3 h-3" /> {t("admin.analytics.filters.client")}
                             </label>
                             <Select onValueChange={(v) => setFilters(f => ({ ...f, client: v }))} defaultValue="all">
                                 <SelectTrigger className="bg-white">
-                                    <SelectValue placeholder={t("filters.client")} />
+                                    <SelectValue placeholder={t("admin.analytics.filters.client")} />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100]">
-                                    <SelectItem value="all">{t("filters.allClients")}</SelectItem>
+                                    <SelectItem value="all">{t("admin.analytics.filters.allClients")}</SelectItem>
                                     {initialData.map(c => (
                                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                     ))}
@@ -221,15 +221,15 @@ export function ContractValidityView({ initialData }: Props) {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                                <Briefcase className="w-3 h-3" /> {t("filters.contractType")}
+                                <Briefcase className="w-3 h-3" /> {t("admin.analytics.filters.contractType")}
                             </label>
                             <Select onValueChange={(v) => setFilters(f => ({ ...f, contractType: v }))} defaultValue="all">
                                 <SelectTrigger className="bg-white">
-                                    <SelectValue placeholder={t("filters.contractType")} />
+                                    <SelectValue placeholder={t("admin.analytics.filters.contractType")} />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100]">
-                                    <SelectItem value="all">{t("filters.allTypes")}</SelectItem>
-                                    <SelectItem value="BOLSA">BOLSA ({t("filters.hours")})</SelectItem>
+                                    <SelectItem value="all">{t("admin.analytics.filters.allTypes")}</SelectItem>
+                                    <SelectItem value="BOLSA">BOLSA ({t("admin.analytics.filters.hours")})</SelectItem>
                                     <SelectItem value="BD">BAJO DEMANDA</SelectItem>
                                     <SelectItem value="EVENTOS">EVENTOS</SelectItem>
                                     <SelectItem value="SLA">SLA</SelectItem>
@@ -239,32 +239,32 @@ export function ContractValidityView({ initialData }: Props) {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                                <Settings2 className="w-3 h-3" /> {t("filters.renewal")}
+                                <Settings2 className="w-3 h-3" /> {t("admin.analytics.filters.renewal")}
                             </label>
                             <Select onValueChange={(v) => setFilters(f => ({ ...f, renewalType: v }))} defaultValue="all">
                                 <SelectTrigger className="bg-white">
-                                    <SelectValue placeholder={t("filters.renewal")} />
+                                    <SelectValue placeholder={t("admin.analytics.filters.renewal")} />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100]">
-                                    <SelectItem value="all">{t("filters.all")}</SelectItem>
-                                    <SelectItem value="AUTO">{t("filters.automation")}</SelectItem>
-                                    <SelectItem value="BP">{t("filters.onDemand")}</SelectItem>
+                                    <SelectItem value="all">{t("admin.analytics.filters.all")}</SelectItem>
+                                    <SelectItem value="AUTO">{t("admin.analytics.filters.automation")}</SelectItem>
+                                    <SelectItem value="BP">{t("admin.analytics.filters.onDemand")}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                                <Star className="w-3 h-3" /> {t("filters.serviceLevel")}
+                                <Star className="w-3 h-3" /> {t("admin.analytics.filters.serviceLevel")}
                             </label>
                             <Select onValueChange={(v) => setFilters(f => ({ ...f, premium: v }))} defaultValue="all">
                                 <SelectTrigger className="bg-white">
-                                    <SelectValue placeholder={t("filters.serviceLevel")} />
+                                    <SelectValue placeholder={t("admin.analytics.filters.serviceLevel")} />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100]">
-                                    <SelectItem value="all">{t("filters.all")}</SelectItem>
-                                    <SelectItem value="premium">{t("filters.premium")}</SelectItem>
-                                    <SelectItem value="standard">{t("filters.standard")}</SelectItem>
+                                    <SelectItem value="all">{t("admin.analytics.filters.all")}</SelectItem>
+                                    <SelectItem value="premium">{t("admin.analytics.filters.premium")}</SelectItem>
+                                    <SelectItem value="standard">{t("admin.analytics.filters.standard")}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -272,7 +272,7 @@ export function ContractValidityView({ initialData }: Props) {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
-                                placeholder={t("filters.search")}
+                                placeholder={t("admin.analytics.filters.search")}
                                 className="pl-9 bg-white"
                                 value={filters.search}
                                 onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
@@ -287,14 +287,14 @@ export function ContractValidityView({ initialData }: Props) {
                 <CardHeader className="bg-slate-50/50 border-b flex flex-row items-center justify-between py-4">
                     <CardTitle className="text-lg font-bold text-dark-green flex items-center gap-2">
                         <CalendarIcon className="w-5 h-5 text-malachite" />
-                        {t("timeline")}
+                        {t("admin.analytics.timeline")}
                     </CardTitle>
                     <div className="flex items-center gap-2">
                         <div className="flex bg-white rounded-lg border shadow-sm p-1">
-                            <Button variant="ghost" size="icon" onClick={prevYear} title={t("prevYear")}>
+                            <Button variant="ghost" size="icon" onClick={prevYear} title={t("admin.analytics.prevYear")}>
                                 <ChevronFirst className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={prevMonth} title={t("prevMonth")}>
+                            <Button variant="ghost" size="icon" onClick={prevMonth} title={t("admin.analytics.prevMonth")}>
                                 <ChevronLeft className="w-4 h-4" />
                             </Button>
                             <Button
@@ -304,10 +304,10 @@ export function ContractValidityView({ initialData }: Props) {
                             >
                                 {format(viewDate, "MMMM yyyy", { locale: es }).toUpperCase()}
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={nextMonth} title={t("nextMonth")}>
+                            <Button variant="ghost" size="icon" onClick={nextMonth} title={t("admin.analytics.nextMonth")}>
                                 <ChevronRight className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={nextYear} title={t("nextYear")}>
+                            <Button variant="ghost" size="icon" onClick={nextYear} title={t("admin.analytics.nextYear")}>
                                 <ChevronLast className="w-4 h-4" />
                             </Button>
                         </div>
@@ -318,7 +318,7 @@ export function ContractValidityView({ initialData }: Props) {
                         {/* Headers */}
                         <div className="flex border-b bg-slate-50/30">
                             <div className="w-[300px] border-r p-4 font-bold text-xs text-slate-500 uppercase sticky left-0 bg-slate-50 z-10 shrink-0">
-                                {t("filters.clientWpHeader")}
+                                {t("admin.analytics.filters.clientWpHeader")}
                             </div>
                             <div className="flex-1 flex">
                                 {months.map((m, i) => (
@@ -400,24 +400,24 @@ export function ContractValidityView({ initialData }: Props) {
                                                                             "p-3 flex items-center justify-between",
                                                                             vp.isPremium ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"
                                                                         )}>
-                                                                            <span className="font-bold text-xs uppercase text-white">{t("filters.details")}</span>
+                                                                            <span className="font-bold text-xs uppercase text-white">{t("admin.analytics.filters.details")}</span>
                                                                             {vp.isPremium && <Star className="w-4 h-4 fill-current text-white" />}
                                                                         </div>
                                                                         <div className="p-3 space-y-2 text-xs">
                                                                             <div className="flex justify-between">
-                                                                                <span className="text-slate-500">{t("filters.contractedVolume")}:</span>
-                                                                                <span className="font-bold">{vp.totalQuantity} {vp.scopeUnit || t("filters.hours")}</span>
+                                                                                <span className="text-slate-500">{t("admin.analytics.filters.contractedVolume")}:</span>
+                                                                                <span className="font-bold">{vp.totalQuantity} {vp.scopeUnit || t("admin.analytics.filters.hours")}</span>
                                                                             </div>
                                                                             <div className="flex justify-between">
-                                                                                <span className="text-slate-500">{t("filters.unitRate")}:</span>
+                                                                                <span className="text-slate-500">{t("admin.analytics.filters.unitRate")}:</span>
                                                                                 <span className="font-bold">{vp.rate} €</span>
                                                                             </div>
                                                                             <div className="flex justify-between">
-                                                                                <span className="text-slate-500">{t("filters.end")}:</span>
+                                                                                <span className="text-slate-500">{t("admin.analytics.filters.end")}:</span>
                                                                                 <span className="font-bold text-rose-600">{format(new Date(vp.endDate), "dd MMMM yyyy", { locale: es })}</span>
                                                                             </div>
                                                                             <div className="pt-1 border-t flex justify-center">
-                                                                                <span className="text-[10px] text-slate-400 italic">{t("filters.clickForDetails")}</span>
+                                                                                <span className="text-[10px] text-slate-400 italic">{t("admin.analytics.filters.clickForDetails")}</span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -440,11 +440,11 @@ export function ContractValidityView({ initialData }: Props) {
             <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-500 uppercase">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    {t("filters.standardLabel")}
+                    {t("admin.analytics.filters.standardLabel")}
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-100">
                     <Star className="w-3 h-3 text-amber-500" />
-                    {t("filters.premiumLabel")}
+                    {t("admin.analytics.filters.premiumLabel")}
                 </div>
             </div>
 
@@ -453,7 +453,7 @@ export function ContractValidityView({ initialData }: Props) {
                 <DialogContent className="max-w-2xl border-t-8 border-t-malachite rounded-xl shadow-2xl bg-white">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-dark-green uppercase">
-                            {t("filters.contractDetails")}
+                            {t("admin.analytics.filters.contractDetails")}
                         </DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium">
                             {selectedPeriod?.clientName} • {selectedPeriod?.wpName}
@@ -463,34 +463,34 @@ export function ContractValidityView({ initialData }: Props) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                         <div className="space-y-4">
                             <div className="bg-slate-50 p-4 rounded-xl border">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t("filters.validity")}</h4>
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t("admin.analytics.filters.validity")}</h4>
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <CalendarIcon className="w-4 h-4 text-malachite" />
-                                            <span className="text-sm font-semibold">{t("filters.start")}:</span>
+                                            <span className="text-sm font-semibold">{t("admin.analytics.filters.start")}:</span>
                                         </div>
                                         <span className="text-sm">{selectedPeriod && format(new Date(selectedPeriod.startDate), "dd/MM/yyyy")}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <CalendarIcon className="w-4 h-4 text-rose-500" />
-                                            <span className="text-sm font-semibold">{t("filters.end")}:</span>
+                                            <span className="text-sm font-semibold">{t("admin.analytics.filters.end")}:</span>
                                         </div>
                                         <span className="text-sm font-bold text-rose-600">{selectedPeriod && format(new Date(selectedPeriod.endDate), "dd/MM/yyyy")}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Clock className="w-4 h-4 text-blue-500" />
-                                            <span className="text-sm font-semibold">{t("filters.status")}:</span>
+                                            <span className="text-sm font-semibold">{t("admin.analytics.filters.status")}:</span>
                                         </div>
                                         {selectedPeriod && new Date(selectedPeriod.endDate) < new Date() ? (
                                             <Badge variant="destructive" className="flex items-center gap-1">
-                                                <XCircle className="w-3 h-3" /> {t("filters.expired")}
+                                                <XCircle className="w-3 h-3" /> {t("admin.analytics.filters.expired")}
                                             </Badge>
                                         ) : (
                                             <Badge className="bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1 text-white">
-                                                <CheckCircle2 className="w-3 h-3" /> {t("filters.active")}
+                                                <CheckCircle2 className="w-3 h-3" /> {t("admin.analytics.filters.active")}
                                             </Badge>
                                         )}
                                     </div>
@@ -498,24 +498,24 @@ export function ContractValidityView({ initialData }: Props) {
                             </div>
 
                             <div className="bg-slate-50 p-4 rounded-xl border">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t("filters.configuration")}</h4>
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t("admin.analytics.filters.configuration")}</h4>
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-semibold">{t("filters.contractType")}:</span>
+                                        <span className="text-sm font-semibold">{t("admin.analytics.filters.contractType")}:</span>
                                         <Badge variant="outline" className="bg-white text-dark-green uppercase">{selectedPeriod?.contractType}</Badge>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-semibold">{t("filters.renewalType")}:</span>
-                                        <Badge variant="outline" className="bg-white text-dark-green uppercase">{selectedPeriod?.renewalType === 'AUTO' ? t("filters.automation") : t("filters.onDemand")}</Badge>
+                                        <span className="text-sm font-semibold">{t("admin.analytics.filters.renewalType")}:</span>
+                                        <Badge variant="outline" className="bg-white text-dark-green uppercase">{selectedPeriod?.renewalType === 'AUTO' ? t("admin.analytics.filters.automation") : t("admin.analytics.filters.onDemand")}</Badge>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-semibold">{t("filters.level")}:</span>
+                                        <span className="text-sm font-semibold">{t("admin.analytics.filters.level")}:</span>
                                         {selectedPeriod?.isPremium ? (
                                             <span className="text-amber-600 font-bold flex items-center gap-1">
                                                 <Star className="w-4 h-4 fill-amber-500" /> PREMIUM
                                             </span>
                                         ) : (
-                                            <span className="text-slate-600 font-bold uppercase text-[10px]">{t("filters.standard")}</span>
+                                            <span className="text-slate-600 font-bold uppercase text-[10px]">{t("admin.analytics.filters.standard")}</span>
                                         )}
                                     </div>
                                 </div>
@@ -527,41 +527,41 @@ export function ContractValidityView({ initialData }: Props) {
                                 <div className="absolute -right-4 -top-4 opacity-10">
                                     <Info className="w-24 h-24" />
                                 </div>
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{t("filters.economicConditions")}</h4>
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{t("admin.analytics.filters.economicConditions")}</h4>
                                 <div className="space-y-4 relative z-10">
                                     <div>
-                                        <span className="block text-xs text-slate-400 mb-1">{t("filters.contractedVolume")}</span>
+                                        <span className="block text-xs text-slate-400 mb-1">{t("admin.analytics.filters.contractedVolume")}</span>
                                         <span className="text-3xl font-bold tracking-tight text-white">
-                                            {selectedPeriod?.totalQuantity} <span className="text-sm font-normal text-slate-400">{selectedPeriod?.scopeUnit || t("filters.hours")}</span>
+                                            {selectedPeriod?.totalQuantity} <span className="text-sm font-normal text-slate-400">{selectedPeriod?.scopeUnit || t("admin.analytics.filters.hours")}</span>
                                         </span>
                                     </div>
                                     <div className="flex gap-6">
                                         <div>
-                                            <span className="block text-xs text-slate-400 mb-1">{t("filters.unitRate")}</span>
+                                            <span className="block text-xs text-slate-400 mb-1">{t("admin.analytics.filters.unitRate")}</span>
                                             <span className="text-xl font-bold text-white">{selectedPeriod?.rate} €</span>
                                         </div>
                                         {selectedPeriod?.isPremium && (
                                             <div>
-                                                <span className="block text-xs text-slate-400 mb-1">{t("filters.premiumPrice")}</span>
+                                                <span className="block text-xs text-slate-400 mb-1">{t("admin.analytics.filters.premiumPrice")}</span>
                                                 <span className="text-xl font-bold text-amber-400">{selectedPeriod?.rate} €</span>
                                             </div>
                                         )}
                                     </div>
                                     <div className="pt-3 border-t border-slate-700">
                                         <div className="flex justify-between text-xs mb-1 text-slate-400">
-                                            <span>{t("filters.surplusMaintenance")}:</span>
-                                            <span className="text-white font-medium uppercase font-bold">{selectedPeriod?.surplusStrategy || t("filters.billing")}</span>
+                                            <span>{t("admin.analytics.filters.surplusMaintenance")}:</span>
+                                            <span className="text-white font-medium uppercase font-bold">{selectedPeriod?.surplusStrategy || t("admin.analytics.filters.billing")}</span>
                                         </div>
                                         <div className="flex justify-between text-xs text-slate-400">
-                                            <span>{t("filters.regularization")}:</span>
-                                            <span className="text-white font-medium uppercase font-bold">{selectedPeriod?.regularizationType || t("filters.quarterly")}</span>
+                                            <span>{t("admin.analytics.filters.regularization")}:</span>
+                                            <span className="text-white font-medium uppercase font-bold">{selectedPeriod?.regularizationType || t("admin.analytics.filters.quarterly")}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <Button className="w-full bg-malachite hover:bg-jade text-white font-bold" onClick={() => setSelectedPeriod(null)}>
-                                {t("filters.closeDetails")}
+                                {t("admin.analytics.filters.closeDetails")}
                             </Button>
                         </div>
                     </div>
