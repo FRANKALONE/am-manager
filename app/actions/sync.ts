@@ -100,7 +100,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
     };
 
     try {
-        addLog(`===== SYNC STARTED: ${wpId} (Debug: ${debug}) =====`);
+        const entryVersion = "v3.2 - 2026-01-15 20:40";
+        console.log(`[SYNC ENTRY ${entryVersion}] Starting sync for WP: ${wpId}`);
+        addLog(`===== SYNC STARTED: ${wpId} (Version: ${entryVersion}) =====`);
 
         // 0. Check Kill Switch
         if (await isKillSwitchActive()) {
@@ -221,6 +223,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
             const from = earliestStart.toISOString().split('T')[0];
             const to = latestEnd.toISOString().split('T')[0];
             addLog(`[INFO] Fetching worklogs from ${from} to ${to} for ${accountIds.length} account(s)`);
+            console.time(`fetch-tempo-worklogs-${wpId}`);
 
             for (const accountId of accountIds) {
                 addLog(`[INFO] Fetching worklogs for account: ${accountId}`);
@@ -299,7 +302,9 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
         }
 
         if (batches.length > 0) {
+            addLog(`[DEBUG] JQL Batches: ${JSON.stringify(batches)}`);
             addLog(`[INFO] Fetching details for ${uniqueIssueIds.length} issues in ${batches.length} parallel batches`);
+            console.time(`fetch-jira-issue-details-${wpId}`);
 
             const jiraUrl = process.env.JIRA_URL?.trim();
             const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
@@ -401,6 +406,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
             });
 
             await limitConcurrency(batchTasks, 3);
+            console.timeEnd(`fetch-jira-issue-details-${wpId}`);
         }
 
         addLog(`[INFO] Fetched details for ${issueDetails.size} issues`);
@@ -553,6 +559,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
 
                     if (allEvolutivos.length > 0) {
                         addLog(`[INFO] Processing ${allEvolutivos.length} Evolutivos with SLA data`);
+                        console.time(`fetch-evolutivos-logic-${wpId}`);
 
                         allEvolutivos.forEach((issue: any) => {
                             const billingModeRaw = issue.fields.customfield_10121;
@@ -882,11 +889,14 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
             });
 
             await limitConcurrency(missingBatchTasks, 3);
+            console.timeEnd(`fetch-missing-issue-details-${wpId}`);
             addLog(`[INFO] Total issue details now: ${issueDetails.size}`);
         }
 
 
         let firstLog = true;
+        addLog(`[INFO] Processing ${combinedWorklogs.length} total worklogs (${allWorklogs.length} from accounts + ${tmWorklogs.length} from T&M)`);
+        console.time(`process-combined-worklogs-${wpId}`);
         for (const log of combinedWorklogs) {
             const issueId = log.issue?.id ? String(log.issue.id) : null;
             const details = issueId ? issueDetails.get(issueId) : null;
@@ -1018,6 +1028,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 addLog(`[CORRECTION] ${rawHours.toFixed(2)}h -> ${correctedHours.toFixed(2)}h`);
             }
         }
+        console.timeEnd(`process-combined-worklogs-${wpId}`);
 
         addLog(`[INFO] Filtered: ${validCount} valid, ${skippedCount} skipped`);
 
@@ -1048,6 +1059,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
         }
 
         // 8.7. Process regularizations
+        console.time(`process-regularizations-${wpId}`);
         // - MANUAL_CONSUMPTION: Add to consumed hours
         // - EXCESS/RETURN: Keep separate (regularization column)
         if (wp.regularizations && wp.regularizations.length > 0) {
@@ -1092,9 +1104,11 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 }
             });
         }
+        console.timeEnd(`process-regularizations-${wpId}`);
 
         // 8.5. For Events WP: Fetch ALL tickets from project using JIRA API v3
         if (wp.contractType?.toUpperCase() === 'EVENTOS') {
+            console.time(`process-events-${wpId}`);
             console.log('[EVENTS DEBUG] Entering Events sync section');
             addLog(`[INFO] Fetching all tickets for Events WP...`);
 
@@ -1321,6 +1335,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
             await prisma.worklogDetail.createMany({
                 data: worklogDetailsToSave
             });
+            console.timeEnd(`save-to-db-${wpId}`);
             addLog(`[DB] Saved ${worklogDetailsToSave.length} worklog details`);
         }
 
@@ -1343,8 +1358,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                         slaResolution: details?.slaResolution || null,
                         slaResolutionTime: details?.slaResolutionTime || null,
                         createdDate: wl.issueCreatedDate || new Date(),
-                        year: wl.year,
-                        month: wl.month,
+                        year: (wp.contractType?.toUpperCase() === 'EVENTOS' && wl.issueCreatedDate)
+                            ? wl.issueCreatedDate.getFullYear()
+                            : wl.year,
+                        month: (wp.contractType?.toUpperCase() === 'EVENTOS' && wl.issueCreatedDate)
+                            ? wl.issueCreatedDate.getMonth() + 1
+                            : wl.month,
                         reporter: 'Unknown', // We don't have reporter info in worklog details
                         billingMode: details?.billingMode || wl.billingMode || null,
                         assignee: details?.assignee || null,
@@ -1402,6 +1421,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 update: {
                     issueSummary: ticketData.issueSummary,
                     issueType: ticketData.issueType,
+                    year: ticketData.year,
+                    month: ticketData.month,
                     status: ticketData.status,
                     priority: ticketData.priority,
                     slaResponse: ticketData.slaResponse,
@@ -1443,12 +1464,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
         }
 
         if (uniqueTickets.size > 0) {
+            // Version 3.2 - Final Fix for EVENTOS dates
+            const versionTag = "v3.2 - 2026-01-15 20:40";
+            console.log(`[SYNC ${versionTag}] Starting final upsert of ${uniqueTickets.size} tickets`);
+            addLog(`[SYNC] Final ticket updates starting (Version ${versionTag})`);
+
             addLog(`[DB] Upserted ${uniqueTickets.size} ticket records with status`);
             console.log(`[SYNC DEBUG] Upserted ${uniqueTickets.size} tickets with status`);
             // Log first few tickets for debugging
             const firstTickets = Array.from(uniqueTickets.entries()).slice(0, 3);
             firstTickets.forEach(([key, data]) => {
-                console.log(`[SYNC DEBUG] Ticket ${key}: status="${data.status}"`);
                 addLog(`[DB] Ticket ${key}: status="${data.status}"`);
             });
         }
