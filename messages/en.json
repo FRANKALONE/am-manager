@@ -287,11 +287,6 @@
                 "premiumLabel": "PREMIUM Period"
             }
         },
-        "users": "Users",
-        "clients": "Clients",
-        "workPackages": "Work Packages",
-        "parameters": "Parameters",
-        "import": "Import / Export",
         "maintenance": {
             "title": "DB Maintenance",
             "subtitle": "Tools for technical management and data cleanup.",
@@ -1050,3 +1045,4 @@
             }
         }
     }
+}
