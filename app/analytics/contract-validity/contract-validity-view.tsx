@@ -91,6 +91,15 @@ export function ContractValidityView({ initialData }: Props) {
         search: ""
     });
 
+    // Validate data
+    if (!initialData || !Array.isArray(initialData)) {
+        return (
+            <div className="p-6">
+                <p className="text-red-600">Error: No se pudieron cargar los datos</p>
+            </div>
+        );
+    }
+
     // Generate 12 months for the timeline
     const months = useMemo(() => {
         const start = startOfMonth(viewDate);
