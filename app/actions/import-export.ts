@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 
 // --- EXPORT LOGIC ---
 
+// --- EXPORT LOGIC ---
+
 export async function exportBulkData() {
     try {
         const clients = await prisma.client.findMany({
@@ -21,9 +23,9 @@ export async function exportBulkData() {
         });
 
         const csvRows = [];
-        // Header v3.0 - Updated for new schema
+        // Header v4.0 - Added IsDelete
         csvRows.push([
-            "ClientId", "ClientName", "ClientManager", "ClientAmOnboardingDate", "ClientPortalUrl", "ClientJiraProjectKey", "ClientCustomAttributes",
+            "IsDelete", "ClientId", "ClientName", "ClientManager", "ClientAmOnboardingDate", "ClientPortalUrl", "ClientJiraProjectKey", "ClientCustomAttributes",
             "WPId", "WPName", "WPContractType", "WPBillingType", "WPRenewalType",
             "WPOldWpId", "WPTempoAccountId", "WPJiraProjectKeys",
             "WPIasService", "WPIncludeEvoEst", "WPIncludeEvoTM",
@@ -41,7 +43,7 @@ export async function exportBulkData() {
             if (client.workPackages.length === 0) {
                 // Client without WPs
                 csvRows.push([
-                    client.id, client.name, client.manager || "", onboardingDate, client.portalUrl || "", client.jiraProjectKey || "", client.customAttributes || "{}",
+                    "FALSE", client.id, client.name, client.manager || "", onboardingDate, client.portalUrl || "", client.jiraProjectKey || "", client.customAttributes || "{}",
                     "", "", "", "", "",
                     "", "", "",
                     "", "", "",
@@ -60,6 +62,7 @@ export async function exportBulkData() {
                 const accumDate = wp.accumulatedHoursDate ? wp.accumulatedHoursDate.toISOString().split('T')[0] : "";
 
                 csvRows.push([
+                    "FALSE",
                     client.id, client.name, client.manager || "", onboardingDate, client.portalUrl || "", client.jiraProjectKey || "", client.customAttributes || "{}",
 
                     wp.id, wp.name, wp.contractType, wp.billingType, wp.renewalType,
@@ -95,7 +98,6 @@ export async function exportBulkData() {
 
 // --- IMPORT LOGIC ---
 
-// Helper function to detect CSV delimiter
 function detectDelimiter(text: string): string {
     const firstLine = text.split('\n')[0];
     const commaCount = (firstLine.match(/,/g) || []).length;
@@ -103,7 +105,6 @@ function detectDelimiter(text: string): string {
     return commaCount > semicolonCount ? ',' : ';';
 }
 
-// Helper function to parse CSV row respecting quoted fields
 function parseCSVRow(row: string, delimiter: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -142,36 +143,17 @@ export async function importBulkData(formData: FormData) {
         const decoder = new TextDecoder("utf-8", { fatal: true });
         text = decoder.decode(buffer);
     } catch (e) {
-        console.warn("UTF-8 decode failed, falling back to windows-1252");
         const decoder = new TextDecoder("windows-1252");
         text = decoder.decode(buffer);
     }
 
-    // Remove BOM if present
-    if (text.charCodeAt(0) === 0xFEFF) {
-        text = text.slice(1);
-    }
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
     const rows = text.split("\n").filter(line => line.trim() !== "");
+    if (rows.length === 0) return { error: "El archivo CSV está vacío" };
 
-    if (rows.length === 0) {
-        return { error: "El archivo CSV está vacío" };
-    }
-
-    // Detect delimiter from first line
     const delimiter = detectDelimiter(text);
-    console.log(`Detected delimiter: ${delimiter === ',' ? 'comma' : 'semicolon'}`);
-
-    const headerRow = rows[0];
-    const expectedColumns = 32; // Updated for all fields v4.0
-    const headerCols = parseCSVRow(headerRow, delimiter);
-
-    if (headerCols.length < expectedColumns) {
-        return {
-            error: `Formato de CSV inválido. Se esperaban ${expectedColumns} columnas, pero se encontraron ${headerCols.length}. Delimitador detectado: ${delimiter === ',' ? 'coma (,)' : 'punto y coma (;)'}`
-        };
-    }
-
+    const expectedColumns = 33; // Added IsDelete
     const dataRows = rows.slice(1);
     let processedCount = 0;
     let errors: string[] = [];
@@ -181,83 +163,91 @@ export async function importBulkData(formData: FormData) {
         if (!row) continue;
 
         const cols = parseCSVRow(row, delimiter);
-
         if (cols.length < expectedColumns) {
-            errors.push(`Fila ${i + 2}: Número incorrecto de columnas (${cols.length}/${expectedColumns})`);
+            errors.push(`Fila ${i + 2}: Columnas insuficientes (${cols.length}/${expectedColumns})`);
             continue;
         }
 
         const [
-            clientId, clientName, clientManager, clientAmOnboardingDate, clientPortalUrl, clientJiraProjectKey, clientCustomAttrs,
+            isDelete, clientId, clientName, clientManager, clientAmOnboardingDate, clientPortalUrl, clientJiraProjectKey, clientCustomAttrs,
             wpId, wpName, wpContractType, wpBillingType, wpRenewalType,
             wpOldWpId, wpTempoAccountId, wpJiraProjectKeys,
             wpIaasService, wpIncludeEvoEst, wpIncludeEvoTM,
             wpAccumulatedHours, wpAccumulatedHoursDate, wpCustomAttrs,
-            // ValidityPeriod fields
             periodStartDate, periodEndDate,
             periodTotalQuantity, periodScopeUnit, periodRate,
             periodIsPremium, periodPremiumPrice,
             periodRegularizationType, periodRegularizationRate, periodSurplusStrategy, periodRateEvolutivo
         ] = cols;
 
-        if (!clientId || !clientName) {
-            errors.push(`Fila ${i + 2}: Falta ID de Cliente (columna 1) o Nombre de Cliente (columna 2)`);
+        if (!clientId) {
+            errors.push(`Fila ${i + 2}: Falta ClientId`);
             continue;
         }
 
         try {
-            // 1. Upsert Client
-            await prisma.client.upsert({
-                where: { id: clientId },
-                update: {
-                    name: clientName,
-                    manager: clientManager || null,
-                    amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
-                    portalUrl: clientPortalUrl || null,
-                    clientPortalUrl: clientPortalUrl || null,
-                    jiraProjectKey: clientJiraProjectKey || null,
-                    customAttributes: clientCustomAttrs || "{}"
-                },
-                create: {
-                    id: clientId,
-                    name: clientName,
-                    manager: clientManager || null,
-                    amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
-                    portalUrl: clientPortalUrl || null,
-                    clientPortalUrl: clientPortalUrl || null,
-                    jiraProjectKey: clientJiraProjectKey || null,
-                    customAttributes: clientCustomAttrs || "{}"
+            await prisma.$transaction(async (tx) => {
+                // 1. Handle Deletion
+                if (isDelete === "TRUE" && wpId) {
+                    await tx.workPackage.delete({ where: { id: wpId } });
+                    return;
                 }
-            });
 
-            // 2. Upsert WorkPackage (if present)
-            if (wpId && wpName) {
-                await prisma.workPackage.upsert({
+                // 2. Fetch or Create Client
+                const existingClient = await tx.client.findUnique({ where: { id: clientId } });
+                await tx.client.upsert({
+                    where: { id: clientId },
+                    update: {
+                        name: clientName || existingClient?.name || clientId,
+                        manager: clientManager !== "" ? clientManager : (existingClient?.manager || null),
+                        amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : (existingClient?.amOnboardingDate || null),
+                        portalUrl: clientPortalUrl !== "" ? clientPortalUrl : (existingClient?.portalUrl || null),
+                        clientPortalUrl: clientPortalUrl !== "" ? clientPortalUrl : (existingClient?.clientPortalUrl || null),
+                        jiraProjectKey: clientJiraProjectKey !== "" ? clientJiraProjectKey : (existingClient?.jiraProjectKey || null),
+                        customAttributes: clientCustomAttrs !== "" ? clientCustomAttrs : (existingClient?.customAttributes || "{}")
+                    },
+                    create: {
+                        id: clientId,
+                        name: clientName || clientId,
+                        manager: clientManager || null,
+                        amOnboardingDate: clientAmOnboardingDate ? new Date(clientAmOnboardingDate) : null,
+                        portalUrl: clientPortalUrl || null,
+                        clientPortalUrl: clientPortalUrl || null,
+                        jiraProjectKey: clientJiraProjectKey || null,
+                        customAttributes: clientCustomAttrs || "{}"
+                    }
+                });
+
+                if (!wpId) return;
+
+                // 3. Update WorkPackage
+                const existingWp = await tx.workPackage.findUnique({ where: { id: wpId } });
+                await tx.workPackage.upsert({
                     where: { id: wpId },
                     update: {
-                        name: wpName,
+                        name: wpName || existingWp?.name || wpId,
                         clientId: clientId,
-                        clientName: clientName,
-                        contractType: wpContractType,
-                        billingType: wpBillingType,
-                        renewalType: wpRenewalType || "",
-                        oldWpId: wpOldWpId || null,
-                        tempoAccountId: wpTempoAccountId || null,
-                        jiraProjectKeys: wpJiraProjectKeys || null,
-                        hasIaasService: wpIaasService === "TRUE",
-                        includeEvoEstimates: wpIncludeEvoEst !== "FALSE", // Default true
-                        includeEvoTM: wpIncludeEvoTM !== "FALSE",        // Default true
-                        accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
-                        accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,
-                        customAttributes: wpCustomAttrs || "{}"
+                        clientName: clientName || existingWp?.clientName || clientId,
+                        contractType: wpContractType || existingWp?.contractType || "BOLSA",
+                        billingType: wpBillingType || existingWp?.billingType || "HORAS",
+                        renewalType: wpRenewalType !== "" ? wpRenewalType : (existingWp?.renewalType || ""),
+                        oldWpId: wpOldWpId !== "" ? wpOldWpId : (existingWp?.oldWpId || null),
+                        tempoAccountId: wpTempoAccountId !== "" ? wpTempoAccountId : (existingWp?.tempoAccountId || null),
+                        jiraProjectKeys: wpJiraProjectKeys !== "" ? wpJiraProjectKeys : (existingWp?.jiraProjectKeys || null),
+                        hasIaasService: wpIaasService !== "" ? (wpIaasService === "TRUE") : (existingWp?.hasIaasService || false),
+                        includeEvoEstimates: wpIncludeEvoEst !== "" ? (wpIncludeEvoEst !== "FALSE") : (existingWp?.includeEvoEstimates ?? true),
+                        includeEvoTM: wpIncludeEvoTM !== "" ? (wpIncludeEvoTM !== "FALSE") : (existingWp?.includeEvoTM ?? true),
+                        accumulatedHours: wpAccumulatedHours !== "" ? parseFloat(wpAccumulatedHours) : (existingWp?.accumulatedHours || 0),
+                        accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : (existingWp?.accumulatedHoursDate || null),
+                        customAttributes: wpCustomAttrs !== "" ? wpCustomAttrs : (existingWp?.customAttributes || "{}")
                     },
                     create: {
                         id: wpId,
-                        name: wpName,
+                        name: wpName || wpId,
                         clientId: clientId,
-                        clientName: clientName,
-                        contractType: wpContractType,
-                        billingType: wpBillingType,
+                        clientName: clientName || clientId,
+                        contractType: wpContractType || "BOLSA",
+                        billingType: wpBillingType || "HORAS",
                         renewalType: wpRenewalType || "",
                         oldWpId: wpOldWpId || null,
                         tempoAccountId: wpTempoAccountId || null,
@@ -265,70 +255,53 @@ export async function importBulkData(formData: FormData) {
                         hasIaasService: wpIaasService === "TRUE",
                         includeEvoEstimates: wpIncludeEvoEst !== "FALSE",
                         includeEvoTM: wpIncludeEvoTM !== "FALSE",
-                        accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0.0,
+                        accumulatedHours: wpAccumulatedHours ? parseFloat(wpAccumulatedHours) : 0,
                         accumulatedHoursDate: wpAccumulatedHoursDate ? new Date(wpAccumulatedHoursDate) : null,
                         customAttributes: wpCustomAttrs || "{}"
                     }
                 });
 
-                // 3. Handle Validity Period
+                // 4. Handle Period
                 if (periodStartDate && periodEndDate) {
                     const startDate = new Date(periodStartDate);
                     const endDate = new Date(periodEndDate);
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) throw new Error(`Fechas inválidas: ${periodStartDate} - ${periodEndDate}`);
 
-                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                        errors.push(`Fila ${i + 2}: Fechas inválidas - Inicio: "${periodStartDate}", Fin: "${periodEndDate}"`);
-                        continue;
-                    }
-
-                    const existingPeriods = await prisma.validityPeriod.findMany({
-                        where: { workPackageId: wpId },
-                        orderBy: { id: 'asc' },
-                        take: 1
+                    const existingPeriod = await tx.validityPeriod.findFirst({
+                        where: { workPackageId: wpId, startDate: startDate }
                     });
 
                     const periodData = {
                         startDate,
                         endDate,
-                        totalQuantity: (periodTotalQuantity && !isNaN(parseFloat(periodTotalQuantity))) ? parseFloat(periodTotalQuantity) : 0,
-                        scopeUnit: periodScopeUnit || "HORAS",
-                        rate: (periodRate && !isNaN(parseFloat(periodRate))) ? parseFloat(periodRate) : 0,
-                        isPremium: periodIsPremium === "TRUE",
-                        premiumPrice: (periodPremiumPrice && !isNaN(parseFloat(periodPremiumPrice))) ? parseFloat(periodPremiumPrice) : null,
-                        regularizationType: periodRegularizationType || null,
-                        regularizationRate: (periodRegularizationRate && !isNaN(parseFloat(periodRegularizationRate))) ? parseFloat(periodRegularizationRate) : null,
-                        surplusStrategy: periodSurplusStrategy || null,
-                        rateEvolutivo: (periodRateEvolutivo && !isNaN(parseFloat(periodRateEvolutivo))) ? parseFloat(periodRateEvolutivo) : null
+                        totalQuantity: periodTotalQuantity !== "" ? parseFloat(periodTotalQuantity) : (existingPeriod?.totalQuantity || 0),
+                        scopeUnit: periodScopeUnit !== "" ? periodScopeUnit : (existingPeriod?.scopeUnit || "HORAS"),
+                        rate: periodRate !== "" ? parseFloat(periodRate) : (existingPeriod?.rate || 0),
+                        isPremium: periodIsPremium !== "" ? (periodIsPremium === "TRUE") : (existingPeriod?.isPremium || false),
+                        premiumPrice: periodPremiumPrice !== "" ? parseFloat(periodPremiumPrice) : (existingPeriod?.premiumPrice || null),
+                        regularizationType: periodRegularizationType !== "" ? periodRegularizationType : (existingPeriod?.regularizationType || null),
+                        regularizationRate: periodRegularizationRate !== "" ? parseFloat(periodRegularizationRate) : (existingPeriod?.regularizationRate || null),
+                        surplusStrategy: periodSurplusStrategy !== "" ? periodSurplusStrategy : (existingPeriod?.surplusStrategy || null),
+                        rateEvolutivo: periodRateEvolutivo !== "" ? parseFloat(periodRateEvolutivo) : (existingPeriod?.rateEvolutivo || null)
                     };
 
-                    if (existingPeriods[0]) {
-                        await prisma.validityPeriod.update({
-                            where: { id: existingPeriods[0].id },
-                            data: periodData
-                        });
+                    if (existingPeriod) {
+                        await tx.validityPeriod.update({ where: { id: existingPeriod.id }, data: periodData });
                     } else {
-                        await prisma.validityPeriod.create({
-                            data: {
-                                workPackageId: wpId,
-                                ...periodData
-                            }
-                        });
+                        await tx.validityPeriod.create({ data: { workPackageId: wpId, ...periodData } });
                     }
                 }
-            }
+            });
             processedCount++;
-
         } catch (error) {
             console.error(`Row ${i + 2} error:`, error);
-            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
-            errors.push(`Fila ${i + 2}: ${errorMsg}`);
+            errors.push(`Fila ${i + 2}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         }
     }
 
     revalidatePath("/admin/clients");
     revalidatePath("/admin/work-packages");
 
-    // Persist log locally
     try {
         await prisma.importLog.create({
             data: {
@@ -336,20 +309,17 @@ export async function importBulkData(formData: FormData) {
                 status: errors.length === 0 ? 'SUCCESS' : (processedCount > 0 ? 'PARTIAL' : 'ERROR'),
                 filename: file.name,
                 totalRows: dataRows.length,
-                processedCount: processedCount,
+                processedCount,
                 errors: errors.length > 0 ? JSON.stringify(errors) : null,
                 delimiter: delimiter === ',' ? 'coma' : 'punto y coma'
             }
         });
-    } catch (e) {
-        console.error("Error creating import log:", e);
-    }
+    } catch (e) { }
 
     return {
         success: true,
         count: processedCount,
         totalRows: dataRows.length,
-        delimiter: delimiter === ',' ? 'coma' : 'punto y coma',
         errors: errors.length > 0 ? errors : undefined
     };
 }
