@@ -110,7 +110,10 @@ export function ContractValidityView({ initialData }: Props) {
     const filteredData = useMemo(() => {
         return initialData.map(client => ({
             ...client,
-            workPackages: client.workPackages.filter((wp: WorkPackage) => {
+            workPackages: (client.workPackages || []).filter((wp: WorkPackage) => {
+                // Validate WP has required fields
+                if (!wp || !wp.id || !wp.name) return false;
+
                 const matchesClient = filters.client === "all" || client.id === filters.client;
                 const matchesType = filters.contractType === "all" || wp.contractType === filters.contractType;
                 const matchesRenewal = filters.renewalType === "all" || wp.renewalType === filters.renewalType;
@@ -119,7 +122,9 @@ export function ContractValidityView({ initialData }: Props) {
                     client.name.toLowerCase().includes(filters.search.toLowerCase());
 
                 // For periods within WP
-                const hasMatchingPeriod = wp.validityPeriods.some((vp: ValidityPeriod) => {
+                const validityPeriods = wp.validityPeriods || [];
+                const hasMatchingPeriod = validityPeriods.some((vp: ValidityPeriod) => {
+                    if (!vp) return false;
                     const matchesPremium = filters.premium === "all" ||
                         (filters.premium === "premium" && vp.isPremium) ||
                         (filters.premium === "standard" && !vp.isPremium);
@@ -364,7 +369,8 @@ export function ContractValidityView({ initialData }: Props) {
                                                 ))}
 
                                                 {/* Validity Bars */}
-                                                {wp.validityPeriods.map((vp: ValidityPeriod) => {
+                                                {(wp.validityPeriods || []).map((vp: ValidityPeriod) => {
+                                                    if (!vp || !vp.startDate || !vp.endDate) return null;
                                                     const style = getPeriodStyle(vp.startDate, vp.endDate, months);
                                                     if (!style) return null;
 
