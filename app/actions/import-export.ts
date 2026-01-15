@@ -320,6 +320,7 @@ export async function importBulkData(formData: FormData) {
         success: true,
         count: processedCount,
         totalRows: dataRows.length,
+        delimiter: delimiter === ',' ? 'coma' : 'punto y coma',
         errors: errors.length > 0 ? errors : undefined
     };
 }
