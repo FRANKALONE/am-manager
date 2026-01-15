@@ -1213,6 +1213,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                     const year = createdDate.getFullYear();
                                     const month = createdDate.getMonth() + 1;
 
+                                    // Version 2.0 - Force cache invalidation for Vercel
                                     console.log('[EVENTS DEBUG] Upserting ticket:', issue.key, `(${year}-${month.toString().padStart(2, '0')})`);
 
                                     // Use upsert to ensure year/month are ALWAYS updated from creation date
