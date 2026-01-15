@@ -49,8 +49,8 @@ import { useTranslations } from "next-intl";
 
 interface ValidityPeriod {
     id: number;
-    startDate: Date;
-    endDate: Date;
+    startDate: string | Date;
+    endDate: string | Date;
     totalQuantity: number;
     rate: number;
     isPremium: boolean;

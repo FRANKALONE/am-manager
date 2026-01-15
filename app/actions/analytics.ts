@@ -33,15 +33,15 @@ export async function getContractValidityData() {
             }
         });
 
-        // Transform null to undefined and dates to Date objects for type compatibility
+        // Transform data for Next.js serialization (dates to ISO strings, null to undefined)
         return clients.map(client => ({
             ...client,
             workPackages: client.workPackages.map(wp => ({
                 ...wp,
                 validityPeriods: wp.validityPeriods.map(vp => ({
                     ...vp,
-                    startDate: new Date(vp.startDate),
-                    endDate: new Date(vp.endDate),
+                    startDate: vp.startDate.toISOString(),
+                    endDate: vp.endDate.toISOString(),
                     premiumPrice: vp.premiumPrice ?? undefined,
                     regularizationRate: vp.regularizationRate ?? undefined,
                     regularizationType: vp.regularizationType ?? undefined,
@@ -49,7 +49,7 @@ export async function getContractValidityData() {
                     rateEvolutivo: vp.rateEvolutivo ?? undefined
                 }))
             }))
-        }));
+        })) as any; // Type assertion needed due to date string conversion
     } catch (error) {
         console.error("Error fetching contract validity data:", error);
         return [];
