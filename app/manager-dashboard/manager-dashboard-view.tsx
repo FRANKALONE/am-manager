@@ -341,6 +341,46 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
 
                 </div>
 
+                {/* 3. Gestión de Evolutivos Access */}
+                {(permissions.view_evolutivos_standard || permissions.view_evolutivos_admin || isAdmin) && (
+                    <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-amber-900 via-orange-900 to-amber-900 text-white overflow-hidden relative group rounded-[2rem]">
+                        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                            <Calendar className="w-48 h-48 text-amber-400" />
+                        </div>
+                        <CardHeader className="p-8">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-14 h-14 bg-amber-400/20 rounded-2xl flex items-center justify-center">
+                                    <Calendar className="w-8 h-8 text-amber-400" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-3xl font-black tracking-tight">Gestión de Evolutivos</CardTitle>
+                                    <CardDescription className="text-slate-400 text-lg font-medium">
+                                        Seguimiento de hitos, responsables y planificación de evolutivos.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-8 pt-0 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="flex-1 space-y-4">
+                                <p className="text-slate-300 leading-relaxed max-w-2xl font-medium">
+                                    Accede a la gestión completa de evolutivos, visualiza el estado de los tickets, hitos y planificación de tus clientes.
+                                </p>
+                                <div className="flex flex-wrap gap-4">
+                                    <Badge className="bg-white/10 text-amber-400 border-white/10 uppercase font-black text-[10px] px-3">Evolutivos Sincronizados</Badge>
+                                    <Badge className="bg-white/10 text-orange-400 border-white/10 uppercase font-black text-[10px] px-3">Hitos y Timeline</Badge>
+                                    <Badge className="bg-white/10 text-yellow-400 border-white/10 uppercase font-black text-[10px] px-3">Peticiones</Badge>
+                                </div>
+                            </div>
+                            <Link href="/evolutivos">
+                                <Button className="bg-amber-400 hover:bg-amber-500 text-amber-950 h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-amber-400/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
+                                    Gestionar Evolutivos
+                                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* 4. Optimization Hub & Consultancy Access */}
                 {(permissions.view_optimization_hub || isAdmin) && (
                     <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-900 text-white overflow-hidden relative group rounded-[2rem]">
