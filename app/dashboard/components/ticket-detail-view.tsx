@@ -86,7 +86,14 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
                                         {ticket.issueKey}
                                     </TableCell>
                                     <TableCell className="max-w-xs truncate" title={ticket.issueSummary}>
-                                        {ticket.issueSummary}
+                                        <div className="flex flex-col">
+                                            <span>{ticket.issueSummary}</span>
+                                            {ticket.isManual && (
+                                                <span className="text-xs font-bold text-orange-600">
+                                                    ({ticket.quantity} {ticket.quantity === 1 ? 'evento' : 'eventos'})
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {formatDate(ticket.createdDate, { year: 'numeric', month: '2-digit', day: '2-digit' })}

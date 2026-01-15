@@ -988,23 +988,50 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             return true;
         });
 
-        // Group by type for summary
-        const byType: Record<string, number> = {};
-        filteredTickets.forEach(t => {
-            byType[t.issueType] = (byType[t.issueType] || 0) + 1;
+        // Get manual consumptions for this month
+        const manualConsumptions = await prisma.regularization.findMany({
+            where: {
+                workPackageId: wpId,
+                type: 'MANUAL_CONSUMPTION',
+                date: {
+                    gte: new Date(year, month - 1, 1),
+                    lte: new Date(year, month, 0, 23, 59, 59)
+                }
+            }
         });
 
-        return {
-            totalTickets: filteredTickets.length,
-            byType,
-            tickets: filteredTickets.map(t => ({
+        const combinedResults = [
+            ...filteredTickets.map(t => ({
                 issueKey: t.issueKey,
                 issueSummary: t.issueSummary,
                 issueType: t.issueType,
                 createdDate: t.createdDate,
                 status: t.status,
-                reporter: t.reporter
+                reporter: t.reporter,
+                isManual: false
+            })),
+            ...manualConsumptions.map(reg => ({
+                issueKey: reg.description?.match(/[A-Z]+-\d+/)?.[0] || 'REG-' + reg.id,
+                issueSummary: reg.description || 'Consumo manual',
+                issueType: 'Consumo Manual',
+                createdDate: reg.date,
+                status: 'Procesado',
+                reporter: 'Sistema',
+                isManual: true,
+                quantity: reg.quantity
             }))
+        ];
+
+        // Group by type for summary (including manual consumptions)
+        const byType: Record<string, number> = {};
+        combinedResults.forEach(item => {
+            byType[item.issueType] = (byType[item.issueType] || 0) + 1;
+        });
+
+        return {
+            totalTickets: combinedResults.length,
+            byType,
+            tickets: combinedResults
         };
     } catch (error) {
         console.error("Error fetching monthly ticket details:", error);

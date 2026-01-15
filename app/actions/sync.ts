@@ -1213,8 +1213,10 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                     const year = createdDate.getFullYear();
                                     const month = createdDate.getMonth() + 1;
 
-                                    // Version 2.0 - Force cache invalidation for Vercel
-                                    console.log('[EVENTS DEBUG] Upserting ticket:', issue.key, `(${year}-${month.toString().padStart(2, '0')})`);
+                                    // Version 3.0 - Force cache invalidation & Better logs
+                                    const versionTag = "v3.0 - 2026-01-15 20:15";
+                                    console.log(`[SYNC ${versionTag}] Processing EVENTOS ticket:`, issue.key, `Created: ${issue.fields.created} -> Calculated Month: ${month}`);
+                                    addLog(`[SYNC] Processing ${issue.key} (Source Created: ${issue.fields.created}) -> Setting Month: ${month}`);
 
                                     // Use upsert to ensure year/month are ALWAYS updated from creation date
                                     // This fixes the bug where tickets appear in wrong months
