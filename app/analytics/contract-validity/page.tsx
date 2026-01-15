@@ -1,7 +1,7 @@
 import { getContractValidityData } from "@/app/actions/analytics";
 import { SharedHeader } from "@/app/components/shared-header";
 import { AdminSidebar } from "@/app/admin/components/sidebar";
-import { ContractValidityView } from "./contract-validity-view-simple";
+import { ContractValidityView } from "./contract-validity-view";
 import { getTranslations } from "@/lib/get-translations";
 
 export default async function ContractValidityPage() {
