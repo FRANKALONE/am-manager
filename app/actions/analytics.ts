@@ -33,7 +33,21 @@ export async function getContractValidityData() {
             }
         });
 
-        return clients;
+        // Transform null to undefined for type compatibility
+        return clients.map(client => ({
+            ...client,
+            workPackages: client.workPackages.map(wp => ({
+                ...wp,
+                validityPeriods: wp.validityPeriods.map(vp => ({
+                    ...vp,
+                    premiumPrice: vp.premiumPrice ?? undefined,
+                    regularizationRate: vp.regularizationRate ?? undefined,
+                    regularizationType: vp.regularizationType ?? undefined,
+                    surplusStrategy: vp.surplusStrategy ?? undefined,
+                    rateEvolutivo: vp.rateEvolutivo ?? undefined
+                }))
+            }))
+        }));
     } catch (error) {
         console.error("Error fetching contract validity data:", error);
         return [];
