@@ -38,6 +38,16 @@ export default async function AdminHomePage() {
             visible: perms.view_evolutivos_admin || perms.view_evolutivos_client
         },
         {
+            title: t('adminHome.evolutivosStandard'),
+            description: t('adminHome.evolutivosStandardDesc'),
+            icon: Calendar,
+            href: "/evolutivos",
+            color: "text-amber-500",
+            bg: "bg-amber-500/10",
+            gradient: "from-amber-600 to-amber-400",
+            visible: perms.view_evolutivos_standard && !perms.view_evolutivos_admin
+        },
+        {
             title: t('adminHome.closuresManagement'),
             description: t('adminHome.closuresManagementDesc'),
             icon: FileCheck,

@@ -543,6 +543,8 @@
         "closuresManagementDesc": "Administra los cierres mensuales de Work Packages",
         "evolutivosManagement": "Gestión de Evolutivos",
         "evolutivosManagementDesc": "Seguimiento de hitos, responsables y planificación",
+        "evolutivosStandard": "Gestión de Evolutivos (Estándar)",
+        "evolutivosStandardDesc": "Acceso a la gestión de evolutivos y seguimiento de hitos",
         "administration": "Administración",
         "administrationDesc": "Gestión de usuarios, clientes y configuración del sistema",
         "jiraUsers": "Usuarios JIRA",

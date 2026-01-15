@@ -25,6 +25,7 @@ const PERMISSIONS: Permission[] = [
     { key: "view_manager_dashboard", label: "Ver Dashboard de Gerente", section: "Dashboards" },
     { key: "view_client_dashboard", label: "Ver Dashboard de Consumos (Cliente)", section: "Dashboards" },
     { key: "view_evolutivos_admin", label: "Ver Gestión Evolutivos (Admin/Manager)", section: "Dashboards" },
+    { key: "view_evolutivos_standard", label: "Ver Gestión Evolutivos (Estándar - Sin AMA)", section: "Dashboards" },
     { key: "view_evolutivos_client", label: "Ver Dashboard Evolutivos (Cliente)", section: "Dashboards" },
     { key: "view_service_intelligence", label: "Ver Service Intelligence (Premium)", section: "Dashboards" },
     { key: "view_optimization_hub", label: "Ver Optimization Hub & Consultoría (Gerentes)", section: "Dashboards" },
@@ -43,6 +44,7 @@ const PERMISSIONS: Permission[] = [
     { key: "manage_reviews", label: "Gestionar Reclamaciones (Admin)", section: "Administración" },
     { key: "view_reviews", label: "Ver Reclamaciones (Gerente)", section: "Administración" },
     { key: "manage_capacity", label: "Gestionar Capacidad de Equipo", section: "Administración" },
+    { key: "manage_ama_evolutivos", label: "Control AMA Evolutivos", section: "Administración" },
 
     { key: "view_costs", label: "Ver Tarifas y Costes", section: "Finanzas" },
     { key: "edit_billing", label: "Editar Regularizaciones", section: "Finanzas" },

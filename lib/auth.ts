@@ -184,7 +184,7 @@ export async function getEvolutivosUrl(): Promise<string> {
     if (!session) return "/login";
 
     // ADMIN has priority or specific admin view permission
-    if (session.userRole === 'ADMIN' || session.permissions.view_evolutivos_admin) return "/evolutivos";
+    if (session.userRole === 'ADMIN' || session.permissions.view_evolutivos_admin || session.permissions.view_evolutivos_standard) return "/evolutivos";
 
     // Client view permission
     if (session.permissions.view_evolutivos_client) return "/dashboard/evolutivos";

@@ -47,8 +47,8 @@ export default async function EvolutivosPage() {
                     permissions={session.permissions}
                 />
 
-                {/* AMA Evolutivos Section - ADMIN Only */}
-                {isAdmin && (
+                {/* AMA Evolutivos Section - Check Permission */}
+                {(isAdmin || session.permissions.manage_ama_evolutivos) && (
                     <div className="mt-16 pt-8 border-t-4 border-blue-200">
                         <AMAEvolutivosSection />
                     </div>

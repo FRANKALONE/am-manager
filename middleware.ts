@@ -63,9 +63,9 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // Evolutivos routing protection
+    const canViewEvoAdmin = userRole === 'ADMIN' || userPermissions.view_evolutivos_admin || userPermissions.view_evolutivos_standard;
     if (pathname === '/evolutivos') {
-        if (userRole !== 'ADMIN' && !userPermissions.view_evolutivos_admin) {
+        if (!canViewEvoAdmin) {
             if (userPermissions.view_evolutivos_client) {
                 return NextResponse.redirect(new URL('/dashboard/evolutivos', request.url));
             }
