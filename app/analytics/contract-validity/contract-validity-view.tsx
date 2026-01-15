@@ -100,9 +100,9 @@ export function ContractValidityView({ initialData }: Props) {
         );
     }
 
-    // Generate 12 months for the timeline
+    // Generate 12 months for the timeline, starting 3 months before viewDate
     const months = useMemo(() => {
-        const start = startOfMonth(viewDate);
+        const start = startOfMonth(subMonths(viewDate, 3));
         return Array.from({ length: 12 }).map((_, i) => addMonths(start, i));
     }, [viewDate]);
 
@@ -302,7 +302,7 @@ export function ContractValidityView({ initialData }: Props) {
                                 className="px-4 font-bold text-sm min-w-[140px] hover:bg-transparent"
                                 onClick={resetToToday}
                             >
-                                {format(viewDate, "MMMM yyyy", { locale: es }).toUpperCase()}
+                                {format(viewDate, "yyyy")}
                             </Button>
                             <Button variant="ghost" size="icon" onClick={nextMonth} title={t("admin.analytics.nextMonth")}>
                                 <ChevronRight className="w-4 h-4" />
@@ -381,9 +381,11 @@ export function ContractValidityView({ initialData }: Props) {
                                                                     <div
                                                                         className={cn(
                                                                             "absolute top-3 h-8 rounded-md shadow-sm border transition-transform hover:scale-[1.02] cursor-pointer flex items-center justify-between px-3 overflow-hidden",
-                                                                            vp.isPremium
-                                                                                ? "bg-amber-100 border-amber-300 text-amber-900"
-                                                                                : "bg-emerald-100 border-emerald-300 text-emerald-900"
+                                                                            new Date(vp.endDate) < new Date()
+                                                                                ? "bg-rose-100 border-rose-300 text-rose-900"
+                                                                                : vp.isPremium
+                                                                                    ? "bg-amber-100 border-amber-300 text-amber-900"
+                                                                                    : "bg-emerald-100 border-emerald-300 text-emerald-900"
                                                                         )}
                                                                         style={style || {}}
                                                                         onClick={() => setSelectedPeriod({ ...vp, wpName: wp.name, clientName: client.name, renewalType: wp.renewalType, contractType: wp.contractType })}
@@ -398,7 +400,9 @@ export function ContractValidityView({ initialData }: Props) {
                                                                     <div className="bg-white rounded-lg overflow-hidden border w-64 shadow-2xl">
                                                                         <div className={cn(
                                                                             "p-3 flex items-center justify-between",
-                                                                            vp.isPremium ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"
+                                                                            new Date(vp.endDate) < new Date()
+                                                                                ? "bg-rose-500 text-white"
+                                                                                : vp.isPremium ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"
                                                                         )}>
                                                                             <span className="font-bold text-xs uppercase text-white">{t("admin.analytics.filters.details")}</span>
                                                                             {vp.isPremium && <Star className="w-4 h-4 fill-current text-white" />}
@@ -438,6 +442,10 @@ export function ContractValidityView({ initialData }: Props) {
 
             {/* Legend / Info */}
             <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-500 uppercase">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 rounded-full border border-rose-100">
+                    <div className="w-2 h-2 rounded-full bg-rose-500" />
+                    {t("admin.analytics.filters.expired")}
+                </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     {t("admin.analytics.filters.standardLabel")}
