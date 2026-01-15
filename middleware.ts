@@ -63,6 +63,13 @@ export function middleware(request: NextRequest) {
         }
     }
 
+    // Analytics module
+    if (pathname.startsWith('/analytics')) {
+        if (userRole !== 'ADMIN' && !userPermissions.view_analytics) {
+            return NextResponse.redirect(new URL('/client-dashboard', request.url));
+        }
+    }
+
     const canViewEvoAdmin = userRole === 'ADMIN' || userPermissions.view_evolutivos_admin || userPermissions.view_evolutivos_standard;
     if (pathname === '/evolutivos') {
         if (!canViewEvoAdmin) {

@@ -54,6 +54,8 @@ const PERMISSIONS: Permission[] = [
 
     { key: "view_all_clients", label: "Acceso Global: Ver Todos los Clientes", section: "Visibilidad" },
     { key: "view_all_wps", label: "Acceso Global: Ver Todos los WPs", section: "Visibilidad" },
+
+    { key: "view_analytics", label: "Ver Analytics y Validez de Contratos", section: "Dashboards" },
 ];
 
 type Props = {
