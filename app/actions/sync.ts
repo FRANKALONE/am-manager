@@ -1213,9 +1213,29 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                     const year = createdDate.getFullYear();
                                     const month = createdDate.getMonth() + 1;
 
-                                    console.log('[EVENTS DEBUG] Saving ticket:', issue.key);
-                                    await prisma.ticket.create({
-                                        data: {
+                                    console.log('[EVENTS DEBUG] Upserting ticket:', issue.key, `(${year}-${month.toString().padStart(2, '0')})`);
+
+                                    // Use upsert to ensure year/month are ALWAYS updated from creation date
+                                    // This fixes the bug where tickets appear in wrong months
+                                    await prisma.ticket.upsert({
+                                        where: {
+                                            workPackageId_issueKey: {
+                                                workPackageId: wp.id,
+                                                issueKey: issue.key
+                                            }
+                                        },
+                                        update: {
+                                            issueSummary: issue.fields.summary || '',
+                                            issueType: issue.fields.issuetype?.name || 'Unknown',
+                                            createdDate: createdDate,
+                                            year: year,  // CRITICAL: Always recalculate from creation date
+                                            month: month, // CRITICAL: Always recalculate from creation date
+                                            status: issue.fields.status?.name || 'Unknown',
+                                            reporter: issue.fields.reporter?.displayName || 'Unknown',
+                                            reporterEmail: issue.fields.reporter?.emailAddress || null,
+                                            billingMode: issue.fields.customfield_10121?.value || issue.fields.customfield_10121 || null
+                                        },
+                                        create: {
                                             workPackageId: wp.id,
                                             issueKey: issue.key,
                                             issueSummary: issue.fields.summary || '',
@@ -1230,6 +1250,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                         }
                                     });
                                 }
+
 
                                 nextPageToken = jiraRes.nextPageToken || null;
                             } else {
