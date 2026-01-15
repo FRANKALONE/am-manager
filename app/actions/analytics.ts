@@ -33,13 +33,15 @@ export async function getContractValidityData() {
             }
         });
 
-        // Transform null to undefined for type compatibility
+        // Transform null to undefined and dates to Date objects for type compatibility
         return clients.map(client => ({
             ...client,
             workPackages: client.workPackages.map(wp => ({
                 ...wp,
                 validityPeriods: wp.validityPeriods.map(vp => ({
                     ...vp,
+                    startDate: new Date(vp.startDate),
+                    endDate: new Date(vp.endDate),
                     premiumPrice: vp.premiumPrice ?? undefined,
                     regularizationRate: vp.regularizationRate ?? undefined,
                     regularizationType: vp.regularizationType ?? undefined,
