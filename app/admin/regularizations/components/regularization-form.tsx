@@ -17,7 +17,7 @@ interface RegularizationFormProps {
         id: string;
         name: string;
         contractType?: string;
-        includedTicketTypes?: string;
+        includedTicketTypes?: string | null;
         client: { name: string };
     }>;
     user: {
