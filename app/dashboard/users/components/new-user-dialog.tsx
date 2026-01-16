@@ -154,14 +154,14 @@ export function NewUserDialog({ open, onOpenChange, clientId, jiraUsers }: NewUs
                     <div className="space-y-2">
                         <Label htmlFor="jiraUser">Vincular con usuario JIRA (opcional)</Label>
                         <Select
-                            value={formData.jiraUserId}
-                            onValueChange={(value) => setFormData({ ...formData, jiraUserId: value })}
+                            value={formData.jiraUserId || 'none'}
+                            onValueChange={(value) => setFormData({ ...formData, jiraUserId: value === 'none' ? '' : value })}
                         >
                             <SelectTrigger id="jiraUser">
                                 <SelectValue placeholder="Sin vincular" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Sin vincular</SelectItem>
+                                <SelectItem value="none">Sin vincular</SelectItem>
                                 {availableJiraUsers.map((user) => (
                                     <SelectItem key={user.id} value={user.id}>
                                         {user.displayName} ({user.emailAddress})
