@@ -18,6 +18,7 @@ interface RegularizationEditFormProps {
         id: string;
         name: string;
         contractType?: string;
+        includedTicketTypes?: string | null;
         client: { name: string };
     }>;
 }
@@ -32,6 +33,7 @@ export function RegularizationEditForm({ regularization, workPackages }: Regular
         quantity: regularization.quantity.toString(),
         description: regularization.description || "",
         ticketId: regularization.ticketId || "",
+        ticketType: regularization.ticketType || "",
         note: regularization.note || ""
     });
 
@@ -46,6 +48,7 @@ export function RegularizationEditForm({ regularization, workPackages }: Regular
             quantity: parseFloat(formData.quantity),
             description: formData.description || undefined,
             ticketId: formData.ticketId || undefined,
+            ticketType: formData.ticketType || undefined,
             note: formData.note || undefined
         });
 
@@ -59,8 +62,14 @@ export function RegularizationEditForm({ regularization, workPackages }: Regular
     };
 
     const isManualConsumption = formData.type === "MANUAL_CONSUMPTION";
+    const isReturn = formData.type === "RETURN";
     const selectedWpData = workPackages.find(wp => wp.id === formData.workPackageId);
     const isEventosWp = selectedWpData?.contractType?.toUpperCase() === 'EVENTOS';
+
+    // Get available ticket types from selected WP
+    const availableTicketTypes = selectedWpData?.includedTicketTypes
+        ? selectedWpData.includedTicketTypes.split(',').map(t => t.trim()).filter(Boolean)
+        : ['Evolutivo', 'Correctivo', 'Consulta'];
 
     return (
         <div className="space-y-6">
@@ -150,17 +159,57 @@ export function RegularizationEditForm({ regularization, workPackages }: Regular
                             </div>
                         </div>
 
-                        {isManualConsumption && (
+                        {isReturn && (
                             <div className="space-y-2">
-                                <Label htmlFor="ticketId">Ticket ID *</Label>
+                                <Label htmlFor="ticketId">Ticket ID (opcional)</Label>
                                 <Input
                                     id="ticketId"
                                     placeholder="EUR-1234"
                                     value={formData.ticketId}
                                     onChange={(e) => setFormData({ ...formData, ticketId: e.target.value })}
-                                    required={isManualConsumption}
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                    ID del ticket del cual se devuelven las horas
+                                </p>
                             </div>
+                        )}
+
+                        {isManualConsumption && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ticketId">Ticket ID *</Label>
+                                    <Input
+                                        id="ticketId"
+                                        placeholder="EUR-1234"
+                                        value={formData.ticketId}
+                                        onChange={(e) => setFormData({ ...formData, ticketId: e.target.value })}
+                                        required={isManualConsumption}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="ticketType">Tipo de Ticket *</Label>
+                                    <Select
+                                        value={formData.ticketType}
+                                        onValueChange={(value) => setFormData({ ...formData, ticketType: value })}
+                                        required={isManualConsumption}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar tipo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableTicketTypes.map((type) => (
+                                                <SelectItem key={type} value={type}>
+                                                    {type}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Categoría bajo la cual aparecerá este consumo en el dashboard
+                                    </p>
+                                </div>
+                            </>
                         )}
 
                         <div className="space-y-2">

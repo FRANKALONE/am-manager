@@ -886,6 +886,37 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             byType[targetType].push(w);
         });
 
+        // Add returns as separate entries for EVENTOS clients
+        // This makes it clear which tickets were returned
+        if (wp?.contractType?.toUpperCase() === 'EVENTOS') {
+            const returns = regularizations.filter(r => r.type === 'RETURN' && r.ticketId);
+            returns.forEach(ret => {
+                const returnEntry = {
+                    id: ret.id,
+                    workPackageId: wpId,
+                    year,
+                    month,
+                    issueKey: (ret as any).ticketId,
+                    issueType: 'Devolución',
+                    issueSummary: (ret as any).description || 'Devolución de horas',
+                    issueCreatedDate: new Date((ret as any).date),
+                    timeSpentHours: -(ret as any).quantity, // Negative to show as return
+                    startDate: new Date((ret as any).date),
+                    author: (ret as any).createdByName || 'Sistema',
+                    tipoImputacion: 'Devolución',
+                    billingMode: null,
+                    isReturn: true // Flag for UI to show "Devuelto" badge
+                };
+
+                // Add to the appropriate type category or create "Devolución" category
+                const returnType = 'Devolución';
+                if (!byType[returnType]) {
+                    byType[returnType] = [];
+                }
+                byType[returnType].push(returnEntry);
+            });
+        }
+
         // Calculate totals per type and add multi-month info + claimed/refunded status
         const result = Object.entries(byType).map(([type, logs]) => ({
             type,
