@@ -270,31 +270,33 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                             </CardContent>
                         </Card>
 
-                        {/* Optimization Card for Client */}
-                        <Card className="shadow-2xl bg-gradient-to-br from-indigo-700 to-purple-800 border-none text-white overflow-hidden relative group flex-1">
-                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                                <Sparkles className="w-24 h-24" />
-                            </div>
-                            <CardHeader className="relative p-6">
-                                <CardTitle className="text-2xl flex items-center gap-2 mb-2">
-                                    <Sparkles className="w-6 h-6" />
-                                    Optimization Hub
-                                </CardTitle>
-                                <CardDescription className="text-indigo-100 text-sm leading-relaxed">
-                                    ¿Buscas optimizar tus procesos? Solicita una propuesta de consultoría personalizada.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="relative pt-2 p-6">
-                                <Button
-                                    onClick={handleRequestProposal}
-                                    disabled={requesting}
-                                    className="w-full bg-malachite text-dark-green hover:bg-jade h-14 text-lg font-black flex items-center gap-2 group transition-all shadow-lg shadow-indigo-900/40"
-                                >
-                                    {requesting ? "Enviando..." : "Solicitar Propuesta"}
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        {/* Optimization Card for Client - Only show if user has permission */}
+                        {permissions.view_optimization_hub && (
+                            <Card className="shadow-2xl bg-gradient-to-br from-indigo-700 to-purple-800 border-none text-white overflow-hidden relative group flex-1">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                    <Sparkles className="w-24 h-24" />
+                                </div>
+                                <CardHeader className="relative p-6">
+                                    <CardTitle className="text-2xl flex items-center gap-2 mb-2">
+                                        <Sparkles className="w-6 h-6" />
+                                        Optimization Hub
+                                    </CardTitle>
+                                    <CardDescription className="text-indigo-100 text-sm leading-relaxed">
+                                        ¿Buscas optimizar tus procesos? Solicita una propuesta de consultoría personalizada.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="relative pt-2 p-6">
+                                    <Button
+                                        onClick={handleRequestProposal}
+                                        disabled={requesting}
+                                        className="w-full bg-malachite text-dark-green hover:bg-jade h-14 text-lg font-black flex items-center gap-2 group transition-all shadow-lg shadow-indigo-900/40"
+                                    >
+                                        {requesting ? "Enviando..." : "Solicitar Propuesta"}
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>

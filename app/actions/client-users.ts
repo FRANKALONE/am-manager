@@ -76,8 +76,8 @@ export async function linkJiraUserForClient(jiraUserId: string, appUserId: strin
             return { success: false, error: 'No autenticado' };
         }
 
-        // Verificar permisos
-        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+        // Verificar permisos: CLIENTE puede gestionar usuarios de su propia empresa
+        if (currentUser.role !== 'CLIENTE' && !currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
             return { success: false, error: 'No tienes permiso para gestionar usuarios de empresa' };
         }
 
@@ -139,8 +139,8 @@ export async function createAppUserForClient(
             return { success: false, error: 'No autenticado' };
         }
 
-        // Verificar permisos
-        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+        // Verificar permisos: CLIENTE puede crear usuarios para su propia empresa
+        if (currentUser.role !== 'CLIENTE' && !currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
             return { success: false, error: 'No tienes permiso para crear usuarios de empresa' };
         }
 
@@ -216,8 +216,8 @@ export async function createAppUserFromJiraForClient(
             return { success: false, error: 'No autenticado' };
         }
 
-        // Verificar permisos
-        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+        // Verificar permisos: CLIENTE puede crear usuarios para su propia empresa
+        if (currentUser.role !== 'CLIENTE' && !currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
             return { success: false, error: 'No tienes permiso para crear usuarios de empresa' };
         }
 
@@ -293,8 +293,8 @@ export async function deleteAppUserForClient(userId: string, clientId: string) {
             return { success: false, error: 'No autenticado' };
         }
 
-        // Verificar permisos
-        if (!currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+        // Verificar permisos: CLIENTE puede eliminar usuarios de su propia empresa
+        if (currentUser.role !== 'CLIENTE' && !currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
             return { success: false, error: 'No tienes permiso para eliminar usuarios de empresa' };
         }
 
