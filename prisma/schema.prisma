@@ -48,6 +48,7 @@ model WorkPackage {
   contractType         String
   billingType          String
   renewalType          String
+  renewalNotes         String?
   accumulatedHours     Float            @default(0.0)
   accumulatedHoursDate DateTime?
   jiraProjectKeys      String?

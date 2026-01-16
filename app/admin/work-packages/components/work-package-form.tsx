@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 
 // Submit Button Component to handle pending state
@@ -26,7 +27,7 @@ function SubmitButton() {
 }
 
 // Premium Field Component with reactive Tarifa Premium
-function PremiumField({ isPremium, premiumPrice, renewalTypes, defaultRenewalType }: any) {
+function PremiumField({ isPremium, premiumPrice, renewalTypes, defaultRenewalType, renewalNotes }: any) {
     const [showPremiumPrice, setShowPremiumPrice] = useState(isPremium);
 
     return (
@@ -55,6 +56,19 @@ function PremiumField({ isPremium, premiumPrice, renewalTypes, defaultRenewalTyp
                         </SelectContent>
                     </Select>
                 </div>
+            </div>
+
+            {/* Notas para Renovaciones */}
+            <div className="space-y-2">
+                <Label htmlFor="renewalNotes">Notas para Renovaciones</Label>
+                <Textarea
+                    id="renewalNotes"
+                    name="renewalNotes"
+                    defaultValue={renewalNotes || ""}
+                    placeholder="Notas o consideraciones para futuras renovaciones"
+                    rows={3}
+                    className="resize-none"
+                />
             </div>
 
             {/* Tarifa Premium (conditional) */}
@@ -357,6 +371,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             premiumPrice={currentPeriod?.premiumPrice}
                             renewalTypes={renewalTypes}
                             defaultRenewalType={wp.renewalType}
+                            renewalNotes={wp.renewalNotes}
                         />
 
                         <div className="flex justify-end pt-4">

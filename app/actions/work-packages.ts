@@ -139,6 +139,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     const contractType = formData.get("contractType") as string;
     const billingType = formData.get("billingType") as string;
     const renewalType = formData.get("renewalType") as string;
+    const renewalNotes = formData.get("renewalNotes")?.toString();
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
 
     // Economic fields (now for ValidityPeriod)
@@ -227,6 +228,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                 contractType,
                 billingType,
                 renewalType,
+                renewalNotes: renewalNotes || null,
 
                 accumulatedHours,
                 accumulatedHoursDate,
@@ -280,6 +282,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const contractType = formData.get("contractType") as string;
     const billingType = formData.get("billingType") as string;
     const renewalType = formData.get("renewalType") as string;
+    const renewalNotes = formData.get("renewalNotes")?.toString();
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
     const oldWpId = formData.get("oldWpId")?.toString();
     const hasIaasService = formData.get("hasIaasService") === "on";
@@ -378,6 +381,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         if (contractType) wpUpdateData.contractType = contractType;
         if (billingType) wpUpdateData.billingType = billingType;
         if (renewalType) wpUpdateData.renewalType = renewalType;
+        if (renewalNotes !== undefined) wpUpdateData.renewalNotes = renewalNotes || null;
         if (jiraProjectKeys !== undefined) wpUpdateData.jiraProjectKeys = jiraProjectKeys || null;
         if (oldWpId !== undefined) wpUpdateData.oldWpId = oldWpId || null;
         if (formData.has("hasIaasService")) wpUpdateData.hasIaasService = hasIaasService;

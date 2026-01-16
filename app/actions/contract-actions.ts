@@ -156,6 +156,75 @@ export async function renewWorkPackageAuto(wpId: string, ipcIncrement: number) {
 }
 
 /**
+ * Renews a WP with the same conditions for an equal period (no IPC increment).
+ */
+export async function renewWorkPackageSameConditions(wpId: string) {
+    try {
+        const wp = await prisma.workPackage.findUnique({
+            where: { id: wpId },
+            include: {
+                validityPeriods: {
+                    orderBy: { endDate: 'desc' },
+                    take: 1
+                },
+                client: {
+                    include: { users: true }
+                }
+            }
+        });
+
+        if (!wp || wp.validityPeriods.length === 0) {
+            throw new Error("Work Package or validity period not found");
+        }
+
+        const lastPeriod = wp.validityPeriods[0];
+        const durationMs = lastPeriod.endDate.getTime() - lastPeriod.startDate.getTime();
+
+        const newStartDate = new Date(lastPeriod.endDate);
+        newStartDate.setDate(newStartDate.getDate() + 1);
+
+        const newEndDate = new Date(newStartDate.getTime() + durationMs);
+
+        // Create new validity period with SAME conditions (no IPC)
+        const newPeriod = await prisma.validityPeriod.create({
+            data: {
+                workPackageId: wpId,
+                startDate: newStartDate,
+                endDate: newEndDate,
+                totalQuantity: lastPeriod.totalQuantity,
+                rate: lastPeriod.rate,
+                rateEvolutivo: lastPeriod.rateEvolutivo,
+                isPremium: lastPeriod.isPremium,
+                premiumPrice: lastPeriod.premiumPrice,
+                scopeUnit: lastPeriod.scopeUnit,
+                regularizationRate: lastPeriod.regularizationRate,
+                regularizationType: lastPeriod.regularizationType,
+                surplusStrategy: lastPeriod.surplusStrategy
+            }
+        });
+
+        const endDateFormat = formatDate(newEndDate, { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        await notifyRenewal(wpId, 'NEW_CONDITIONS', {
+            endDate: endDateFormat,
+            rate: lastPeriod.rate.toFixed(2),
+            quantity: lastPeriod.totalQuantity,
+            unit: lastPeriod.scopeUnit,
+            startDate: formatDate(newStartDate, { year: 'numeric', month: '2-digit', day: '2-digit' })
+        });
+
+        revalidatePath("/admin/renewals");
+        revalidatePath("/admin/work-packages");
+
+        return { success: true, newPeriodId: newPeriod.id };
+
+    } catch (error: any) {
+        console.error("Error in renewWorkPackageSameConditions:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Marks a WP as not renewing by setting its renewalType to 'NONE'.
  */
 export async function cancelWorkPackageRenewal(wpId: string) {

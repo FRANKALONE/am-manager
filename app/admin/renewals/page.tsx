@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getCurrentUser, getAuthSession } from "@/lib/auth";
-import { getExpiringWPs, renewWorkPackageAuto, checkContractExpirations, cancelWorkPackageRenewal } from "@/app/actions/contract-actions";
+import { getExpiringWPs, renewWorkPackageAuto, renewWorkPackageSameConditions, checkContractExpirations, cancelWorkPackageRenewal } from "@/app/actions/contract-actions";
 import { getClients } from "@/app/actions/clients";
 import { getParametersByCategory } from "@/app/actions/parameters";
 import { Button } from "@/components/ui/button";
@@ -185,6 +185,13 @@ function RenewalRow({ wp }: { wp: any }) {
                         {isAuto ? "Auto" : "Bajo Pedido"}
                     </Badge>
                 </div>
+                {/* Renewal Notes Display */}
+                {wp.renewalNotes && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                        <span className="font-semibold text-blue-900">📝 Notas: </span>
+                        <span className="text-blue-800">{wp.renewalNotes}</span>
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -216,6 +223,21 @@ function RenewalRow({ wp }: { wp: any }) {
                         </div>
                     </form>
                 )}
+
+                <form action={async () => {
+                    "use server";
+                    await renewWorkPackageSameConditions(wp.id);
+                }}>
+                    <SubmitButton
+                        size="sm"
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-300 hover:bg-green-100 hover:text-green-800 whitespace-nowrap"
+                        loadingText="Renovando..."
+                    >
+                        <RefreshCcw className="w-4 h-4 mr-2" />
+                        Renovar Mismas Condiciones
+                    </SubmitButton>
+                </form>
 
                 <form action={async () => {
                     "use server";
