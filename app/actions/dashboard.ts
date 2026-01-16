@@ -1867,14 +1867,14 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                 const parseFriendlyTime = (str: string | null): number | null => {
                     if (!str) return null;
 
-                    // First try to parse direct decimal hours like "2.5h"
-                    const directMatch = str.trim().match(/^(\d+(?:\.\d+)?)h$/);
+                    // First try to parse direct decimal hours like "2.5h" or "2.5 h"
+                    const directMatch = str.trim().match(/^(\d+(?:\.\d+)?)\s*h$/);
                     if (directMatch) return parseFloat(directMatch[1]);
 
                     let totalMinutes = 0;
-                    const hMatch = str.match(/(\d+)h/);
-                    const mMatch = str.match(/(\d+)m/);
-                    const dMatch = str.match(/(\d+)d/);
+                    const hMatch = str.match(/(\d+)\s*h/);
+                    const mMatch = str.match(/(\d+)\s*m/);
+                    const dMatch = str.match(/(\d+)\s*d/);
                     if (dMatch) totalMinutes += parseInt(dMatch[1]) * 8 * 60;
                     if (hMatch) totalMinutes += parseInt(hMatch[1]) * 60;
                     if (mMatch) totalMinutes += parseInt(mMatch[1]);
