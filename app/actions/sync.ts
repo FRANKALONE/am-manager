@@ -1090,7 +1090,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                             if (jiraUrl && jiraEmail && jiraToken) {
                                 const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
                                 const issueLookupUrl = new URL(`${jiraUrl}/rest/api/3/issue/${reg.ticketId}`);
-                                const jiraRes: any = await new Promise((resolve, reject) => {
+                                const jiraRes: any = new Promise((resolve, reject) => {
                                     const req = https.request({
                                         hostname: issueLookupUrl.hostname,
                                         port: 443,
