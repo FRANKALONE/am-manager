@@ -551,7 +551,7 @@ export function ContractValidityView({ initialData }: Props) {
                                         {selectedPeriod?.isPremium && (
                                             <div>
                                                 <span className="block text-xs text-slate-400 mb-1">{t("admin.analytics.filters.premiumPrice")}</span>
-                                                <span className="text-xl font-bold text-amber-400">{selectedPeriod?.rate} €</span>
+                                                <span className="text-xl font-bold text-amber-400">{selectedPeriod?.premiumPrice} €</span>
                                             </div>
                                         )}
                                     </div>
