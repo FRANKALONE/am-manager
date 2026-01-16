@@ -1039,9 +1039,9 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
                 isManual: false
             })),
             ...manualConsumptions.map(reg => ({
-                issueKey: reg.description?.match(/[A-Z]+-\d+/)?.[0] || 'REG-' + reg.id,
+                issueKey: (reg as any).ticketId || 'REG-' + reg.id,
                 issueSummary: reg.description || 'Consumo manual',
-                issueType: 'Consumo Manual',
+                issueType: (reg as any).ticketType || 'Evolutivo',
                 createdDate: reg.date,
                 status: 'Procesado',
                 reporter: 'Sistema',
