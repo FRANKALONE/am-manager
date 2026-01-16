@@ -1,6 +1,6 @@
 {
   "name": "am-manager",
-  "version": "2601.4",
+  "version": "2601.5",
   "private": true,
   "scripts": {
     "dev": "next dev",

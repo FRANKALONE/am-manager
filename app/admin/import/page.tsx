@@ -8,6 +8,7 @@ import { BulkSyncJiraCustomersManager } from "./components/bulk-sync-jira-custom
 import { EvolutivosDiagnostic } from "./components/evolutivos-diagnostic";
 import { WpSyncDiagnostic } from "./components/wp-sync-diagnostic";
 import { SyncKillSwitch } from "../settings/components/sync-kill-switch";
+import { PerformanceSyncDiagnostic } from "./components/performance-sync-diagnostic";
 
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "@/lib/get-translations";
@@ -47,6 +48,7 @@ export default async function ImportPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <EvolutivosDiagnostic clients={clients} />
                 <WpSyncDiagnostic />
+                <PerformanceSyncDiagnostic />
             </div>
 
             <ImportManager />

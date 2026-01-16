@@ -1783,6 +1783,122 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                 iaas: (wp as any).hasIaasService ? 1.0 : 0 // Constant factor if IAAS is active
             },
             optimizationOpportunities: repetitiveIssues,
+            // --- NEW: Enhanced Backend Metrics for New Reports ---
+
+            // 13. Backlog by Creation Month
+            // "tickets (Incidencia de correctivo o consulta) que permanecen abiertos (estados distintos de Propuesta de solución o Cerrado) en base al mes de creación del ticket cada mes"
+            backlogTrend: sortedMonths.map(m => {
+                const [targetMonth, targetYear] = m.split('/').map(Number);
+                const targetDate = new Date(targetYear, targetMonth, 0); // End of month m
+
+                // For each month 'm', we find tickets created on or before 'm'
+                // and that were NOT closed (or proposed) before or during 'm'
+                // This gives a historical snapshot of the backlog at the end of month 'm'
+                const openTicketsAtEndOfMonth = periodTickets.filter(t => {
+                    const createdDate = new Date(t.createdDate);
+                    const isTargetType = (t.issueType || '').includes('Incidencia') ||
+                        (t.issueType || '').includes('Correctivo') ||
+                        (t.issueType || '').includes('Consulta');
+
+                    if (!isTargetType) return false;
+                    if (createdDate > targetDate) return false;
+
+                    // Status logic: if it's currently open, it was open then.
+                    // If it's currently closed, we should ideally check when it was closed.
+                    // Since we don't have historical status transitions in the Ticket model,
+                    // we approximate based on standard backlog: tickets created until then that are not yet closed in the snapshot.
+                    const isClosedNow = ['Cerrado', 'Propuesta de Solución', 'Resolved', 'Closed'].includes(t.status);
+
+                    // We check if it belongs to the backlog of month 'm'
+                    // For a true historical backlog we'd need history, but we can group currently open tickets by creation month
+                    return !isClosedNow;
+                });
+
+                const byCreationMonth: Record<string, number> = {};
+                openTicketsAtEndOfMonth.forEach(t => {
+                    const d = new Date(t.createdDate);
+                    const cKey = `${d.getMonth() + 1}/${d.getFullYear()}`;
+                    byCreationMonth[cKey] = (byCreationMonth[cKey] || 0) + 1;
+                });
+
+                return {
+                    month: m,
+                    total: openTicketsAtEndOfMonth.length,
+                    byCreationMonth: Object.entries(byCreationMonth).map(([name, value]) => ({ name, value }))
+                };
+            }),
+
+            // 14. Monthly Corrective by Priority
+            correctiveByPriority: sortedMonths.map(m => {
+                const monthTickets = periodTickets.filter(t => {
+                    const d = new Date(t.createdDate);
+                    const isCorrective = (t.issueType || '').toLowerCase().includes('incidencia') ||
+                        (t.issueType || '').toLowerCase().includes('correctivo');
+                    return `${d.getMonth() + 1}/${d.getFullYear()}` === m && isCorrective;
+                });
+
+                const counts: Record<string, number> = { 'Crítica': 0, 'Alta': 0, 'Media': 0, 'Baja': 0 };
+                monthTickets.forEach(t => {
+                    const p = t.priority || 'Media';
+                    counts[p] = (counts[p] || 0) + 1;
+                });
+
+                return {
+                    month: m,
+                    ...counts
+                };
+            }),
+
+            // 15. Average Elapsed Time (Response and Resolution)
+            // Helper to parse "1h 30m" to decimal hours
+            elapsedTimeTrend: sortedMonths.map(m => {
+                const monthTickets = periodTickets.filter(t => {
+                    const d = new Date(t.createdDate);
+                    const isTargetType = (t.issueType || '').includes('Incidencia') ||
+                        (t.issueType || '').includes('Correctivo') ||
+                        (t.issueType || '').includes('Consulta');
+                    return `${d.getMonth() + 1}/${d.getFullYear()}` === m && isTargetType;
+                });
+
+                const parseFriendlyTime = (str: string | null): number | null => {
+                    if (!str) return null;
+                    let totalMinutes = 0;
+                    const hMatch = str.match(/(\d+)h/);
+                    const mMatch = str.match(/(\d+)m/);
+                    const dMatch = str.match(/(\d+)d/);
+                    if (dMatch) totalMinutes += parseInt(dMatch[1]) * 8 * 60; // Assuming 8h work day for friendly strings
+                    if (hMatch) totalMinutes += parseInt(hMatch[1]) * 60;
+                    if (mMatch) totalMinutes += parseInt(mMatch[1]);
+                    return totalMinutes > 0 ? totalMinutes / 60 : null;
+                };
+
+                const resTimes = monthTickets.map(t => parseFriendlyTime(t.slaResolutionTime)).filter((v): v is number => v !== null);
+                const respTimes = monthTickets.map(t => parseFriendlyTime(t.slaResponseTime)).filter((v): v is number => v !== null);
+
+                return {
+                    month: m,
+                    avgResolution: resTimes.length > 0 ? resTimes.reduce((a, b) => a + b, 0) / resTimes.length : 0,
+                    avgResponse: respTimes.length > 0 ? respTimes.reduce((a, b) => a + b, 0) / respTimes.length : 0
+                };
+            }),
+
+            // 16. Component and Type Ring Chart Data
+            // "nº de tickets por componente y tipo de ticket"
+            componentTypeMatrix: (() => {
+                const matrix: Record<string, Record<string, number>> = {};
+                periodTickets.forEach(t => {
+                    const comp = t.component || 'Sin especificar';
+                    const type = t.issueType || 'Otros';
+                    if (!matrix[comp]) matrix[comp] = {};
+                    matrix[comp][type] = (matrix[comp][type] || 0) + 1;
+                });
+                return Object.entries(matrix).map(([component, types]) => ({
+                    component,
+                    data: Object.entries(types).map(([type, value]) => ({ type, value })),
+                    total: Object.values(types).reduce((a, b) => a + b, 0)
+                })).sort((a, b) => b.total - a.total);
+            })(),
+
             // 12. SAP Evolution Engine (Manager Tool)
             sapEvolution: (() => {
                 const moduleMapping: Record<string, { modules: string[]; keywords: string[] }> = {

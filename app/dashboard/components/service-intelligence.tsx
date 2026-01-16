@@ -343,7 +343,7 @@ export function ServiceIntelligence({
                 </Card>
 
                 {/* 5. Ingress vs Egress (Project Sustainability) */}
-                <Card className="lg:col-span-6 shadow-xl border-slate-100">
+                <Card className="lg:col-span-6 shadow-xl border-slate-100 h-full">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
                             <div>
@@ -357,7 +357,7 @@ export function ServiceIntelligence({
                         <div className="h-[210px] w-full overflow-x-auto pb-4">
                             <div className="h-[180px] min-w-full flex items-end gap-2 px-4 w-fit mx-auto">
                                 {(metrics.volumeTrend || []).map((v: any, i: number) => {
-                                    const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => mt.created || 0));
+                                    const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => Math.max(mt.created || 0, mt.resolved || 0)));
                                     return (
                                         <div key={i} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col justify-end gap-2 group relative">
                                             <div className="flex gap-1 items-end h-[140px]">
@@ -393,6 +393,266 @@ export function ServiceIntelligence({
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* --- NEW REPORTS SECTION --- */}
+
+                {/* 5.1. Backlog by Creation Month (Historical Aging) */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-slate-800">Análisis de Backlog (Aging)</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Tickets abiertos distribuidos por su mes de creación original.</p>
+                            </div>
+                            <Clock className="w-5 h-5 text-amber-500" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="h-[250px] w-full overflow-x-auto pb-4">
+                            <div className="h-[210px] min-w-full flex items-end gap-3 px-4 w-fit mx-auto">
+                                {(metrics.backlogTrend || []).map((b: any, i: number) => {
+                                    const maxTotal = Math.max(1, ...metrics.backlogTrend.map((bt: any) => bt.total || 0));
+                                    return (
+                                        <div key={i} className="flex-1 min-w-[45px] max-w-[80px] flex flex-col justify-end gap-2 group relative">
+                                            <div className="w-full flex flex-col-reverse h-[160px] rounded-t-lg overflow-hidden border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                                {(b.byCreationMonth || []).map((cm: any, j: number) => (
+                                                    <div
+                                                        key={j}
+                                                        className={`w-full transition-all group-hover:brightness-110`}
+                                                        style={{
+                                                            height: `${(cm.value / maxTotal) * 100}%`,
+                                                            backgroundColor: j === 0 ? '#008580' :
+                                                                j === 1 ? '#28B463' :
+                                                                    j === 2 ? '#58D68D' :
+                                                                        j === 3 ? '#ABEBC6' : '#D1F2EB'
+                                                        }}
+                                                    />
+                                                ))}
+                                                {b.total === 0 && <div className="h-full w-full bg-slate-50/50 border-t border-dashed border-slate-100" />}
+                                            </div>
+                                            <span className="text-[9px] font-black text-slate-400 text-center uppercase tracking-tighter">{b.month}</span>
+
+                                            <div className="absolute -top-24 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-50 min-w-[140px] shadow-2xl space-y-2">
+                                                <div className="border-b border-white/10 pb-1 mb-1 font-bold text-malachite">Snapshot: {b.month}</div>
+                                                <div className="flex justify-between font-black"><span>Total Backlog:</span> <span>{b.total} tks</span></div>
+                                                <div className="space-y-1 pt-1">
+                                                    {(b.byCreationMonth || []).slice(0, 5).map((cm: any, j: number) => (
+                                                        <div key={j} className="flex justify-between text-[9px] text-white/70 italic">
+                                                            <span>De {cm.name}:</span> <span>{cm.value}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-4 mt-4 px-8 py-2 bg-slate-50/50 rounded-2xl mx-auto w-fit">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2">Creados en:</span>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#008580' }} /><span className="text-[9px] font-bold text-slate-600">Mes Actual</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#28B463' }} /><span className="text-[9px] font-bold text-slate-600">Mes -1</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#58D68D' }} /><span className="text-[9px] font-bold text-slate-600">Mes -2</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#ABEBC6' }} /><span className="text-[9px] font-bold text-slate-600">Mes -3</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D1F2EB' }} /><span className="text-[9px] font-bold text-slate-600">Anteriores</span></div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5.2. Corrective by Priority & SLA Compliance */}
+                <Card className="lg:col-span-7 shadow-xl border-slate-100">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-slate-800">Calidad y Prioridades (Correctivo)</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Volumen mensual desglosado por criticidad.</p>
+                            </div>
+                            <AlertTriangle className="w-5 h-5 text-rose-500" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="h-[210px] w-full overflow-x-auto">
+                            <div className="h-[180px] min-w-full flex items-end gap-4 px-4 w-fit mx-auto">
+                                {(metrics.correctiveByPriority || []).map((cp: any, i: number) => {
+                                    const total = (cp.Baja || 0) + (cp.Media || 0) + (cp.Alta || 0) + (cp.Crítica || 0);
+                                    const maxT = Math.max(1, ...metrics.correctiveByPriority.map((item: any) =>
+                                        (item.Baja || 0) + (item.Media || 0) + (item.Alta || 0) + (item.Crítica || 0)
+                                    ));
+                                    return (
+                                        <div key={i} className="flex-1 min-w-[50px] max-w-[100px] flex flex-col justify-end gap-2 group relative">
+                                            <div className="w-full h-[140px] flex flex-col-reverse rounded-t-md overflow-hidden bg-slate-50">
+                                                <div className="w-full bg-slate-300 transition-all" style={{ height: `${((cp.Baja || 0) / maxT) * 100}%` }} />
+                                                <div className="w-full bg-blue-400 transition-all" style={{ height: `${((cp.Media || 0) / maxT) * 100}%` }} />
+                                                <div className="w-full bg-orange-400 transition-all" style={{ height: `${((cp.Alta || 0) / maxT) * 100}%` }} />
+                                                <div className="w-full bg-rose-600 transition-all" style={{ height: `${((cp.Crítica || 0) / maxT) * 100}%` }} />
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{cp.month}</span>
+
+                                            <div className="absolute -top-24 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-50 min-w-[120px] shadow-2xl">
+                                                <div className="flex justify-between border-b border-white/10 pb-1 mb-1"><span>Crítica:</span> <b>{cp.Crítica}</b></div>
+                                                <div className="flex justify-between"><span>Alta:</span> <b>{cp.Alta}</b></div>
+                                                <div className="flex justify-between"><span>Media:</span> <b>{cp.Media}</b></div>
+                                                <div className="flex justify-between"><span>Baja:</span> <b>{cp.Baja}</b></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="flex justify-center gap-4 mt-6">
+                            {['Crítica', 'Alta', 'Media', 'Baja'].map((p, i) => (
+                                <div key={p} className="flex items-center gap-1.5">
+                                    <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-rose-600' : i === 1 ? 'bg-orange-400' : i === 2 ? 'bg-blue-400' : 'bg-slate-300'}`} />
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{p}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5.3. SLAs and Average Times */}
+                <Card className="lg:col-span-5 shadow-xl border-slate-100">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-slate-800">Eficiencia Operativa</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Tiempos medios de respuesta y resolución.</p>
+                            </div>
+                            <Target className="w-5 h-5 text-indigo-500" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="space-y-8">
+                            <div className="h-[120px] w-full flex items-end gap-1 px-2 border-b border-slate-100 pb-2">
+                                {(metrics.elapsedTimeTrend || []).map((et: any, i: number) => {
+                                    const maxVal = Math.max(1, ...metrics.elapsedTimeTrend.map((item: any) => Math.max(item.avgResolution || 0, item.avgResponse || 0)));
+                                    return (
+                                        <div key={i} className="flex-1 flex flex-col justify-end group relative h-full">
+                                            <div className="flex items-end justify-center gap-0.5 h-full">
+                                                <div
+                                                    className="w-1.5 bg-indigo-500 rounded-t-full transition-all hover:brightness-125"
+                                                    style={{ height: `${(et.avgResponse / maxVal) * 100}%` }}
+                                                />
+                                                <div
+                                                    className="w-1.5 bg-indigo-900 rounded-t-full transition-all hover:brightness-125"
+                                                    style={{ height: `${(et.avgResolution / maxVal) * 100}%` }}
+                                                />
+                                            </div>
+                                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[9px] py-1 px-2 rounded shadow-xl z-20 whitespace-nowrap">
+                                                Res: <b>{et.avgResolution.toFixed(1)}h</b> | Resp: <b>{et.avgResponse.toFixed(1)}h</b>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Respuesta</span>
+                                    </div>
+                                    <p className="text-xl font-black text-slate-800">
+                                        {(metrics.elapsedTimeTrend?.[metrics.elapsedTimeTrend.length - 1]?.avgResponse || 0).toFixed(1)}h
+                                    </p>
+                                </div>
+                                <div className="space-y-1 text-right">
+                                    <div className="flex items-center gap-2 justify-end">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Resolución</span>
+                                        <div className="w-2 h-2 rounded-full bg-indigo-900" />
+                                    </div>
+                                    <p className="text-xl font-black text-slate-800">
+                                        {(metrics.elapsedTimeTrend?.[metrics.elapsedTimeTrend.length - 1]?.avgResolution || 0).toFixed(1)}h
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5.4. Component & Type Ring Chart Data */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-hidden">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-slate-800">Distribución por Componente y Tipo</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Radiografía del servicio por módulo operativo.</p>
+                            </div>
+                            <PieChart className="w-5 h-5 text-dark-green" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                        <div className="flex flex-col lg:flex-row gap-12 items-center">
+                            {/* Ring Chart Construction (Simplified Matrix) */}
+                            <div className="w-full lg:w-1/2 grid md:grid-cols-2 gap-6">
+                                {(metrics.componentTypeMatrix || []).slice(0, 6).map((comp: any, i: number) => (
+                                    <div key={i} className="bg-slate-50 p-4 rounded-3xl border border-slate-100 group hover:border-malachite/30 transition-all hover:bg-white hover:shadow-lg">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center font-black text-dark-green text-[10px]">
+                                                {comp.component.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <span className="text-2xl font-black text-slate-900 tracking-tight">{comp.total}</span>
+                                        </div>
+                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest truncate mb-3">{comp.component}</h5>
+                                        <div className="flex gap-1 h-1.5 rounded-full overflow-hidden">
+                                            {comp.data.map((d: any, j: number) => (
+                                                <div
+                                                    key={j}
+                                                    className="h-full transition-all brightness-100 hover:brightness-125"
+                                                    style={{
+                                                        width: `${(d.value / comp.total) * 100}%`,
+                                                        backgroundColor: d.type.includes('Incidencia') ? '#E11D48' :
+                                                            d.type.includes('Consulta') ? '#3B82F6' :
+                                                                d.type.includes('Evolutivo') ? '#059669' : '#94A3B8'
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {comp.data.map((d: any, j: number) => (
+                                                <span key={j} className="text-[8px] font-bold text-slate-400">
+                                                    {d.type.includes('Incidencia') ? 'IC' : d.type.includes('Consulta') ? 'CO' : 'EV'}: {d.value}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="w-full lg:w-1/2 space-y-6">
+                                <div className="p-8 bg-slate-900 rounded-[3rem] text-white space-y-6 shadow-2xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-8 opacity-5 -mr-8 -mt-8 group-hover:scale-110 transition-transform">
+                                        <Activity className="w-48 h-48" />
+                                    </div>
+                                    <h4 className="text-[10px] font-black text-malachite uppercase tracking-[0.3em]">Insights del Periodo</h4>
+                                    <div className="space-y-4">
+                                        <p className="text-sm font-medium leading-relaxed text-slate-300">
+                                            El componente <span className="text-white font-bold">'{metrics.componentTypeMatrix?.[0]?.component}'</span> concentra el <span className="text-malachite font-bold text-lg">{((metrics.componentTypeMatrix?.[0]?.total || 0) / (metrics.componentTypeMatrix?.reduce((a: number, b: any) => a + b.total, 0) || 1) * 100).toFixed(1)}%</span> del volumen total de actividad.
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-4 pt-4">
+                                            <div className="space-y-1 border-l border-white/10 pl-4">
+                                                <p className="text-[9px] font-black text-slate-500 uppercase">Módulo más estable</p>
+                                                <p className="text-xs font-bold text-white uppercase">{metrics.componentTypeMatrix?.slice(-1)[0]?.component || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1 border-l border-white/10 pl-4">
+                                                <p className="text-[9px] font-black text-slate-500 uppercase">Principal foco IC</p>
+                                                <p className="text-xs font-bold text-rose-500 uppercase truncate">
+                                                    {metrics.componentTypeMatrix?.find((c: any) => c.data.some((d: any) => d.type.includes('Incidencia')))?.component || 'N/A'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 justify-center">
+                                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-rose-600" /><span className="text-[9px] font-bold text-slate-500 uppercase">Incidencias</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Consultas</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-600" /><span className="text-[9px] font-bold text-slate-500 uppercase">Evolutivos</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* --- END NEW REPORTS SECTION --- */}
 
                 {/* 6. Continuous Improvement & System Optimization */}
                 <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-hidden relative">
