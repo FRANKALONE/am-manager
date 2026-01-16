@@ -1267,7 +1267,11 @@ export function CierresView({ user }: CierresViewProps) {
                                 <Switch
                                     id="revenue-rec"
                                     checked={processingModal.isRevenueRecognized}
-                                    onCheckedChange={(val) => setProcessingModal(prev => ({ ...prev, isRevenueRecognized: val }))}
+                                    onCheckedChange={(val) => setProcessingModal(prev => ({
+                                        ...prev,
+                                        isRevenueRecognized: val,
+                                        isBilled: val ? false : prev.isBilled // If revenue recognized, uncheck billed
+                                    }))}
                                 />
                             </div>
                             <div className="flex items-center justify-between space-x-2">
@@ -1278,7 +1282,11 @@ export function CierresView({ user }: CierresViewProps) {
                                 <Switch
                                     id="billed"
                                     checked={processingModal.isBilled}
-                                    onCheckedChange={(val) => setProcessingModal(prev => ({ ...prev, isBilled: val }))}
+                                    onCheckedChange={(val) => setProcessingModal(prev => ({
+                                        ...prev,
+                                        isBilled: val,
+                                        isRevenueRecognized: val ? false : prev.isRevenueRecognized // If billed, uncheck revenue recognized
+                                    }))}
                                 />
                             </div>
                         </div>
