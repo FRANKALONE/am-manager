@@ -1862,11 +1862,16 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
 
                 const parseFriendlyTime = (str: string | null): number | null => {
                     if (!str) return null;
+
+                    // First try to parse direct decimal hours like "2.5h"
+                    const directMatch = str.trim().match(/^(\d+(?:\.\d+)?)h$/);
+                    if (directMatch) return parseFloat(directMatch[1]);
+
                     let totalMinutes = 0;
                     const hMatch = str.match(/(\d+)h/);
                     const mMatch = str.match(/(\d+)m/);
                     const dMatch = str.match(/(\d+)d/);
-                    if (dMatch) totalMinutes += parseInt(dMatch[1]) * 8 * 60; // Assuming 8h work day for friendly strings
+                    if (dMatch) totalMinutes += parseInt(dMatch[1]) * 8 * 60;
                     if (hMatch) totalMinutes += parseInt(hMatch[1]) * 60;
                     if (mMatch) totalMinutes += parseInt(mMatch[1]);
                     return totalMinutes > 0 ? totalMinutes / 60 : null;
@@ -1888,6 +1893,7 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
                 const matrix: Record<string, Record<string, number>> = {};
                 periodTickets.forEach(t => {
                     const comp = t.component || 'Sin especificar';
+                    if (comp === 'Sin especificar') return; // Filter out as requested
                     const type = t.issueType || 'Otros';
                     if (!matrix[comp]) matrix[comp] = {};
                     matrix[comp][type] = (matrix[comp][type] || 0) + 1;
