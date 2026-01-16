@@ -874,11 +874,8 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
         // Group by ticket type
         const byType: Record<string, any[]> = {};
         worklogs.forEach(w => {
-            // Group "Consumo Manual" under "Evolutivo" as requested
+            // Use the issueType directly - manual consumptions already have correct issueType from sync
             let targetType = w.issueType;
-            if (targetType === 'Consumo Manual') {
-                targetType = 'Evolutivo';
-            }
 
             if (!byType[targetType]) {
                 byType[targetType] = [];
