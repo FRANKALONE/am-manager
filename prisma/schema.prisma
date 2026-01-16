@@ -81,6 +81,7 @@ model Regularization {
   description           String?
   ticketId              String?
   note                  String?
+  ticketType            String?     // Ticket type for manual consumptions (Evolutivo, Correctivo, etc.)
   reviewedForDuplicates Boolean     @default(false)
   isRevenueRecognized   Boolean     @default(false)
   isBilled              Boolean     @default(true)

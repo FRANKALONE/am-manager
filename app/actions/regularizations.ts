@@ -63,6 +63,7 @@ export async function createRegularization(data: {
     quantity: number;
     description?: string;
     ticketId?: string;
+    ticketType?: string;
     note?: string;
     isRevenueRecognized?: boolean;
     isBilled?: boolean;
@@ -98,6 +99,7 @@ export async function updateRegularization(id: number, data: {
     quantity?: number;
     description?: string;
     ticketId?: string;
+    ticketType?: string;
     note?: string;
 }) {
     try {
@@ -138,6 +140,7 @@ export async function getWorkPackagesForRegularization() {
                 id: true,
                 name: true,
                 contractType: true,
+                includedTicketTypes: true,
                 client: {
                     select: {
                         name: true

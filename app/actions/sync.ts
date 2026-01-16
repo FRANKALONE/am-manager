@@ -1077,15 +1077,16 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                     const currentHours = monthlyHours.get(key) || 0;
                     monthlyHours.set(key, currentHours + reg.quantity);
 
-                    addLog(`[INFO] Manual Consumption: +${reg.quantity}h in ${key} (${reg.ticketId || 'N/A'})`);
+                    addLog(`[INFO] Manual Consumption: +${reg.quantity}h in ${key} (${reg.ticketId || 'N/A'}) - Type: ${(reg as any).ticketType || 'Evolutivo'}`);
 
                     // Add to worklog details for display
+                    // Use ticketType if specified, otherwise fallback to 'Evolutivo' (default behavior)
                     worklogDetailsToSave.push({
                         workPackageId: wp.id,
                         year,
                         month,
                         issueKey: reg.ticketId || `MANUAL-${reg.id}`,
-                        issueType: 'Consumo Manual',
+                        issueType: (reg as any).ticketType || 'Evolutivo',
                         issueSummary: reg.description || `Consumo manual ${reg.id}`,
                         issueCreatedDate: regDate, // Use regularization date as creation date
                         timeSpentHours: reg.quantity,
