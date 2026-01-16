@@ -1853,10 +1853,14 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             // Helper to parse "1h 30m" to decimal hours
             elapsedTimeTrend: sortedMonths.map(m => {
                 const monthTickets = periodTickets.filter(t => {
-                    const d = new Date(t.createdDate);
-                    const isTargetType = (t.issueType || '').includes('Incidencia') ||
-                        (t.issueType || '').includes('Correctivo') ||
-                        (t.issueType || '').includes('Consulta');
+                    const d = t.issueCreatedDate ? new Date(t.issueCreatedDate) : new Date(t.createdDate);
+                    const it = (t.issueType || '').toLowerCase();
+                    const isTargetType = it.includes('incidencia') ||
+                        it.includes('correctivo') ||
+                        it.includes('consulta') ||
+                        it.includes('soporte') ||
+                        it.includes('petición') ||
+                        it.includes('error');
                     return `${d.getMonth() + 1}/${d.getFullYear()}` === m && isTargetType;
                 });
 

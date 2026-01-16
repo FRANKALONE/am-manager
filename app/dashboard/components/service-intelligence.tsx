@@ -130,9 +130,9 @@ export function ServiceIntelligence({
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-1000 slide-in-from-bottom-2 pb-12">
+        <div className="space-y-8 animate-in fade-in duration-1000 slide-in-from-bottom-2 pb-12 overflow-visible">
 
-            {/* 1. Header & Executive Summary */}
+            {/* HEADER & EXECUTIVE SUMMARY */}
             <div className="flex flex-col lg:flex-row gap-6 items-start">
                 <div className="lg:w-1/3 space-y-4">
                     <div className="flex items-center gap-4">
@@ -199,62 +199,10 @@ export function ServiceIntelligence({
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-12">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-12 overflow-visible">
 
-                {/* 1. Backlog Trends (Demanda vs Capacidad) - MOVED HERE */}
-                <Card className="lg:col-span-12 shadow-xl border-slate-100 h-full">
-                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.backlogTrend')}</CardTitle>
-                                <p className="text-xs text-slate-500 font-medium">Equilibrio entre demanda entrante y capacidad de resolución.</p>
-                            </div>
-                            <TrendingUp className="w-5 h-5 text-slate-400" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="h-[250px] w-full overflow-x-auto pb-64"> {/* pb-64 to avoid tooltip clipping */}
-                            <div className="h-[180px] min-w-full flex items-end gap-2 px-4 w-fit mx-auto">
-                                {(metrics.volumeTrend || []).map((v: any, i: number) => {
-                                    const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => Math.max(mt.created || 0, mt.resolved || 0)));
-                                    return (
-                                        <div key={i} className="flex-1 min-w-[32px] max-w-[60px] flex flex-col justify-end gap-2 group relative">
-                                            <div className="flex gap-1 items-end h-[140px]">
-                                                <div
-                                                    className="flex-1 bg-prussian/20 rounded-t-sm hover:bg-prussian/40 transition-colors"
-                                                    style={{ height: `${((v.created || 0) / maxVal) * 100}%` }}
-                                                />
-                                                <div
-                                                    className="flex-1 bg-malachite/30 rounded-t-sm hover:bg-malachite/50 transition-colors"
-                                                    style={{ height: `${((v.resolved || 0) / maxVal) * 100}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{v.month}</span>
-
-                                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-50 min-w-[80px] shadow-2xl">
-                                                <div className="flex justify-between gap-2"><span>Entrada:</span> <b>{v.created}</b></div>
-                                                <div className="flex justify-between gap-2"><span>Salida:</span> <b>{v.resolved}</b></div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div className="flex justify-center gap-8 mt-6">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-prussian/20 rounded-sm" />
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Demanda</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-malachite/30 rounded-sm" />
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Capacidad</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 2. System Stability Index (Stabilization Trend) */}
-                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-hidden">
+                {/* 1. System Stability Index - MOVED TO FIRST POSITION AND NO SCROLL */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-visible">
                     <CardHeader className="border-b border-slate-50 bg-slate-50/50">
                         <div className="flex justify-between items-center">
                             <div>
@@ -264,9 +212,9 @@ export function ServiceIntelligence({
                             <Activity className="w-5 h-5 text-malachite" />
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-10 pb-6">
+                    <CardContent className="pt-10 pb-6 overflow-visible">
                         <div className="space-y-6">
-                            <div className="h-[200px] w-full flex items-end gap-3 px-2 w-fit mx-auto justify-center">
+                            <div className="h-[200px] w-full flex items-end gap-3 px-2 justify-center">
                                 {(metrics.stabilityTrend || []).map((item: any, i: number) => (
                                     <div key={i} className="flex-1 max-w-[80px] flex flex-col items-center gap-3 group relative h-full">
                                         <div className="w-full flex-1 flex flex-col items-center justify-end gap-0.5 min-h-[140px]">
@@ -283,7 +231,8 @@ export function ServiceIntelligence({
                                                 style={{ height: `${100 - item.correctivePct}%` }}
                                             />
                                         </div>
-                                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded shadow-xl z-20 whitespace-nowrap">
+                                        {/* INFO CLOUD / TOOLTIP */}
+                                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded shadow-2xl z-[100] whitespace-nowrap pointer-events-none translate-y-2 group-hover:translate-y-0">
                                             Correctivo: <b>{item.correctivePct.toFixed(1)}%</b>
                                         </div>
                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center h-4">{item.month}</span>
@@ -304,8 +253,58 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 3. Backlog Aging - MOVED UP */}
-                <Card className="lg:col-span-12 shadow-xl border-slate-100">
+                {/* 2. Backlog Trends (Demanda vs Capacidad) - NO SCROLL & FIXED TOOLTIP */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-visible">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-50">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-slate-800">{t('dashboard.intelligence.backlogTrend')}</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Equilibrio entre demanda entrante y capacidad de resolución.</p>
+                            </div>
+                            <TrendingUp className="w-5 h-5 text-slate-400" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6 overflow-visible">
+                        <div className="h-[220px] w-full flex items-end gap-2 px-4 justify-center">
+                            {(metrics.volumeTrend || []).map((v: any, i: number) => {
+                                const maxVal = Math.max(1, ...metrics.volumeTrend.map((mt: any) => Math.max(mt.created || 0, mt.resolved || 0)));
+                                return (
+                                    <div key={i} className="flex-1 max-w-[60px] flex flex-col justify-end gap-2 group relative h-full">
+                                        <div className="flex gap-1 items-end h-[160px]">
+                                            <div
+                                                className="flex-1 bg-prussian/20 rounded-t-sm hover:bg-prussian/40 transition-colors"
+                                                style={{ height: `${((v.created || 0) / maxVal) * 100}%` }}
+                                            />
+                                            <div
+                                                className="flex-1 bg-malachite/30 rounded-t-sm hover:bg-malachite/50 transition-colors"
+                                                style={{ height: `${((v.resolved || 0) / maxVal) * 100}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{v.month}</span>
+
+                                        <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-2 rounded text-[10px] z-[100] min-w-[80px] shadow-2xl pointer-events-none">
+                                            <div className="flex justify-between gap-2"><span>Entrada:</span> <b>{v.created}</b></div>
+                                            <div className="flex justify-between gap-2"><span>Salida:</span> <b>{v.resolved}</b></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="flex justify-center gap-8 mt-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-prussian/20 rounded-sm" />
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Demanda</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-malachite/30 rounded-sm" />
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Capacidad</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 3. Backlog Aging - NO SCROLL & FIXED TOOLTIP */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-visible">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
                             <div>
@@ -315,48 +314,46 @@ export function ServiceIntelligence({
                             <Clock className="w-5 h-5 text-amber-500" />
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="h-[250px] w-full overflow-x-auto pb-48"> {/* pb-48 to avoid tooltip clipping */}
-                            <div className="h-[210px] min-w-full flex items-end gap-3 px-4 w-fit mx-auto">
-                                {(metrics.backlogTrend || []).map((b: any, i: number) => {
-                                    const maxTotal = Math.max(1, ...metrics.backlogTrend.map((bt: any) => bt.total || 0));
-                                    return (
-                                        <div key={i} className="flex-1 min-w-[45px] max-w-[80px] flex flex-col justify-end gap-2 group relative">
-                                            <div className="w-full flex flex-col-reverse h-[160px] rounded-t-lg overflow-hidden border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                                                {(b.byCreationMonth || []).map((cm: any, j: number) => (
-                                                    <div
-                                                        key={j}
-                                                        className={`w-full transition-all group-hover:brightness-110`}
-                                                        style={{
-                                                            height: `${(cm.value / maxTotal) * 100}%`,
-                                                            backgroundColor: j === 0 ? '#008580' :
-                                                                j === 1 ? '#28B463' :
-                                                                    j === 2 ? '#58D68D' :
-                                                                        j === 3 ? '#ABEBC6' : '#D1F2EB'
-                                                        }}
-                                                    />
-                                                ))}
-                                                {b.total === 0 && <div className="h-full w-full bg-slate-50/50 border-t border-dashed border-slate-100" />}
-                                            </div>
-                                            <span className="text-[9px] font-black text-slate-400 text-center uppercase tracking-tighter">{b.month}</span>
+                    <CardContent className="pt-6 overflow-visible">
+                        <div className="h-[250px] w-full flex items-end gap-3 px-4 justify-center">
+                            {(metrics.backlogTrend || []).map((b: any, i: number) => {
+                                const maxTotal = Math.max(1, ...metrics.backlogTrend.map((bt: any) => bt.total || 0));
+                                return (
+                                    <div key={i} className="flex-1 max-w-[80px] flex flex-col justify-end gap-2 group relative">
+                                        <div className="w-full flex flex-col-reverse h-[180px] rounded-t-lg overflow-hidden border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                            {(b.byCreationMonth || []).map((cm: any, j: number) => (
+                                                <div
+                                                    key={j}
+                                                    className={`w-full transition-all group-hover:brightness-110`}
+                                                    style={{
+                                                        height: `${(cm.value / maxTotal) * 100}%`,
+                                                        backgroundColor: j === 0 ? '#008580' :
+                                                            j === 1 ? '#28B463' :
+                                                                j === 2 ? '#58D68D' :
+                                                                    j === 3 ? '#ABEBC6' : '#D1F2EB'
+                                                    }}
+                                                />
+                                            ))}
+                                            {b.total === 0 && <div className="h-full w-full bg-slate-50/50 border-t border-dashed border-slate-100" />}
+                                        </div>
+                                        <span className="text-[9px] font-black text-slate-400 text-center uppercase tracking-tighter">{b.month}</span>
 
-                                            <div className="absolute -top-24 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-50 min-w-[140px] shadow-2xl space-y-2">
-                                                <div className="border-b border-white/10 pb-1 mb-1 font-bold text-malachite">Snapshot: {b.month}</div>
-                                                <div className="flex justify-between font-black"><span>Total Backlog:</span> <span>{b.total} tks</span></div>
-                                                <div className="space-y-1 pt-1">
-                                                    {(b.byCreationMonth || []).slice(0, 5).map((cm: any, j: number) => (
-                                                        <div key={j} className="flex justify-between text-[9px] text-white/70 italic">
-                                                            <span>De {cm.name}:</span> <span>{cm.value}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                        <div className="absolute -top-28 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-[100] min-w-[140px] shadow-2xl space-y-2 pointer-events-none">
+                                            <div className="border-b border-white/10 pb-1 mb-1 font-bold text-malachite">Snapshot: {b.month}</div>
+                                            <div className="flex justify-between font-black"><span>Total Backlog:</span> <span>{b.total} tks</span></div>
+                                            <div className="space-y-1 pt-1">
+                                                {(b.byCreationMonth || []).slice(0, 5).map((cm: any, j: number) => (
+                                                    <div key={j} className="flex justify-between text-[9px] text-white/70 italic">
+                                                        <span>De {cm.name}:</span> <span>{cm.value}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="flex flex-wrap justify-center gap-4 mt-4 px-8 py-2 bg-slate-50/50 rounded-2xl mx-auto w-fit">
+                        <div className="flex flex-wrap justify-center gap-4 mt-6 px-8 py-2 bg-slate-50/50 rounded-2xl mx-auto w-fit">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2">Creados en:</span>
                             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#008580' }} /><span className="text-[9px] font-bold text-slate-600">Mes Actual</span></div>
                             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#28B463' }} /><span className="text-[9px] font-bold text-slate-600">Mes -1</span></div>
@@ -367,8 +364,8 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 4. Corrective by Priority - MOVED BELOW STABILITY */}
-                <Card className="lg:col-span-8 shadow-xl border-slate-100">
+                {/* 4. Corrective by Priority - NO SCROLL & FIXED TOOLTIP */}
+                <Card className="lg:col-span-8 shadow-xl border-slate-100 overflow-visible">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
                             <div>
@@ -378,38 +375,36 @@ export function ServiceIntelligence({
                             <AlertTriangle className="w-5 h-5 text-rose-500" />
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="h-[250px] w-full overflow-x-auto pb-48"> {/* pb-48 for tooltips */}
-                            <div className="h-[180px] min-w-full flex items-end gap-4 px-4 w-fit mx-auto">
-                                {(metrics.correctiveByPriority || []).map((cp: any, i: number) => {
-                                    const maxT = Math.max(1, ...metrics.correctiveByPriority.map((item: any) =>
-                                        (item.Baja || 0) + (item.Media || 0) + (item.Alta || 0) + (item.Crítica || 0)
-                                    ));
-                                    return (
-                                        <div key={i} className="flex-1 min-w-[50px] max-w-[100px] flex flex-col justify-end gap-2 group relative">
-                                            <div className="w-full h-[140px] flex flex-col-reverse rounded-t-md overflow-hidden bg-slate-50">
-                                                <div className="w-full bg-slate-300 transition-all" style={{ height: `${((cp.Baja || 0) / maxT) * 100}%` }} />
-                                                <div className="w-full bg-blue-400 transition-all" style={{ height: `${((cp.Media || 0) / maxT) * 100}%` }} />
-                                                <div className="w-full bg-orange-400 transition-all" style={{ height: `${((cp.Alta || 0) / maxT) * 100}%` }} />
-                                                <div className="w-full bg-rose-600 transition-all" style={{ height: `${((cp.Crítica || 0) / maxT) * 100}%` }} />
-                                            </div>
-                                            <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{cp.month}</span>
-
-                                            <div className="absolute -top-24 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-50 min-w-[120px] shadow-2xl">
-                                                <div className="flex justify-between border-b border-white/10 pb-1 mb-1"><span>Crítica:</span> <b>{cp.Crítica}</b></div>
-                                                <div className="flex justify-between"><span>Alta:</span> <b>{cp.Alta}</b></div>
-                                                <div className="flex justify-between"><span>Media:</span> <b>{cp.Media}</b></div>
-                                                <div className="flex justify-between"><span>Baja:</span> <b>{cp.Baja}</b></div>
-                                            </div>
+                    <CardContent className="pt-6 overflow-visible">
+                        <div className="h-[210px] w-full flex items-end gap-4 px-4 justify-center">
+                            {(metrics.correctiveByPriority || []).map((cp: any, i: number) => {
+                                const maxT = Math.max(1, ...metrics.correctiveByPriority.map((item: any) =>
+                                    (item.Baja || 0) + (item.Media || 0) + (item.Alta || 0) + (item.Crítica || 0)
+                                ));
+                                return (
+                                    <div key={i} className="flex-1 max-w-[100px] flex flex-col justify-end gap-2 group relative">
+                                        <div className="w-full h-[160px] flex flex-col-reverse rounded-t-md overflow-hidden bg-slate-50 border border-slate-100">
+                                            <div className="w-full bg-slate-300 transition-all hover:bg-slate-400" style={{ height: `${((cp.Baja || 0) / maxT) * 100}%` }} />
+                                            <div className="w-full bg-blue-400 transition-all hover:bg-blue-500" style={{ height: `${((cp.Media || 0) / maxT) * 100}%` }} />
+                                            <div className="w-full bg-orange-400 transition-all hover:bg-orange-500" style={{ height: `${((cp.Alta || 0) / maxT) * 100}%` }} />
+                                            <div className="w-full bg-rose-600 transition-all hover:bg-rose-700" style={{ height: `${((cp.Crítica || 0) / maxT) * 100}%` }} />
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                        <span className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">{cp.month}</span>
+
+                                        <div className="absolute -top-20 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white p-3 rounded-xl text-[10px] z-[100] min-w-[120px] shadow-2xl pointer-events-none">
+                                            <div className="flex justify-between border-b border-white/10 pb-1 mb-1"><span>Crítica:</span> <b>{cp.Crítica}</b></div>
+                                            <div className="flex justify-between"><span>Alta:</span> <b>{cp.Alta}</b></div>
+                                            <div className="flex justify-between"><span>Media:</span> <b>{cp.Media}</b></div>
+                                            <div className="flex justify-between"><span>Baja:</span> <b>{cp.Baja}</b></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                         <div className="flex justify-center gap-4 mt-6">
                             {['Crítica', 'Alta', 'Media', 'Baja'].map((p, i) => (
                                 <div key={p} className="flex items-center gap-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-rose-600' : i === 1 ? 'bg-orange-400' : i === 2 ? 'bg-blue-400' : 'bg-slate-300'}`} />
+                                    <div className={`w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-rose-600' : i === 1 ? 'bg-orange-400' : i === 2 ? 'bg-blue-400' : 'bg-slate-300'}`} />
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{p}</span>
                                 </div>
                             ))}
@@ -431,7 +426,7 @@ export function ServiceIntelligence({
                                 metrics.riskRadar.map((r: any, i: number) => (
                                     <div key={i} className="space-y-2">
                                         <div className="flex justify-between items-end">
-                                            <span className="text-sm font-bold text-slate-700 truncate max-w-[180px]">{r.name}</span>
+                                            <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{r.name}</span>
                                             <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{r.riskScore.toFixed(0)}% Criticality</span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
@@ -503,117 +498,120 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 7. Component & Type Distribution - MOVED NEXT TO NOISE */}
-                <Card className="lg:col-span-6 shadow-xl border-slate-100 overflow-hidden">
+                {/* 7. REDESIGNED: Component & Type Stacked Ranking */}
+                <Card className="lg:col-span-6 shadow-xl border-slate-100 overflow-visible">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
                             <div>
-                                <CardTitle className="text-lg font-bold text-slate-800">Distribución por Componente y Tipo</CardTitle>
-                                <p className="text-xs text-slate-500 font-medium">Radiografía del servicio por módulo operativo.</p>
+                                <CardTitle className="text-lg font-bold text-slate-800">Mix de Servicio por Componente</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Análisis de la naturaleza de los tickets en cada módulo.</p>
                             </div>
                             <PieChart className="w-5 h-5 text-dark-green" />
                         </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            {(metrics.componentTypeMatrix || []).slice(0, 4).map((comp: any, i: number) => (
-                                <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <h5 className="text-[9px] font-black text-slate-700 uppercase tracking-widest truncate mb-2">{comp.component}</h5>
-                                    <div className="flex gap-1 h-1 rounded-full overflow-hidden">
-                                        {comp.data.map((d: any, j: number) => (
-                                            <div
-                                                key={j}
-                                                className="h-full"
-                                                style={{
-                                                    width: `${(d.value / comp.total) * 100}%`,
-                                                    backgroundColor: d.type.includes('Incidencia') ? '#E11D48' :
-                                                        d.type.includes('Consulta') ? '#3B82F6' :
-                                                            d.type.includes('Evolutivo') ? '#059669' : '#94A3B8'
-                                                }}
-                                            />
-                                        ))}
+                        <div className="space-y-5">
+                            {(metrics.componentTypeMatrix || []).slice(0, 6).map((comp: any, i: number) => (
+                                <div key={i} className="space-y-1.5 group">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight truncate w-48">{comp.component}</span>
+                                        <span className="text-[11px] font-black text-slate-400">{comp.total} <span className="text-[9px] font-bold uppercase">Tickets</span></span>
                                     </div>
-                                    <div className="mt-2 flex justify-between">
-                                        <span className="text-lg font-black text-slate-900">{comp.total}</span>
-                                        <div className="flex gap-1">
-                                            {comp.data.map((d: any, j: number) => (
-                                                <span key={j} className="text-[7px] font-bold text-slate-400">
-                                                    {d.type.includes('Incidencia') ? 'IC' : d.type.includes('Consulta') ? 'CO' : 'EV'}:{d.value}
-                                                </span>
-                                            ))}
-                                        </div>
+                                    <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-100 shadow-inner">
+                                        {comp.data.map((d: any, j: number) => {
+                                            const isIncid = d.type.toLowerCase().includes('incid') || d.type.toLowerCase().includes('error');
+                                            const isConsult = d.type.toLowerCase().includes('consult') || d.type.toLowerCase().includes('soporte');
+                                            const isEvo = d.type.toLowerCase().includes('evol');
+                                            const color = isIncid ? 'bg-rose-500' : isConsult ? 'bg-blue-500' : isEvo ? 'bg-malachite' : 'bg-slate-400';
+
+                                            return (
+                                                <div
+                                                    key={j}
+                                                    className={`${color} h-full transition-all hover:brightness-110 relative group/segment`}
+                                                    style={{ width: `${(d.value / comp.total) * 100}%` }}
+                                                >
+                                                    {/* MINI SEGMENT TOOLTIP */}
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/segment:opacity-100 transition-opacity bg-slate-900 text-white text-[8px] py-1 px-2 rounded whitespace-nowrap z-50 pointer-events-none uppercase font-black">
+                                                        {d.type}: {d.value}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-4 p-4 bg-slate-900 rounded-2xl text-white">
-                            <p className="text-[10px] leading-relaxed">
-                                <span className="text-malachite font-bold">{metrics.componentTypeMatrix?.[0]?.component}</span> es el módulo con mayor actividad global.
-                            </p>
+                        <div className="mt-8 flex justify-center gap-6 pt-4 border-t border-slate-50">
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-500" /><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Incidencia</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Consulta</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-malachite" /><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Evolutivo</span></div>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* 8. SLAs and Average Times */}
-                <Card className="lg:col-span-12 shadow-xl border-slate-100">
+                {/* 8. Eficiencia Operativa (SLAs) */}
+                <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-visible">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
                             <div>
-                                <CardTitle className="text-lg font-bold text-slate-800">Eficiencia Operativa</CardTitle>
-                                <p className="text-xs text-slate-500 font-medium">Tiempos medios de respuesta y resolución.</p>
+                                <CardTitle className="text-lg font-bold text-slate-800">Eficiencia Operativa (SLAs)</CardTitle>
+                                <p className="text-xs text-slate-500 font-medium">Tiempos medios de respuesta y resolución en base a ciclos de JIRA.</p>
                             </div>
                             <Target className="w-5 h-5 text-indigo-500" />
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="grid lg:grid-cols-2 gap-12">
-                            <div className="space-y-6">
-                                <div className="h-[150px] w-full flex items-end gap-2 px-2 border-b border-slate-100 pb-2 justify-center">
+                    <CardContent className="pt-8 pb-10 overflow-visible">
+                        <div className="grid lg:grid-cols-2 gap-16">
+                            <div className="space-y-8">
+                                <div className="h-[180px] w-full flex items-end gap-3 px-2 border-b border-slate-100 pb-2 justify-center">
                                     {(metrics.elapsedTimeTrend || []).map((et: any, i: number) => {
                                         const maxVal = Math.max(1, ...metrics.elapsedTimeTrend.map((item: any) => Math.max(item.avgResolution || 0, item.avgResponse || 0)));
                                         return (
-                                            <div key={i} className="flex-1 max-w-[40px] flex flex-col justify-end group relative h-full">
-                                                <div className="flex items-end justify-center gap-1 h-full">
+                                            <div key={i} className="flex-1 max-w-[45px] flex flex-col justify-end group relative h-full">
+                                                <div className="flex items-end justify-center gap-1.5 h-full">
                                                     <div
-                                                        className="w-2 bg-indigo-500 rounded-t-full transition-all hover:brightness-125"
+                                                        className="w-2.5 bg-indigo-500 rounded-t-full transition-all hover:brightness-125"
                                                         style={{ height: `${(et.avgResponse / maxVal) * 100}%` }}
                                                     />
                                                     <div
-                                                        className="w-2 bg-indigo-900 rounded-t-full transition-all hover:brightness-125"
+                                                        className="w-2.5 bg-indigo-900 rounded-t-full transition-all hover:brightness-125"
                                                         style={{ height: `${(et.avgResolution / maxVal) * 100}%` }}
                                                     />
                                                 </div>
-                                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[9px] py-1 px-2 rounded shadow-xl z-20 whitespace-nowrap">
+                                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-900 text-white text-[9px] py-2 px-3 rounded-lg shadow-2xl z-50 whitespace-nowrap pointer-events-none">
                                                     Res: <b>{et.avgResolution.toFixed(1)}h</b> | Resp: <b>{et.avgResponse.toFixed(1)}h</b>
                                                 </div>
-                                                <span className="text-[8px] text-slate-400 mt-2 font-bold">{et.month}</span>
+                                                <span className="text-[9px] text-slate-400 mt-2 font-black uppercase text-center">{et.month}</span>
                                             </div>
                                         );
                                     })}
                                 </div>
                                 <div className="flex justify-center gap-10">
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-500" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Respuesta</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-900" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resolución</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-indigo-500" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Respuesta</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-indigo-900" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resolución</span></div>
                                 </div>
                             </div>
-                            <div className="flex flex-col justify-center space-y-8">
-                                <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-1">
+                            <div className="flex flex-col justify-center gap-10">
+                                <div className="grid grid-cols-2 gap-10">
+                                    <div className="space-y-2">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Media de Respuesta</p>
-                                        <p className="text-4xl font-black text-indigo-600">
-                                            {(metrics.elapsedTimeTrend?.[metrics.elapsedTimeTrend.length - 1]?.avgResponse || 0).toFixed(1)}h
+                                        <p className="text-5xl font-black text-indigo-600 tracking-tighter">
+                                            {(metrics.elapsedTimeTrend?.reduce((a: any, b: any) => a + b.avgResponse, 0) / (metrics.elapsedTimeTrend?.length || 1)).toFixed(1)}h
                                         </p>
+                                        <div className="h-1 w-12 bg-indigo-500 rounded-full" />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Media de Resolución</p>
-                                        <p className="text-4xl font-black text-indigo-900">
-                                            {(metrics.elapsedTimeTrend?.[metrics.elapsedTimeTrend.length - 1]?.avgResolution || 0).toFixed(1)}h
+                                        <p className="text-5xl font-black text-indigo-900 tracking-tighter">
+                                            {(metrics.elapsedTimeTrend?.reduce((a: any, b: any) => a + b.avgResolution, 0) / (metrics.elapsedTimeTrend?.length || 1)).toFixed(1)}h
                                         </p>
+                                        <div className="h-1 w-12 bg-indigo-900 rounded-full" />
                                     </div>
                                 </div>
-                                <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
-                                    <p className="text-xs font-medium text-indigo-900 leading-relaxed italic">
-                                        "El tiempo medio de resolución se ha mantenido estable en los últimos 3 meses, cumpliendo con los estándares de servicio establecidos."
+                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-start gap-4">
+                                    <Activity className="w-5 h-5 text-indigo-500 shrink-0 mt-1" />
+                                    <p className="text-xs font-medium text-slate-600 leading-relaxed italic">
+                                        Los tiempos se calculan filtrando incidencias y consultas con ciclos de SLA completados o en ejecución.
                                     </p>
                                 </div>
                             </div>
@@ -621,7 +619,7 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 9. Continuous Improvement & Simulation - REMAINING BOTTOM */}
+                {/* 9. Continuous Improvement & Simulation */}
                 <Card className="lg:col-span-12 shadow-xl border-slate-100 overflow-hidden relative">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-50">
                         <div className="flex justify-between items-center">
@@ -738,24 +736,26 @@ export function ServiceIntelligence({
                     </CardContent>
                 </Card>
 
-                {/* 11. Forecast Tool */}
+                {/* 11. Contract Sizing Forecast */}
                 <Card className="lg:col-span-12 shadow-2xl border-emerald-500/20 bg-emerald-50/10">
                     <CardHeader>
-                        <Target className="w-6 h-6 text-emerald-600 mb-2" />
-                        <CardTitle className="text-xl font-black text-slate-800">Dimensionamiento de Próximo Periodo</CardTitle>
+                        <div className="flex items-center gap-3">
+                            <Target className="w-8 h-8 text-emerald-600" />
+                            <CardTitle className="text-xl font-black text-slate-800">Dimensionamiento de Próximo Periodo</CardTitle>
+                        </div>
                     </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="grid lg:grid-cols-2 gap-12">
-                            <div className="space-y-8">
+                    <CardContent className="pt-4 pb-12">
+                        <div className="grid lg:grid-cols-2 gap-20">
+                            <div className="space-y-10">
                                 {[
                                     { key: 'corrective', label: 'Tickets Correctivos', unit: 'Tkts', max: 200 },
                                     { key: 'consultation', label: 'Tickets de Consulta', unit: 'Tkts', max: 200 },
                                     { key: 'evolution', label: 'Horas de Evolutivos', unit: 'Horas', max: 500 }
                                 ].map((item) => (
-                                    <div key={item.key} className="space-y-2">
+                                    <div key={item.key} className="space-y-3">
                                         <div className="flex justify-between">
-                                            <span className="text-xs font-black text-slate-700 uppercase">{item.label}</span>
-                                            <span className="text-xs font-bold text-emerald-600">{forecastCounts[item.key as keyof typeof forecastCounts]} {item.unit}</span>
+                                            <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{item.label}</span>
+                                            <span className="text-xs font-bold text-emerald-600 font-mono">{forecastCounts[item.key as keyof typeof forecastCounts]} {item.unit}</span>
                                         </div>
                                         <input
                                             type="range"
@@ -763,16 +763,20 @@ export function ServiceIntelligence({
                                             max={item.max}
                                             value={forecastCounts[item.key as keyof typeof forecastCounts] as number}
                                             onChange={(e) => setForecastCounts({ ...forecastCounts, [item.key]: parseInt(e.target.value) })}
-                                            className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-emerald-600"
+                                            className="w-full h-2.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-emerald-600 transition-all hover:bg-slate-300"
                                         />
                                     </div>
                                 ))}
                             </div>
-                            <div className="bg-emerald-900 rounded-[3rem] p-10 text-white flex flex-col justify-center items-center">
+                            <div className="bg-emerald-900 rounded-[4rem] p-12 text-white flex flex-col justify-center items-center shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mt-16 blur-2xl" />
                                 <h5 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-4">ESTIMACIÓN DE BOLSA RECOMENDADA</h5>
-                                <span className="text-8xl font-black tracking-tighter">{projectedHours.toFixed(0)}</span>
-                                <span className="text-2xl font-black text-emerald-400">Horas Totales</span>
-                                <button className="mt-8 px-8 py-4 bg-emerald-400 text-emerald-950 font-black rounded-2xl hover:bg-white transition-colors uppercase tracking-widest text-xs">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-[10rem] font-black tracking-tighter leading-none">{projectedHours.toFixed(0)}</span>
+                                    <span className="text-3xl font-black text-emerald-400">Horas</span>
+                                </div>
+                                <p className="text-[11px] text-emerald-300/60 uppercase font-black tracking-widest mt-4">Cálculo basado en medias históricas reales</p>
+                                <button className="mt-12 w-full py-5 bg-emerald-400 text-emerald-950 font-black rounded-[2rem] hover:bg-white transition-all transform hover:scale-105 active:scale-95 uppercase tracking-widest text-xs shadow-xl">
                                     Generar Solicitud de Contratación
                                 </button>
                             </div>
