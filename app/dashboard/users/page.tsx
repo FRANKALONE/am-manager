@@ -20,8 +20,8 @@ export default async function ClientUsersPage() {
     const userRole = session.userRole;
     let clientId = user.clientId || session.clientId;
 
-    // Check for specific permission instead of hardcoded roles
-    if (!session.permissions.manage_client_users) {
+    // Check for specific permission - CLIENTE role can always manage their own client users
+    if (!session.permissions.manage_client_users && userRole !== 'CLIENTE') {
         const fallback = userRole === 'CLIENTE' ? '/client-dashboard' : '/dashboard';
         redirect(fallback);
     }
