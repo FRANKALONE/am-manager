@@ -1079,6 +1079,62 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
 
                     addLog(`[INFO] Manual Consumption: +${reg.quantity}h in ${key} (${reg.ticketId || 'N/A'}) - Type: ${(reg as any).ticketType || 'Evolutivo'}`);
 
+                    // If ticketId is provided, try to fetch real ticket data from Jira
+                    let ticketData: any = null;
+                    if (reg.ticketId && reg.ticketId.includes('-')) {
+                        try {
+                            const jiraUrl = process.env.JIRA_URL?.trim();
+                            const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+                            const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+
+                            if (jiraUrl && jiraEmail && jiraToken) {
+                                const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+                                const issueLookupUrl = new URL(`${jiraUrl}/rest/api/3/issue/${reg.ticketId}`);
+                                const jiraRes: any = await new Promise((resolve, reject) => {
+                                    const req = https.request({
+                                        hostname: issueLookupUrl.hostname,
+                                        port: 443,
+                                        path: issueLookupUrl.pathname + issueLookupUrl.search,
+                                        method: 'GET',
+                                        headers: {
+                                            'Authorization': `Basic ${auth}`,
+                                            'Accept': 'application/json'
+                                        }
+                                    }, (res: any) => {
+                                        let data = '';
+                                        res.on('data', (chunk: any) => data += chunk);
+                                        res.on('end', () => {
+                                            try {
+                                                resolve(JSON.parse(data));
+                                            } catch (e) {
+                                                addLog(`[ERROR] Failed to parse JIRA response for ${reg.ticketId}: ${e}`);
+                                                resolve({ issues: [] });
+                                            }
+                                        });
+                                    });
+                                    req.on('error', (err: any) => {
+                                        addLog(`[ERROR] JIRA request failed for ${reg.ticketId}: ${err.message}`);
+                                        resolve({ issues: [] });
+                                    });
+                                    req.end();
+                                });
+
+                                if (jiraRes && !jiraRes.errorMessages) {
+                                    ticketData = {
+                                        summary: jiraRes.fields.summary,
+                                        status: jiraRes.fields.status?.name,
+                                        createdDate: new Date(jiraRes.fields.created)
+                                    };
+                                    addLog(`[INFO] Fetched Jira data for ${reg.ticketId}: ${ticketData.status}`);
+                                } else if (jiraRes.errorMessages) {
+                                    addLog(`[WARN] Jira API error for ${reg.ticketId}: ${JSON.stringify(jiraRes.errorMessages)}`);
+                                }
+                            }
+                        } catch (error) {
+                            addLog(`[WARN] Could not fetch Jira data for ${reg.ticketId}: ${error}`);
+                        }
+                    }
+
                     // Add to worklog details for display
                     // Use ticketType if specified, otherwise fallback to 'Evolutivo' (default behavior)
                     worklogDetailsToSave.push({
@@ -1087,12 +1143,13 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                         month,
                         issueKey: reg.ticketId || `MANUAL-${reg.id}`,
                         issueType: (reg as any).ticketType || 'Evolutivo',
-                        issueSummary: reg.description || `Consumo manual ${reg.id}`,
-                        issueCreatedDate: regDate, // Use regularization date as creation date
+                        issueSummary: ticketData?.summary || reg.description || `Consumo manual ${reg.id}`,
+                        issueCreatedDate: ticketData?.createdDate || regDate,
                         timeSpentHours: reg.quantity,
                         startDate: regDate,
-                        author: 'Sistema',
-                        tipoImputacion: 'Consumo Manual'
+                        author: (reg as any).createdByName || 'Sistema',
+                        tipoImputacion: 'Consumo Manual',
+                        status: ticketData?.status || null
                     });
                 } else if (reg.type === 'EXCESS' || reg.type === 'RETURN' || reg.type === 'SOBRANTE_ANTERIOR') {
                     // DON'T subtract from consumption - regularizations are separate!
