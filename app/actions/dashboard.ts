@@ -1853,7 +1853,7 @@ export async function getServiceIntelligenceMetrics(wpId: string, range: string 
             // Helper to parse "1h 30m" to decimal hours
             elapsedTimeTrend: sortedMonths.map(m => {
                 const monthTickets = periodTickets.filter(t => {
-                    const d = t.issueCreatedDate ? new Date(t.issueCreatedDate) : new Date(t.createdDate);
+                    const d = new Date(t.createdDate);
                     const it = (t.issueType || '').toLowerCase();
                     const isTargetType = it.includes('incidencia') ||
                         it.includes('correctivo') ||
