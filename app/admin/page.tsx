@@ -54,15 +54,15 @@ export default async function AdminDashboardPage() {
             link: "/evolutivos"
         },
         {
-            title: t('admin.dashboard.users'),
-            value: usersCount,
-            description: t('admin.dashboard.usersDesc'),
-            icon: UserCheck,
+            title: t('admin.analytics.title'),
+            value: 2, // Hardcoded for now since there are 2 reports
+            description: "Informes de validez y consumos",
+            icon: BarChart3,
             color: "text-indigo-600",
             iconColor: "indigo",
             bg: "bg-indigo-500/10",
             gradient: "from-indigo-600 to-purple-500",
-            link: "/admin/users"
+            link: "/analytics"
         }
     ];
 
