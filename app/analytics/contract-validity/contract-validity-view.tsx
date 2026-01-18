@@ -59,6 +59,8 @@ interface ValidityPeriod {
     premiumPrice?: number;
     surplusStrategy?: string;
     regularizationType?: string;
+    regularizationRate?: number;
+    rateEvolutivo?: number;
 }
 
 interface WorkPackage {
@@ -563,6 +565,14 @@ export function ContractValidityView({ initialData }: Props) {
                                         <div className="flex justify-between text-xs text-slate-400">
                                             <span>{t("admin.analytics.filters.regularization")}:</span>
                                             <span className="text-white font-medium uppercase font-bold">{selectedPeriod?.regularizationType || t("admin.analytics.filters.quarterly")}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-400 border-t border-slate-700 pt-2 mt-2">
+                                            <span>{t("admin.analytics.filters.regularizationRate")}:</span>
+                                            <span className="text-white font-bold">{selectedPeriod?.regularizationRate ?? 0} €</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-400">
+                                            <span>{t("admin.analytics.filters.evolutivoRate")}:</span>
+                                            <span className="text-white font-bold">{selectedPeriod?.rateEvolutivo ?? 0} €</span>
                                         </div>
                                     </div>
                                 </div>
