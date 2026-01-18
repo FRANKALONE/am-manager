@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "./sync";
 import { limitConcurrency } from "@/lib/utils-sync";
-import { getBulkSyncStatus, setBulkSyncStatus, SyncJobStatus } from "./sync-jobs";
+import { getBulkSyncStatus, setBulkSyncStatus, stopBulkSync, SyncJobStatus } from "./sync-jobs";
 import { getNow } from "@/lib/date-utils";
 
 async function isKillSwitchActive() {
@@ -181,77 +181,94 @@ export async function startBulkManualSync(syncDays?: number) {
         };
 
         await setBulkSyncStatus(initialStatus);
+        console.log(`[MANUAL_SYNC] Initiating bulk sync for ${wps.length} WPs...`);
 
-        // Run sync in the "background" (but still within this server action until done)
-        // Note: Real background tasks in Next.js require external queues, 
-        // but for this app, we'll process them and the client can refresh to see progress.
-
-        // We'll process them sequentially or with low concurrency to avoid overloading
-        for (let i = 0; i < wps.length; i++) {
-            const wp = wps[i];
-
-            // Re-fetch status to check for cancellation or stop
-            const currentStatus = await getBulkSyncStatus();
-            if (!currentStatus || !currentStatus.isSyncing) break;
-
-            // Update status for current WP
-            await setBulkSyncStatus({
-                ...currentStatus,
-                currentIdx: i + 1,
-                currentWpName: wp.name,
-                progress: (i / wps.length) * 100,
-                lastUpdate: Date.now()
-            });
-
+        // IIFE for background execution
+        (async () => {
             try {
-                const res = await syncWorkPackage(wp.id, false, syncDays);
+                for (let i = 0; i < wps.length; i++) {
+                    const wp = wps[i];
 
-                const updatedStatus = await getBulkSyncStatus();
-                if (updatedStatus) {
-                    if (res?.error) {
-                        updatedStatus.results.errors++;
-                    } else {
-                        updatedStatus.results.success++;
+                    // Re-fetch status to check for cancellation or stop
+                    const currentStatus = await getBulkSyncStatus();
+                    if (!currentStatus || !currentStatus.isSyncing) {
+                        console.log(`[MANUAL_SYNC] Sync process stopped or cancelled at WP ${i + 1}/${wps.length}`);
+                        break;
                     }
-                    await setBulkSyncStatus(updatedStatus);
+
+                    // Check Kill Switch
+                    if (await isKillSwitchActive()) {
+                        console.log(`[MANUAL_SYNC] Kill Switch active. Stopping bulk sync.`);
+                        await stopBulkSync();
+                        break;
+                    }
+
+                    // Update status for current WP
+                    await setBulkSyncStatus({
+                        ...currentStatus,
+                        currentIdx: i + 1,
+                        currentWpName: wp.name,
+                        progress: (i / wps.length) * 100,
+                        lastUpdate: Date.now()
+                    });
+
+                    try {
+                        console.log(`[MANUAL_SYNC] [${i + 1}/${wps.length}] Syncing ${wp.name}...`);
+                        const res = await syncWorkPackage(wp.id, false, syncDays);
+
+                        const updatedStatus = await getBulkSyncStatus();
+                        if (updatedStatus && updatedStatus.isSyncing) {
+                            if (res?.error) {
+                                updatedStatus.results.errors++;
+                            } else {
+                                updatedStatus.results.success++;
+                            }
+                            await setBulkSyncStatus(updatedStatus);
+                        }
+                    } catch (err) {
+                        console.error(`[MANUAL_SYNC] Error syncing ${wp.name}:`, err);
+                        const updatedStatus = await getBulkSyncStatus();
+                        if (updatedStatus && updatedStatus.isSyncing) {
+                            updatedStatus.results.errors++;
+                            await setBulkSyncStatus(updatedStatus);
+                        }
+                    }
+                }
+
+                const finalStatus = await getBulkSyncStatus();
+                if (finalStatus && (finalStatus.isSyncing || finalStatus.progress < 100)) {
+                    await setBulkSyncStatus({
+                        ...finalStatus,
+                        isSyncing: false,
+                        progress: 100,
+                        lastUpdate: Date.now()
+                    });
+
+                    // Save to ImportLog
+                    await prisma.importLog.create({
+                        data: {
+                            type: 'MANUAL_SYNC',
+                            status: finalStatus.results.errors === 0 ? 'SUCCESS' : (finalStatus.results.success > 0 ? 'PARTIAL' : 'ERROR'),
+                            filename: `manual_bulk_sync_${syncDays ? `fast_${syncDays}d` : 'total'}_${new Date().toISOString().split('T')[0]}`,
+                            totalRows: wps.length,
+                            processedCount: finalStatus.results.success,
+                            errors: JSON.stringify({
+                                totalProcessed: wps.length,
+                                success: finalStatus.results.success,
+                                errors: finalStatus.results.errors,
+                                executionTime: Date.now() - startTime,
+                                syncDays: syncDays || 'FULL',
+                                stopped: finalStatus.stopped || false
+                            }),
+                            date: new Date()
+                        }
+                    });
+                    console.log(`[MANUAL_SYNC] Bulk sync finished. Success: ${finalStatus.results.success}, Errors: ${finalStatus.results.errors}`);
                 }
             } catch (err) {
-                const updatedStatus = await getBulkSyncStatus();
-                if (updatedStatus) {
-                    updatedStatus.results.errors++;
-                    await setBulkSyncStatus(updatedStatus);
-                }
+                console.error("[MANUAL_SYNC] Fatal error in background routine:", err);
             }
-        }
-
-        const finalStatus = await getBulkSyncStatus();
-        if (finalStatus) {
-            await setBulkSyncStatus({
-                ...finalStatus,
-                isSyncing: false,
-                progress: 100,
-                lastUpdate: Date.now()
-            });
-
-            // Save to ImportLog
-            await prisma.importLog.create({
-                data: {
-                    type: 'MANUAL_SYNC',
-                    status: finalStatus.results.errors === 0 ? 'SUCCESS' : (finalStatus.results.success > 0 ? 'PARTIAL' : 'ERROR'),
-                    filename: `manual_bulk_sync_${syncDays ? `fast_${syncDays}d` : 'total'}_${new Date().toISOString().split('T')[0]}`,
-                    totalRows: wps.length,
-                    processedCount: finalStatus.results.success,
-                    errors: JSON.stringify({
-                        totalProcessed: wps.length,
-                        success: finalStatus.results.success,
-                        errors: finalStatus.results.errors,
-                        executionTime: Date.now() - startTime,
-                        syncDays: syncDays || 'FULL'
-                    }),
-                    date: new Date()
-                }
-            });
-        }
+        })();
 
         return { success: true };
     } catch (error: any) {

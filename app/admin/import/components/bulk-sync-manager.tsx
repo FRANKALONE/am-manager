@@ -11,9 +11,9 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { getBulkSyncStatus, setBulkSyncStatus, SyncJobStatus } from "@/app/actions/sync-jobs";
+import { getBulkSyncStatus, setBulkSyncStatus, stopBulkSync, SyncJobStatus } from "@/app/actions/sync-jobs";
 import { startBulkManualSync } from "@/app/actions/cron";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Zap } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Zap, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "@/lib/use-translations";
 
@@ -83,6 +83,15 @@ export function BulkSyncManager() {
     const clearStatus = async () => {
         await setBulkSyncStatus(null);
         setStatus(null);
+    };
+
+    const handleCancel = async () => {
+        if (!confirm("¿Estás seguro de que deseas cancelar la sincronización actual? El proceso se detendrá al finalizar el Work Package que se está procesando en este momento.")) {
+            return;
+        }
+        await stopBulkSync();
+        toast.info("Solicitud de cancelación enviada");
+        fetchStatus();
     };
 
     if (isLoadingStatus && !status) {
@@ -203,14 +212,32 @@ export function BulkSyncManager() {
                         )}
 
                         {isSyncing && (
-                            <div className="flex flex-col gap-2 pt-2">
-                                <div className="flex justify-center p-3 bg-blue-50 rounded-md border border-blue-100 italic text-xs text-blue-600">
-                                    Sincronización en curso. Puedes cerrar esta pantalla y el proceso continuará en fondo.
+                            <div className="flex flex-col gap-3 pt-2">
+                                <div className="flex justify-center p-3 bg-blue-50 rounded-md border border-blue-100 italic text-xs text-blue-600 text-center">
+                                    Sincronización en curso en segundo plano. <br />
+                                    Puedes cerrar esta pantalla y el proceso continuará.
                                 </div>
-                                <Button disabled className="w-full bg-slate-100 text-slate-400">
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('import.sync.inProgress')}
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button disabled className="flex-1 bg-slate-100 text-slate-400">
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        {t('import.sync.inProgress')}
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        onClick={handleCancel}
+                                        title="Cancelar Sincronización"
+                                    >
+                                        <XCircle className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isSyncing && status?.stopped && (
+                            <div className="p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4" />
+                                Sincronización detenida por el usuario o por el sistema.
                             </div>
                         )}
                     </div>

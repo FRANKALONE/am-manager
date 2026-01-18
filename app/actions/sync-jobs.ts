@@ -15,6 +15,7 @@ export type SyncJobStatus = {
     results: { success: number; errors: number };
     syncDays: number | null; // null means full sync
     lastUpdate: number;
+    stopped?: boolean;
 };
 
 export async function getBulkSyncStatus(): Promise<SyncJobStatus | null> {
@@ -55,5 +56,21 @@ export async function setBulkSyncStatus(status: SyncJobStatus | null) {
         revalidatePath("/admin/import");
     } catch (error) {
         console.error("Error setting bulk sync status:", error);
+    }
+}
+
+export async function stopBulkSync() {
+    try {
+        const status = await getBulkSyncStatus();
+        if (status && status.isSyncing) {
+            await setBulkSyncStatus({
+                ...status,
+                isSyncing: false,
+                stopped: true,
+                lastUpdate: Date.now()
+            });
+        }
+    } catch (error) {
+        console.error("Error stopping bulk sync:", error);
     }
 }
