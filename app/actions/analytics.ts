@@ -104,8 +104,12 @@ export async function getWpAccumulatedConsumptionReport() {
 
             let totalContracted = 0;
             let totalConsumed = 0;
-            let totalRegularization = 0;
+            let totalRegularizationCurrent = 0;
             let billedAmount = 0;
+
+            const includedTypes = (wp as any).includedTicketTypes
+                ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                : [];
 
             const currentYM = now.getFullYear() * 100 + (now.getMonth() + 1);
 
@@ -120,11 +124,8 @@ export async function getWpAccumulatedConsumptionReport() {
                 const iterYM = y * 100 + m;
 
                 let monthlyConsumed = 0;
-                if (isEventos) {
-                    const includedTypes = (wp as any).includedTicketTypes
-                        ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
-                        : [];
 
+                if (isEventos) {
                     monthlyConsumed = wp.tickets.filter(t => {
                         if (t.year !== y || t.month !== m) return false;
                         const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
@@ -155,7 +156,7 @@ export async function getWpAccumulatedConsumptionReport() {
                 const monthlyContracted = standardMonthlyContracted + puntualContracted;
 
                 totalContracted += monthlyContracted;
-                totalRegularization += excessReg;
+                totalRegularizationCurrent += excessReg;
                 totalConsumed += finalMonthlyConsumed;
 
                 if (iterYM <= currentYM) {
@@ -165,16 +166,21 @@ export async function getWpAccumulatedConsumptionReport() {
                 iterDate.setMonth(iterDate.getMonth() + 1);
             }
 
-            // Calculate carryover (Simplified)
+            // Calculate carryover (Consistent with dashboard.ts)
             let carryover = 0;
+            const previousPeriods = wp.validityPeriods.filter(p => new Date(p.endDate) < startDate);
+
             const sobrantesBefore = wp.regularizations.filter(reg => {
                 const rd = new Date(reg.date);
-                return rd < startDate && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && (reg as any).isBilled !== false;
-            }).reduce((sum, r) => sum + r.quantity, 0);
+                const isInAnyPrevPeriod = previousPeriods.some(p => {
+                    const ps = new Date(p.startDate);
+                    const pe = new Date(p.endDate);
+                    return rd >= ps && rd <= pe;
+                });
+                return !isInAnyPrevPeriod && rd < startDate && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && (reg as any).isBilled !== false;
+            }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0);
             carryover += sobrantesBefore;
 
-            // Previous periods balance (Very expensive to calculate exactly like dashboard, but let's try to be consistent)
-            const previousPeriods = wp.validityPeriods.filter(p => new Date(p.endDate) < startDate);
             for (const prev of previousPeriods) {
                 const pStart = new Date(prev.startDate);
                 const pEnd = new Date(prev.endDate);
@@ -186,8 +192,25 @@ export async function getWpAccumulatedConsumptionReport() {
                 while (pIter <= pEnd) {
                     const pm = pIter.getMonth() + 1;
                     const py = pIter.getFullYear();
-                    const pMetric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
-                    let pCons = pMetric ? pMetric.consumedHours : 0;
+
+                    let pCons = 0;
+                    if (isEventos) {
+                        pCons = wp.tickets.filter(t => {
+                            if (t.year !== py || t.month !== pm) return false;
+                            const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+                            const isEvolutivoEstimate = t.issueType === 'Evolutivo' || t.billingMode === 'Bolsa de Horas' || t.billingMode === 'Bolsa de horas';
+                            if (!wp.includeEvoTM && isEvolutivoTM) return false;
+                            if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+                            const billingModeLower = t.billingMode?.toLowerCase() || '';
+                            if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
+                            if (includedTypes.length > 0 && !includedTypes.includes(t.issueType.toLowerCase())) return false;
+                            return true;
+                        }).length;
+                    } else {
+                        const pMetric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
+                        pCons = pMetric ? pMetric.consumedHours : 0;
+                    }
+
                     const pRegs = wp.regularizations.filter(reg => {
                         const rd = new Date(reg.date);
                         return rd.getMonth() + 1 === pm && rd.getFullYear() === py;
@@ -202,7 +225,7 @@ export async function getWpAccumulatedConsumptionReport() {
             }
 
             // Total Scope = Total Contracted in period + Total Regularization in period
-            const totalScope = totalContracted + totalRegularization;
+            const totalScope = totalContracted + totalRegularizationCurrent;
             // Saldo = Billed until now + carryover - Consumed until now
             const remaining = billedAmount + carryover - totalConsumed;
 
@@ -216,7 +239,7 @@ export async function getWpAccumulatedConsumptionReport() {
                 totalScope,
                 totalConsumed,
                 remaining,
-                scopeUnit: selectedPeriod.scopeUnit || 'Horas'
+                scopeUnit: selectedPeriod.scopeUnit || (isEventos ? 'Tickets' : 'Horas')
             };
         }).filter((wp): wp is NonNullable<typeof wp> => wp !== null);
 
