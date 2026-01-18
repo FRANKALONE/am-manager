@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getVisibilityFilter } from "@/lib/auth";
+import { getVisibilityFilter, getAuthSession } from "@/lib/auth";
+import { getNow } from "@/lib/date-utils";
 
 export async function getContractValidityData() {
     try {
@@ -59,7 +60,7 @@ export async function getContractValidityData() {
 export async function getWpAccumulatedConsumptionReport() {
     try {
         const filter = await getVisibilityFilter();
-        const now = new Date();
+        const now = getNow();
 
         const wps = await prisma.workPackage.findMany({
             where: filter.isGlobal ? {} : {
@@ -239,7 +240,9 @@ export async function getWpAccumulatedConsumptionReport() {
                 totalScope,
                 totalConsumed,
                 remaining,
-                scopeUnit: selectedPeriod.scopeUnit || (isEventos ? 'Tickets' : 'Horas')
+                scopeUnit: selectedPeriod.scopeUnit || (isEventos ? 'Tickets' : 'Horas'),
+                isEventos,
+                contractedToDate: billedAmount
             };
         }).filter((wp): wp is NonNullable<typeof wp> => wp !== null);
 

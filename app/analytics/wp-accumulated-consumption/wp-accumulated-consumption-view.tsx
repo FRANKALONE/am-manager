@@ -26,6 +26,8 @@ interface WpData {
     totalConsumed: number;
     remaining: number;
     scopeUnit: string;
+    isEventos: boolean;
+    contractedToDate: number;
 }
 
 export function WpAccumulatedConsumptionView({ initialData }: { initialData: WpData[] }) {
@@ -164,15 +166,26 @@ export function WpAccumulatedConsumptionView({ initialData }: { initialData: WpD
                                             </TableCell>
                                             <TableCell className="text-slate-600 dark:text-slate-400">{wp.clientName}</TableCell>
                                             <TableCell className="text-center text-slate-600 dark:text-slate-400">
-                                                {formatNumber(wp.totalScope)}
+                                                <div className="flex flex-col items-center">
+                                                    <span>{formatNumber(wp.totalScope)}</span>
+                                                    {wp.isEventos && (
+                                                        <span className="text-[10px] text-slate-400 font-normal">Total Periodo</span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-slate-900 dark:text-white font-medium">{formatNumber(wp.totalConsumed)}</span>
+                                                    <span className="text-slate-900 dark:text-white font-medium">
+                                                        {wp.isEventos ? (
+                                                            `${formatNumber(wp.totalConsumed)} / ${formatNumber(wp.contractedToDate || 0)}`
+                                                        ) : (
+                                                            formatNumber(wp.totalConsumed)
+                                                        )}
+                                                    </span>
                                                     <div className="w-16 h-1 bg-slate-100 dark:bg-slate-800 mt-1 rounded-full overflow-hidden flex">
                                                         <div
-                                                            className={`h-full ${wp.totalConsumed > wp.totalScope ? 'bg-red-500' : 'bg-blue-500'}`}
-                                                            style={{ flexBasis: `${Math.min(100, (wp.totalConsumed / (wp.totalScope || 1)) * 100)}%` }}
+                                                            className={`h-full ${wp.totalConsumed > (wp.isEventos ? (wp.contractedToDate || 0) : wp.totalScope) ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                            style={{ flexBasis: `${Math.min(100, (wp.totalConsumed / ((wp.isEventos ? (wp.contractedToDate || wp.totalScope) : wp.totalScope) || 1)) * 100)}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>
