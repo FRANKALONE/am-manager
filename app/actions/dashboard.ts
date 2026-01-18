@@ -225,7 +225,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         const endDate = new Date(selectedPeriod.endDate);
 
         // 2. Logic Selection (Eventos vs Bolsa Puntual vs Standard)
-        const isEventos = (wp.contractType?.toUpperCase() === 'EVENTOS');
+        const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
+        const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
         const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
 
         const totalMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
@@ -417,6 +418,11 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 };
             });
 
+            // Calculate average tickets per month for EVENTOS
+            // We use the number of months that are not in the future
+            const elapsedMonths = evolutionData.filter(row => !row.isFuture).length;
+            const avgTicketsPerMonth = elapsedMonths > 0 ? totalConsumed / elapsedMonths : 0;
+
             return {
                 wpName: wp.name,
                 totalScope,
@@ -432,7 +438,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 selectedPeriodId: selectedPeriod.id,
                 lastSyncedAt: wp.lastSyncedAt,
                 isEventos: true,
-                contractType: wp.contractType
+                contractType: wp.contractType,
+                avgTicketsPerMonth
             };
         }
 
@@ -745,7 +752,8 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             selectedPeriodId: selectedPeriod.id,
             lastSyncedAt: wp.lastSyncedAt,
             contractType: wp.contractType,
-            isEventos: false
+            isEventos: false,
+            avgTicketsPerMonth: 0
         };
     } catch (error) {
         console.error("Dashboard Error", error);
