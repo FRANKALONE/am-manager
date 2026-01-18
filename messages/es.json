@@ -600,6 +600,8 @@
         "evolutivosStandardDesc": "Acceso a la gestión de evolutivos y seguimiento de hitos",
         "administration": "Administración",
         "administrationDesc": "Gestión de usuarios, clientes y configuración del sistema",
+        "analytics": "Analytics",
+        "analyticsDesc": "Informes detallados, validez de contratos y consumos acumulados",
         "jiraUsers": "Usuarios JIRA",
         "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados",
         "capacityManagement": "Gestión de Capacidades",

@@ -592,11 +592,13 @@
             "evolutivosManagementDesc": "Track milestones, owners and planning",
             "administration": "Administration",
             "administrationDesc": "Manage users, clients and system configuration",
+            "analytics": "Analytics",
+            "analyticsDesc": "Detailed reports, contract validity and accumulated consumption",
+            "jiraUsers": "JIRA Users",
+            "jiraUsersDesc": "Management of organizations and synchronized users",
             "capacityManagement": "Capacity Management",
             "capacityManagementDesc": "Team planning, workload, and AMA forecasting",
-            "accessModule": "Access module",
-            "jiraUsers": "Usuarios JIRA",
-            "jiraUsersDesc": "Gestión de organizaciones y usuarios sincronizados"
+            "accessModule": "Access module"
         },
         "user": {
             "name": "Name",

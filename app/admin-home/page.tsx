@@ -58,14 +58,14 @@ export default async function AdminHomePage() {
             visible: perms.view_cierres
         },
         {
-            title: t('adminHome.jiraUsers'),
-            description: t('adminHome.jiraUsersDesc'),
-            icon: Users,
-            href: "/admin/jira-customers",
+            title: t('adminHome.analytics'),
+            description: t('adminHome.analyticsDesc'),
+            icon: BarChart3,
+            href: "/analytics",
             color: "text-blue-500",
             bg: "bg-blue-500/10",
             gradient: "from-blue-600 to-blue-400",
-            visible: perms.manage_clients || perms.manage_users
+            visible: perms.view_analytics
         },
         {
             title: t('adminHome.administration'),
