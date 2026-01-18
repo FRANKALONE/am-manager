@@ -643,7 +643,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                 const hours = issue.fields.timeoriginalestimate / 3600;
 
                                 evolutivoEstimates.push({
-                                    issueKey: issue.key,
+                                    issueKey: issue.key || null, // Ensure not undefined
                                     issueSummary: issue.fields.summary || '',
                                     estimatedHours: hours,
                                     createdDate,
@@ -1040,7 +1040,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 workPackageId: targetWpId,
                 year,
                 month,
-                issueKey: details.key,  // Use key from Jira details
+                issueKey: details.key || null,  // Use key from Jira details, ensure not undefined
                 issueType: details.issueType || 'Unknown',  // Fallback for missing type
                 issueSummary: details.summary || '',
                 issueCreatedDate: details.created ? new Date(details.created) : null,
@@ -1176,8 +1176,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                         timeSpentHours: reg.quantity,
                         startDate: regDate,
                         author: (reg as any).createdByName || 'Sistema',
-                        tipoImputacion: 'Consumo Manual',
-                        status: ticketData?.status || null
+                        tipoImputacion: 'Consumo Manual'
                     });
                 } else if (reg.type === 'EXCESS' || reg.type === 'RETURN' || reg.type === 'SOBRANTE_ANTERIOR') {
                     // DON'T subtract from consumption - regularizations are separate!
