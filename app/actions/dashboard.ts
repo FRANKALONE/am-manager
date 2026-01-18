@@ -1028,7 +1028,7 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             }
         });
 
-        // Get RETURN regularizations for this month to show as separate entries
+        // Get RETURN regularizations for this month to mark tickets as returned
         const returnRegularizations = await prisma.regularization.findMany({
             where: {
                 workPackageId: wpId,
@@ -1041,6 +1041,13 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             orderBy: { date: 'asc' }
         });
 
+        // Create a map of returned ticket IDs
+        const returnedTicketIds = new Set(
+            returnRegularizations
+                .map(ret => (ret as any).ticketId)
+                .filter(Boolean)
+        );
+
         const combinedResults = [
             ...filteredTickets.map(t => ({
                 issueKey: t.issueKey,
@@ -1050,7 +1057,7 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
                 status: t.status,
                 reporter: t.reporter,
                 isManual: false,
-                isReturn: false
+                hasReturn: returnedTicketIds.has(t.issueKey)
             })),
             ...manualConsumptions.map(reg => ({
                 issueKey: (reg as any).ticketId || 'REG-' + reg.id,
@@ -1061,21 +1068,8 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
                 reporter: 'Sistema',
                 isManual: true,
                 quantity: reg.quantity,
-                isReturn: false
-            })),
-            // Add returns as separate visible entries
-            ...returnRegularizations.map(ret => ({
-                issueKey: (ret as any).ticketId || 'DEV-' + ret.id,
-                issueSummary: ret.description || 'Devolución de evento',
-                issueType: 'Devolución',
-                createdDate: ret.date,
-                status: 'Devuelto',
-                reporter: (ret as any).createdByName || 'Sistema',
-                isManual: false,
-                isReturn: true,
-                quantity: ret.quantity
+                hasReturn: false
             }))
-
         ];
 
         // Group by type for summary (including manual consumptions)
@@ -1087,7 +1081,15 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
         return {
             totalTickets: combinedResults.length,
             byType,
-            tickets: combinedResults
+            tickets: combinedResults,
+            regularizations: returnRegularizations.map(reg => ({
+                id: reg.id,
+                type: reg.type,
+                date: reg.date,
+                quantity: reg.quantity,
+                ticketId: (reg as any).ticketId,
+                description: reg.description || 'Devolución de evento'
+            }))
         };
     } catch (error) {
         console.error("Error fetching monthly ticket details:", error);

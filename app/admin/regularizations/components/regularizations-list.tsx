@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo, useRef, useEffect } from "react";
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     Table,
     TableBody,
@@ -23,6 +24,58 @@ interface RegularizationsListProps {
     regularizations: any[];
 }
 
+// PHASE 2: Memoized row component to prevent unnecessary re-renders
+const RegularizationRow = memo(({ reg, getTypeBadge }: { reg: any, getTypeBadge: (type: string) => JSX.Element }) => (
+    <TableRow>
+        <TableCell>
+            {formatDate(reg.date, {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            })}
+        </TableCell>
+        <TableCell className="font-medium">
+            <Link href={`/admin/clients/${reg.workPackage.client.id}/edit`} className="hover:underline">
+                {reg.workPackage.client.name}
+            </Link>
+        </TableCell>
+        <TableCell>
+            <Link href={`/admin/work-packages/${reg.workPackage.id}/edit`} className="hover:underline flex items-center gap-1 text-blue-600">
+                {reg.workPackage.name}
+                <ExternalLink className="w-3 h-3" />
+            </Link>
+        </TableCell>
+        <TableCell>
+            {getTypeBadge(reg.type)}
+        </TableCell>
+        <TableCell className="text-right font-bold">
+            {reg.quantity} h
+        </TableCell>
+        <TableCell className="text-muted-foreground text-sm max-w-xs truncate" title={reg.description || ""}>
+            {reg.description || "-"}
+        </TableCell>
+        <TableCell className="text-sm">
+            {reg.ticketId || "-"}
+        </TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+            {reg.createdByName || "-"}
+        </TableCell>
+        <TableCell className="text-right">
+            <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/regularizations/${reg.id}/edit`}>
+                        Editar
+                    </Link>
+                </Button>
+                <DeleteRegularizationButton id={reg.id} />
+            </div>
+        </TableCell>
+    </TableRow>
+));
+
+RegularizationRow.displayName = 'RegularizationRow';
+
+
 export function RegularizationsList({ regularizations }: RegularizationsListProps) {
     const [filters, setFilters] = useState({
         month: "all",
@@ -33,7 +86,18 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
         ticketId: ""
     });
 
-    const getTypeBadge = (type: string) => {
+    // PHASE 3: Debounced ticket ID search
+    const [ticketIdInput, setTicketIdInput] = useState("");
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setFilters(prev => ({ ...prev, ticketId: ticketIdInput }));
+        }, 300); // 300ms debounce
+
+        return () => clearTimeout(handler);
+    }, [ticketIdInput]);
+
+    const getTypeBadge = useCallback((type: string) => {
         switch (type) {
             case "EXCESS":
                 return <Badge variant="destructive">Exceso</Badge>;
@@ -48,41 +112,47 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
             default:
                 return <Badge variant="outline">{type}</Badge>;
         }
-    };
+    }, []);
 
-    // Extract unique values for filters
-    const uniqueClients = useMemo(() => {
-        const clients = new Set(regularizations.map(r => r.workPackage.client.name));
-        return Array.from(clients).sort();
-    }, [regularizations]);
-
-    const uniqueWorkPackages = useMemo(() => {
-        const wps = new Set(regularizations.map(r => r.workPackage.name));
-        return Array.from(wps).sort();
-    }, [regularizations]);
-
-    const uniqueMonths = useMemo(() => {
-        const months = new Set(regularizations.map(r => {
-            const date = new Date(r.date);
-            return String(date.getMonth() + 1).padStart(2, '0');
-        }));
-        return Array.from(months).sort();
-    }, [regularizations]);
-
-    const uniqueYears = useMemo(() => {
-        const years = new Set(regularizations.map(r => new Date(r.date).getFullYear()));
-        return Array.from(years).sort((a, b) => b - a);
-    }, [regularizations]);
-
-    // Filter regularizations
-    const filteredRegularizations = useMemo(() => {
-        return regularizations.filter(reg => {
+    // OPTIMIZATION 1: Pre-process date information once
+    const processedRegularizations = useMemo(() => {
+        return regularizations.map(reg => {
             const date = new Date(reg.date);
-            const regMonth = String(date.getMonth() + 1).padStart(2, '0');
-            const regYear = String(date.getFullYear());
+            return {
+                ...reg,
+                _month: String(date.getMonth() + 1).padStart(2, '0'),
+                _year: String(date.getFullYear())
+            };
+        });
+    }, [regularizations]);
 
-            if (filters.month !== "all" && regMonth !== filters.month) return false;
-            if (filters.year !== "all" && regYear !== filters.year) return false;
+    // OPTIMIZATION 2: Extract unique values in a single iteration
+    const { uniqueClients, uniqueWorkPackages, uniqueMonths, uniqueYears } = useMemo(() => {
+        const clients = new Map<string, boolean>();
+        const wps = new Map<string, boolean>();
+        const months = new Map<string, boolean>();
+        const years = new Map<number, boolean>();
+
+        for (const reg of processedRegularizations) {
+            clients.set(reg.workPackage.client.name, true);
+            wps.set(reg.workPackage.name, true);
+            months.set(reg._month, true);
+            years.set(parseInt(reg._year), true);
+        }
+
+        return {
+            uniqueClients: Array.from(clients.keys()).sort(),
+            uniqueWorkPackages: Array.from(wps.keys()).sort(),
+            uniqueMonths: Array.from(months.keys()).sort(),
+            uniqueYears: Array.from(years.keys()).sort((a, b) => b - a)
+        };
+    }, [processedRegularizations]);
+
+    // OPTIMIZATION 3: Use pre-processed date fields for filtering
+    const filteredRegularizations = useMemo(() => {
+        return processedRegularizations.filter(reg => {
+            if (filters.month !== "all" && reg._month !== filters.month) return false;
+            if (filters.year !== "all" && reg._year !== filters.year) return false;
             if (filters.client !== "all" && reg.workPackage.client.name !== filters.client) return false;
             if (filters.workPackage !== "all" && reg.workPackage.name !== filters.workPackage) return false;
             if (filters.type !== "all" && reg.type !== filters.type) return false;
@@ -90,9 +160,14 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
             return true;
         });
-    }, [regularizations, filters]);
+    }, [processedRegularizations, filters]);
 
-    const clearFilters = () => {
+    // OPTIMIZATION 4: Use useCallback for filter updates
+    const updateFilter = useCallback((key: string, value: string) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    }, []);
+
+    const clearFilters = useCallback(() => {
         setFilters({
             month: "all",
             year: "all",
@@ -101,11 +176,22 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
             type: "all",
             ticketId: ""
         });
-    };
+        setTicketIdInput("");
+    }, []);
 
     const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
         if (key === "ticketId") return value !== "";
         return value !== "all";
+    });
+
+    // PHASE 2: Virtual scrolling setup
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    const rowVirtualizer = useVirtualizer({
+        count: filteredRegularizations.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 60, // Estimated row height in pixels
+        overscan: 5 // Render 5 extra rows above and below viewport
     });
 
     return (
@@ -129,7 +215,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Mes</label>
-                            <Select value={filters.month} onValueChange={(v) => setFilters({ ...filters, month: v })}>
+                            <Select value={filters.month} onValueChange={(v) => updateFilter('month', v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
@@ -144,7 +230,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Año</label>
-                            <Select value={filters.year} onValueChange={(v) => setFilters({ ...filters, year: v })}>
+                            <Select value={filters.year} onValueChange={(v) => updateFilter('year', v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
@@ -159,7 +245,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Cliente</label>
-                            <Select value={filters.client} onValueChange={(v) => setFilters({ ...filters, client: v })}>
+                            <Select value={filters.client} onValueChange={(v) => updateFilter('client', v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
@@ -174,7 +260,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Work Package</label>
-                            <Select value={filters.workPackage} onValueChange={(v) => setFilters({ ...filters, workPackage: v })}>
+                            <Select value={filters.workPackage} onValueChange={(v) => updateFilter('workPackage', v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
@@ -189,7 +275,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Tipo</label>
-                            <Select value={filters.type} onValueChange={(v) => setFilters({ ...filters, type: v })}>
+                            <Select value={filters.type} onValueChange={(v) => updateFilter('type', v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
@@ -208,15 +294,15 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                             <label className="text-sm font-medium">Ticket ID</label>
                             <Input
                                 placeholder="Buscar..."
-                                value={filters.ticketId}
-                                onChange={(e) => setFilters({ ...filters, ticketId: e.target.value })}
+                                value={ticketIdInput}
+                                onChange={(e) => setTicketIdInput(e.target.value)}
                             />
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Table */}
+            {/* Table with Virtual Scrolling */}
             <Card>
                 <CardHeader>
                     <CardTitle>Listado Global</CardTitle>
@@ -240,63 +326,49 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
-                                {filteredRegularizations.map((reg: any) => (
-                                    <TableRow key={reg.id}>
-                                        <TableCell>
-                                            {formatDate(reg.date, {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric"
-                                            })}
-                                        </TableCell>
-                                        <TableCell className="font-medium">
-                                            <Link href={`/admin/clients/${reg.workPackage.client.id}/edit`} className="hover:underline">
-                                                {reg.workPackage.client.name}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Link href={`/admin/work-packages/${reg.workPackage.id}/edit`} className="hover:underline flex items-center gap-1 text-blue-600">
-                                                {reg.workPackage.name}
-                                                <ExternalLink className="w-3 h-3" />
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell>
-                                            {getTypeBadge(reg.type)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-bold">
-                                            {reg.quantity} h
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground text-sm max-w-xs truncate" title={reg.description || ""}>
-                                            {reg.description || "-"}
-                                        </TableCell>
-                                        <TableCell className="text-sm">
-                                            {reg.ticketId || "-"}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {reg.createdByName || "-"}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/regularizations/${reg.id}/edit`}>
-                                                        Editar
-                                                    </Link>
-                                                </Button>
-                                                <DeleteRegularizationButton id={reg.id} />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {filteredRegularizations.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
-                                            {hasActiveFilters ? "No hay regularizaciones que coincidan con los filtros." : "No hay regularizaciones registradas."}
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
                         </Table>
+
+                        {/* Virtualized scrollable container */}
+                        <div
+                            ref={parentRef}
+                            className="overflow-auto"
+                            style={{ height: '600px' }}
+                        >
+                            <Table>
+                                <TableBody
+                                    style={{
+                                        height: `${rowVirtualizer.getTotalSize()}px`,
+                                        position: 'relative'
+                                    }}
+                                >
+                                    {filteredRegularizations.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
+                                                {hasActiveFilters ? "No hay regularizaciones que coincidan con los filtros." : "No hay regularizaciones registradas."}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                            const reg = filteredRegularizations[virtualRow.index];
+                                            return (
+                                                <div
+                                                    key={reg.id}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        transform: `translateY(${virtualRow.start}px)`
+                                                    }}
+                                                >
+                                                    <RegularizationRow reg={reg} getTypeBadge={getTypeBadge} />
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
