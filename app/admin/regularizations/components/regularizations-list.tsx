@@ -48,8 +48,8 @@ const RegularizationRow = memo(({ reg, getTypeBadge }: { reg: any, getTypeBadge:
         <TableCell>
             {getTypeBadge(reg.type)}
         </TableCell>
-        <TableCell className="text-right font-bold">
-            {reg.quantity} h
+        <TableCell className="text-right font-bold w-[100px]">
+            {Number(reg.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} h
         </TableCell>
         <TableCell className="text-muted-foreground text-sm max-w-xs truncate" title={reg.description || ""}>
             {reg.description || "-"}
@@ -321,15 +321,15 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                             <Table>
                                 <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
                                     <TableRow>
-                                        <TableHead className="w-[100px]">Fecha</TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Work Package</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead className="text-right">Cantidad</TableHead>
-                                        <TableHead>Descripción</TableHead>
-                                        <TableHead>Ticket ID</TableHead>
-                                        <TableHead>Creado por</TableHead>
-                                        <TableHead className="text-right w-[150px]">Acciones</TableHead>
+                                        <TableHead className="w-[100px] bg-white">Fecha</TableHead>
+                                        <TableHead className="bg-white">Cliente</TableHead>
+                                        <TableHead className="bg-white">Work Package</TableHead>
+                                        <TableHead className="bg-white">Tipo</TableHead>
+                                        <TableHead className="text-right w-[100px] bg-white">Cantidad</TableHead>
+                                        <TableHead className="bg-white">Descripción</TableHead>
+                                        <TableHead className="bg-white">Ticket ID</TableHead>
+                                        <TableHead className="bg-white">Creado por</TableHead>
+                                        <TableHead className="text-right w-[150px] bg-white">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
