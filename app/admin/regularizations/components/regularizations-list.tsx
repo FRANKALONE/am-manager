@@ -311,23 +311,7 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Cliente</TableHead>
-                                    <TableHead>Work Package</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead className="text-right">Cantidad</TableHead>
-                                    <TableHead>Descripción</TableHead>
-                                    <TableHead>Ticket ID</TableHead>
-                                    <TableHead>Creado por</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                        </Table>
-
+                    <div className="rounded-md border relative">
                         {/* Virtualized scrollable container */}
                         <div
                             ref={parentRef}
@@ -335,12 +319,20 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                             style={{ height: '600px' }}
                         >
                             <Table>
-                                <TableBody
-                                    style={{
-                                        height: `${rowVirtualizer.getTotalSize()}px`,
-                                        position: 'relative'
-                                    }}
-                                >
+                                <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+                                    <TableRow>
+                                        <TableHead className="w-[100px]">Fecha</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Work Package</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead className="text-right">Cantidad</TableHead>
+                                        <TableHead>Descripción</TableHead>
+                                        <TableHead>Ticket ID</TableHead>
+                                        <TableHead>Creado por</TableHead>
+                                        <TableHead className="text-right w-[150px]">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {filteredRegularizations.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
@@ -348,23 +340,40 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                                            const reg = filteredRegularizations[virtualRow.index];
-                                            return (
-                                                <div
-                                                    key={reg.id}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: '100%',
-                                                        transform: `translateY(${virtualRow.start}px)`
-                                                    }}
-                                                >
-                                                    <RegularizationRow reg={reg} getTypeBadge={getTypeBadge} />
-                                                </div>
-                                            );
-                                        })
+                                        <>
+                                            {/* Top spacer for virtualization */}
+                                            {rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[0].start > 0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }}
+                                                        colSpan={9}
+                                                    />
+                                                </TableRow>
+                                            )}
+
+                                            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                                const reg = filteredRegularizations[virtualRow.index];
+                                                return (
+                                                    <RegularizationRow
+                                                        key={reg.id}
+                                                        reg={reg}
+                                                        getTypeBadge={getTypeBadge}
+                                                    />
+                                                );
+                                            })}
+
+                                            {/* Bottom spacer for virtualization */}
+                                            {rowVirtualizer.getVirtualItems().length > 0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        style={{
+                                                            height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px`
+                                                        }}
+                                                        colSpan={9}
+                                                    />
+                                                </TableRow>
+                                            )}
+                                        </>
                                     )}
                                 </TableBody>
                             </Table>
