@@ -988,10 +988,38 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 addLog(`[INFO] Evolutivo T&M Facturable: ${correctedHours.toFixed(2)}h in ${key} (${details.key}) - EXCLUDED from Bolsa consumption`);
             }
 
+            // Normalize tipoImputacion values (Tempo sometimes returns values without spaces)
+            const normalizeTipoImputacion = (value: string | null | undefined): string | null => {
+                if (!value) return null;
+
+                // Map of known malformed values to correct ones
+                const normalizations: Record<string, string> = {
+                    'Analisisinicial': 'Analisis inicial',
+                    'AnalisisNivel1': 'Analisis Nivel 1',
+                    'AnalisisNivel2': 'Analisis Nivel 2',
+                    'ResolucionNivel1': 'Resolucion Nivel 1',
+                    'ResolucionNivel2': 'Resolucion Nivel 2',
+                    'PropuestadeSolucion': 'Propuesta de Solucion',
+                    'Desarrollos': 'Desarrollos',
+                    'Configuraciones': 'Configuraciones',
+                    'Transportes': 'Transportes',
+                    'Pruebas': 'Pruebas',
+                    'Documentacion': 'Documentacion',
+                    'Reunion': 'Reunion',
+                    'Gestion': 'Gestion',
+                    'Presupuesto': 'Presupuesto'
+                };
+
+                // Return normalized value or original if not in map
+                return normalizations[value] || value;
+            };
+
             // Extract Tipo Imputación from Tempo work attributes
-            const tipoImputacion = log.attributes?.values?.find((attr: any) =>
+            const rawTipoImputacion = log.attributes?.values?.find((attr: any) =>
                 attr.key === '_TipoImputación_'
             )?.value || null;
+
+            const tipoImputacion = normalizeTipoImputacion(rawTipoImputacion);
 
             // Determine which WP to save this worklog to
             // ALL worklogs (including T&M Evolutivos) go to the main WP being synced
