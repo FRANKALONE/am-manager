@@ -78,7 +78,10 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
                             {data.tickets.map((ticket: any) => (
                                 <TableRow key={ticket.issueKey}>
                                     <TableCell>
-                                        <span className="text-xs px-2 py-1 rounded bg-secondary">
+                                        <span className={`text-xs px-2 py-1 rounded ${ticket.isReturn
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                : 'bg-secondary'
+                                            }`}>
                                             {ticket.issueType}
                                         </span>
                                     </TableCell>
@@ -93,6 +96,11 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
                                                     ({ticket.quantity} {ticket.quantity === 1 ? 'evento' : 'eventos'})
                                                 </span>
                                             )}
+                                            {ticket.isReturn && (
+                                                <span className="text-xs font-bold text-green-600">
+                                                    (-{ticket.quantity} {ticket.quantity === 1 ? 'evento' : 'eventos'})
+                                                </span>
+                                            )}
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -100,9 +108,13 @@ export function TicketDetailView({ wpId, year, month }: TicketDetailViewProps) {
                                     </TableCell>
                                     <TableCell className="text-sm">{ticket.reporter}</TableCell>
                                     <TableCell>
-                                        <span className="text-xs px-2 py-1 rounded bg-muted">
+                                        <span className={`text-xs px-2 py-1 rounded ${ticket.isReturn
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                : 'bg-muted'
+                                            }`}>
                                             {ticket.status}
                                         </span>
+
                                     </TableCell>
                                 </TableRow>
                             ))}

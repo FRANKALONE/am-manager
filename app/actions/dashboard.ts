@@ -1028,6 +1028,19 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
             }
         });
 
+        // Get RETURN regularizations for this month to show as separate entries
+        const returnRegularizations = await prisma.regularization.findMany({
+            where: {
+                workPackageId: wpId,
+                type: 'RETURN',
+                date: {
+                    gte: new Date(year, month - 1, 1),
+                    lte: new Date(year, month, 0, 23, 59, 59)
+                }
+            },
+            orderBy: { date: 'asc' }
+        });
+
         const combinedResults = [
             ...filteredTickets.map(t => ({
                 issueKey: t.issueKey,
@@ -1036,7 +1049,8 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
                 createdDate: t.createdDate,
                 status: t.status,
                 reporter: t.reporter,
-                isManual: false
+                isManual: false,
+                isReturn: false
             })),
             ...manualConsumptions.map(reg => ({
                 issueKey: (reg as any).ticketId || 'REG-' + reg.id,
@@ -1046,8 +1060,22 @@ export async function getMonthlyTicketDetails(wpId: string, year: number, month:
                 status: 'Procesado',
                 reporter: 'Sistema',
                 isManual: true,
-                quantity: reg.quantity
+                quantity: reg.quantity,
+                isReturn: false
+            })),
+            // Add returns as separate visible entries
+            ...returnRegularizations.map(ret => ({
+                issueKey: (ret as any).ticketId || 'DEV-' + ret.id,
+                issueSummary: ret.description || 'Devolución de evento',
+                issueType: 'Devolución',
+                createdDate: ret.date,
+                status: 'Devuelto',
+                reporter: (ret as any).createdByName || 'Sistema',
+                isManual: false,
+                isReturn: true,
+                quantity: ret.quantity
             }))
+
         ];
 
         // Group by type for summary (including manual consumptions)
