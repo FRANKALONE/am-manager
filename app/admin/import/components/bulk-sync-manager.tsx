@@ -12,7 +12,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { getBulkSyncStatus, setBulkSyncStatus, stopBulkSync, SyncJobStatus } from "@/app/actions/sync-jobs";
-import { startBulkManualSync } from "@/app/actions/cron";
+import { startBulkManualSync, processNextSyncBatch } from "@/app/actions/cron";
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Zap, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "@/lib/use-translations";
@@ -72,11 +72,34 @@ export function BulkSyncManager() {
             if (res.error) {
                 toast.error(res.error);
             } else {
-                toast.success("Sincronización iniciada en segundo plano");
+                toast.success("Sincronización iniciada");
                 fetchStatus();
+                // Start the iterative processing loop
+                processLoop();
             }
         } catch (err: any) {
             toast.error(t('import.sync.toast.error'));
+        }
+    };
+
+    const processLoop = async () => {
+        try {
+            const result = await processNextSyncBatch();
+            if (result.error) {
+                toast.error(`Error: ${result.error}`);
+                fetchStatus();
+                return;
+            }
+            if (result.finished) {
+                fetchStatus();
+                return;
+            }
+            // Continue processing
+            fetchStatus();
+            setTimeout(processLoop, 100);
+        } catch (err: any) {
+            toast.error("Error procesando sincronización");
+            fetchStatus();
         }
     };
 
