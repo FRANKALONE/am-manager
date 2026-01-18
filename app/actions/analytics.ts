@@ -218,7 +218,7 @@ export async function getWpAccumulatedConsumptionReport() {
                 remaining,
                 scopeUnit: selectedPeriod.scopeUnit || 'Horas'
             };
-        }).filter(Boolean);
+        }).filter((wp): wp is NonNullable<typeof wp> => wp !== null);
 
         return reportData;
     } catch (error) {
