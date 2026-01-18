@@ -12,8 +12,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Filter, ArrowUpDown, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Search, Download, Filter, ArrowUpDown, TrendingUp, TrendingDown, Minus, ExternalLink, Settings, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuLabel,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
 interface WpData {
     id: string;
@@ -28,6 +37,7 @@ interface WpData {
     scopeUnit: string;
     isEventos: boolean;
     contractedToDate: number;
+    clientId: string;
 }
 
 export function WpAccumulatedConsumptionView({ initialData }: { initialData: WpData[] }) {
@@ -159,10 +169,33 @@ export function WpAccumulatedConsumptionView({ initialData }: { initialData: WpD
                                     filteredData.map((wp) => (
                                         <TableRow key={wp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-slate-100 dark:border-slate-800">
                                             <TableCell className="font-medium">
-                                                <div className="flex flex-col">
-                                                    <span className="text-slate-900 dark:text-white">{wp.name}</span>
-                                                    <span className="text-xs text-slate-400 font-normal">{wp.contractType}</span>
-                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <div className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity group">
+                                                            <div className="flex items-center space-x-1">
+                                                                <span className="text-slate-900 dark:text-white">{wp.name}</span>
+                                                                <MoreVertical size={14} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
+                                                            <span className="text-xs text-slate-400 font-normal">{wp.contractType}</span>
+                                                        </div>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="w-56">
+                                                        <DropdownMenuLabel>Acciones - {wp.name}</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/dashboard?clientId=${wp.clientId}&wpId=${wp.id}`} className="flex items-center cursor-pointer">
+                                                                <ExternalLink className="mr-2 h-4 w-4" />
+                                                                <span>Ver Dashboard de Consumos</span>
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/admin/work-packages/${wp.id}`} className="flex items-center cursor-pointer">
+                                                                <Settings className="mr-2 h-4 w-4" />
+                                                                <span>Editar Work Package</span>
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                             <TableCell className="text-slate-600 dark:text-slate-400">{wp.clientName}</TableCell>
                                             <TableCell className="text-center text-slate-600 dark:text-slate-400">

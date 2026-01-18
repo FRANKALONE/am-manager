@@ -153,7 +153,12 @@ export async function getWpAccumulatedConsumptionReport() {
                 const excessReg = regs.filter(r => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && (r as any).isBilled !== false).reduce((sum, r) => sum + r.quantity, 0);
                 const puntualContracted = regs.filter(r => r.type === 'CONTRATACION_PUNTUAL').reduce((sum, r) => sum + r.quantity, 0);
 
-                const finalMonthlyConsumed = monthlyConsumed + manualConsumption - returnReg;
+                // For Standard/Bolsa WPs, manual consumption does NOT count towards the balance in dashboard.ts
+                // For Eventos, it usually does.
+                const finalMonthlyConsumed = isEventos
+                    ? monthlyConsumed + manualConsumption - returnReg
+                    : monthlyConsumed - returnReg;
+
                 const monthlyContracted = standardMonthlyContracted + puntualContracted;
 
                 totalContracted += monthlyContracted;
@@ -162,6 +167,7 @@ export async function getWpAccumulatedConsumptionReport() {
 
                 if (iterYM <= currentYM) {
                     billedAmount += monthlyContracted + excessReg;
+                    (wp as any).totalConsumedToDate = ((wp as any).totalConsumedToDate || 0) + finalMonthlyConsumed;
                 }
 
                 iterDate.setMonth(iterDate.getMonth() + 1);
@@ -228,11 +234,12 @@ export async function getWpAccumulatedConsumptionReport() {
             // Total Scope = Total Contracted in period + Total Regularization in period
             const totalScope = totalContracted + totalRegularizationCurrent;
             // Saldo = Billed until now + carryover - Consumed until now
-            const remaining = billedAmount + carryover - totalConsumed;
+            const remaining = billedAmount + carryover - ((wp as any).totalConsumedToDate || 0);
 
             return {
                 id: wp.id,
                 name: wp.name,
+                clientId: wp.clientId,
                 clientName: wp.client.name,
                 contractType: wp.contractType,
                 startDate: startDate.toISOString(),
