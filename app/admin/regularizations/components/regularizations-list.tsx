@@ -26,41 +26,41 @@ interface RegularizationsListProps {
 
 // PHASE 2: Memoized row component to prevent unnecessary re-renders
 const RegularizationRow = memo(({ reg, getTypeBadge }: { reg: any, getTypeBadge: (type: string) => JSX.Element }) => (
-    <TableRow>
-        <TableCell>
+    <TableRow style={{ height: '52px' }}>
+        <TableCell className="w-[100px] truncate">
             {formatDate(reg.date, {
                 day: "2-digit",
                 month: "short",
                 year: "numeric"
             })}
         </TableCell>
-        <TableCell className="font-medium">
+        <TableCell className="w-[140px] font-medium truncate">
             <Link href={`/admin/clients/${reg.workPackage.client.id}/edit`} className="hover:underline">
                 {reg.workPackage.client.name}
             </Link>
         </TableCell>
-        <TableCell>
+        <TableCell className="w-[180px] truncate">
             <Link href={`/admin/work-packages/${reg.workPackage.id}/edit`} className="hover:underline flex items-center gap-1 text-blue-600">
-                {reg.workPackage.name}
-                <ExternalLink className="w-3 h-3" />
+                <span className="truncate">{reg.workPackage.name}</span>
+                <ExternalLink className="w-3 h-3 flex-shrink-0" />
             </Link>
         </TableCell>
-        <TableCell>
+        <TableCell className="w-[130px]">
             {getTypeBadge(reg.type)}
         </TableCell>
         <TableCell className="text-right font-bold w-[100px]">
             {Number(reg.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} h
         </TableCell>
-        <TableCell className="text-muted-foreground text-sm max-w-xs truncate" title={reg.description || ""}>
+        <TableCell className="text-muted-foreground text-sm truncate" title={reg.description || ""}>
             {reg.description || "-"}
         </TableCell>
-        <TableCell className="text-sm">
+        <TableCell className="text-sm w-[100px] truncate">
             {reg.ticketId || "-"}
         </TableCell>
-        <TableCell className="text-sm text-muted-foreground">
+        <TableCell className="text-sm text-muted-foreground w-[120px] truncate">
             {reg.createdByName || "-"}
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-right w-[140px]">
             <div className="flex items-center justify-end gap-2">
                 <Button variant="outline" size="sm" asChild>
                     <Link href={`/admin/regularizations/${reg.id}/edit`}>
@@ -190,8 +190,8 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
     const rowVirtualizer = useVirtualizer({
         count: filteredRegularizations.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => 60, // Estimated row height in pixels
-        overscan: 5 // Render 5 extra rows above and below viewport
+        estimateSize: () => 52, // Fixed row height matched to CSS
+        overscan: 10 // Increased overscan for smoother scroll appearance
     });
 
     return (
@@ -311,25 +311,25 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border relative">
+                    <div className="rounded-md border relative overflow-hidden">
                         {/* Virtualized scrollable container */}
                         <div
                             ref={parentRef}
                             className="overflow-auto"
-                            style={{ height: '600px' }}
+                            style={{ height: '700px' }}
                         >
-                            <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
-                                    <TableRow>
-                                        <TableHead className="w-[100px] bg-white">Fecha</TableHead>
-                                        <TableHead className="bg-white">Cliente</TableHead>
-                                        <TableHead className="bg-white">Work Package</TableHead>
-                                        <TableHead className="bg-white">Tipo</TableHead>
-                                        <TableHead className="text-right w-[100px] bg-white">Cantidad</TableHead>
-                                        <TableHead className="bg-white">Descripción</TableHead>
-                                        <TableHead className="bg-white">Ticket ID</TableHead>
-                                        <TableHead className="bg-white">Creado por</TableHead>
-                                        <TableHead className="text-right w-[150px] bg-white">Acciones</TableHead>
+                            <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                                <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="w-[100px] bg-white border-b sticky top-0">Fecha</TableHead>
+                                        <TableHead className="w-[140px] bg-white border-b sticky top-0">Cliente</TableHead>
+                                        <TableHead className="w-[180px] bg-white border-b sticky top-0">Work Package</TableHead>
+                                        <TableHead className="w-[130px] bg-white border-b sticky top-0">Tipo</TableHead>
+                                        <TableHead className="text-right w-[100px] bg-white border-b sticky top-0">Cantidad</TableHead>
+                                        <TableHead className="bg-white border-b sticky top-0">Descripción</TableHead>
+                                        <TableHead className="w-[100px] bg-white border-b sticky top-0">Ticket ID</TableHead>
+                                        <TableHead className="w-[120px] bg-white border-b sticky top-0">Creado por</TableHead>
+                                        <TableHead className="text-right w-[140px] bg-white border-b sticky top-0">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -343,9 +343,9 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
                                         <>
                                             {/* Top spacer for virtualization */}
                                             {rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[0].start > 0 && (
-                                                <TableRow>
+                                                <TableRow className="hover:bg-transparent border-0">
                                                     <TableCell
-                                                        style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }}
+                                                        style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px`, padding: 0 }}
                                                         colSpan={9}
                                                     />
                                                 </TableRow>
@@ -364,10 +364,11 @@ export function RegularizationsList({ regularizations }: RegularizationsListProp
 
                                             {/* Bottom spacer for virtualization */}
                                             {rowVirtualizer.getVirtualItems().length > 0 && (
-                                                <TableRow>
+                                                <TableRow className="hover:bg-transparent border-0">
                                                     <TableCell
                                                         style={{
-                                                            height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px`
+                                                            height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px`,
+                                                            padding: 0
                                                         }}
                                                         colSpan={9}
                                                     />
