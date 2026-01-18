@@ -243,6 +243,8 @@
         "analytics": {
             "title": "Analytics",
             "contractValidity": "Contract Validity",
+            "wpAccumulatedConsumption": "Accumulated WP Consumption",
+            "wpAccumulatedConsumptionDesc": "Summary of contracted hours, consumed hours, and current balance for all Work Packages.",
             "timeline": "Validity Timeline",
             "prevYear": "Previous year",
             "prevMonth": "Previous month",

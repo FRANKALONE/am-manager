@@ -18,7 +18,7 @@ export async function AdminSidebar() {
                 </SidebarLink>
 
                 {perms.view_analytics && (
-                    <SidebarLink href="/analytics/contract-validity" label="Validez de Contratos">
+                    <SidebarLink href="/analytics" label="Analytics">
                         <TrendingUp className="h-4 w-4" />
                     </SidebarLink>
                 )}
