@@ -223,6 +223,7 @@ export async function syncClientEvolutivos(clientId: string) {
 }
 
 async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
+    const startTime = Date.now();
     try {
         if (projectKeys.length === 0) return { success: false, error: "No hay proyectos que sincronizar", message: undefined };
 
@@ -299,10 +300,44 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
             upsertedCount++;
         }
 
+        // Log successful sync
+        await prisma.importLog.create({
+            data: {
+                type: 'EVOLUTIVOS_SYNC',
+                status: 'SUCCESS',
+                filename: `evolutivos_sync_${new Date().toISOString().split('T')[0]}`,
+                totalRows: allIssues.length,
+                processedCount: upsertedCount,
+                errors: JSON.stringify({
+                    evolutivos: evolutivos.length,
+                    hitos: hitos.length,
+                    projects: projectKeys,
+                    executionTime: Date.now() - startTime
+                }),
+                date: new Date()
+            }
+        });
+
         revalidatePath("/dashboard/evolutivos");
         return { success: true, message: `Sincronizados ${upsertedCount} tickets evolutivos e hitos`, error: undefined };
     } catch (error: any) {
         console.error("Error in syncTotalEvolutivos:", error);
+
+        // Log failed sync
+        await prisma.importLog.create({
+            data: {
+                type: 'EVOLUTIVOS_SYNC',
+                status: 'ERROR',
+                filename: `evolutivos_sync_FAILED_${new Date().toISOString().split('T')[0]}`,
+                errors: JSON.stringify({
+                    error: error.message,
+                    projects: projectKeys,
+                    executionTime: Date.now() - startTime
+                }),
+                date: new Date()
+            }
+        }).catch(() => { });
+
         return { success: false, error: error.message, message: undefined };
     }
 }
