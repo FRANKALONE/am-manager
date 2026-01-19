@@ -104,9 +104,9 @@ export default function AvancesPage() {
             if (selectedGestors.length > 0 && !selectedGestors.includes(issue.gestor?.name || 'Sin Gestor')) return false;
             if (selectedAssignees.length > 0 && (!issue.assignee?.displayName || !selectedAssignees.includes(issue.assignee.displayName))) return false;
 
-            // EXCLUDE billing modes
-            const EXCLUDED_BILLING_MODES = ['T&M contra bolsa', 'T&M Facturable'];
-            if (!issue.billingMode || EXCLUDED_BILLING_MODES.includes(issue.billingMode)) return false;
+            // NOTE: Billing mode filter disabled - uncomment if needed
+            // const EXCLUDED_BILLING_MODES = ['T&M contra bolsa', 'T&M Facturable'];
+            // if (!issue.billingMode || EXCLUDED_BILLING_MODES.includes(issue.billingMode)) return false;
 
             // Toggle filters
             if (showNoLogged && (issue.timespent || 0) === 0) return false;
