@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { Calendar, ArrowRight, Building2, LayoutDashboard, History, Zap, TrendingUp, Info, Brain, Sparkles } from "lucide-react";
+import { Calendar, ArrowRight, Building2, LayoutDashboard, History, Zap, TrendingUp, Info, Brain, Sparkles, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { getWorkPackages } from "@/app/actions/work-packages";
@@ -374,6 +374,46 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                             <Link href="/evolutivos">
                                 <Button className="bg-amber-400 hover:bg-amber-500 text-amber-950 h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-amber-400/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
                                     Gestionar Evolutivos
+                                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* 3.5. Analytics Access */}
+                {permissions.view_analytics && (
+                    <Card className="mt-8 shadow-2xl border-none bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-900 text-white overflow-hidden relative group rounded-[2rem]">
+                        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                            <BarChart3 className="w-48 h-48 text-blue-400" />
+                        </div>
+                        <CardHeader className="p-8">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-14 h-14 bg-blue-400/20 rounded-2xl flex items-center justify-center">
+                                    <BarChart3 className="w-8 h-8 text-blue-400" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-3xl font-black tracking-tight">Analytics</CardTitle>
+                                    <CardDescription className="text-slate-400 text-lg font-medium">
+                                        Informes detallados, validez de contratos y consumos acumulados.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-8 pt-0 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="flex-1 space-y-4">
+                                <p className="text-slate-300 leading-relaxed max-w-2xl font-medium">
+                                    Accede a informes de negocio avanzados: validez de contratos, consumos acumulados y análisis estratégico de tus clientes.
+                                </p>
+                                <div className="flex flex-wrap gap-4">
+                                    <Badge className="bg-white/10 text-blue-400 border-white/10 uppercase font-black text-[10px] px-3">Validez de Contratos</Badge>
+                                    <Badge className="bg-white/10 text-indigo-400 border-white/10 uppercase font-black text-[10px] px-3">Consumos Acumulados</Badge>
+                                    <Badge className="bg-white/10 text-cyan-400 border-white/10 uppercase font-black text-[10px] px-3">Reportes Ejecutivos</Badge>
+                                </div>
+                            </div>
+                            <Link href="/analytics">
+                                <Button className="bg-blue-400 hover:bg-blue-500 text-blue-950 h-16 px-12 text-xl font-black rounded-2xl shadow-2xl shadow-blue-400/20 flex items-center gap-3 transition-all hover:scale-105 active:scale-95 group">
+                                    Ver Analytics
                                     <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
                                 </Button>
                             </Link>
