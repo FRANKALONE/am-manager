@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { fetchJira } from "@/lib/jira";
+import { searchJiraIssues } from "@/lib/ama-evolutivos/jira";
 import { fetchTempo } from "@/lib/tempo";
 import { revalidatePath } from "next/cache";
 import { getVisibilityFilter, canAccessClient } from "@/lib/auth";
@@ -227,29 +228,21 @@ async function syncEvolutivosByProjectKeys(projectKeys: string[]) {
 
         const projectList = projectKeys.map(k => `"${k}"`).join(',');
 
-        // First: Fetch all Evolutivos
+        // First: Fetch all Evolutivos with pagination
         const evolutivosJql = `project IN (${projectList}) AND issuetype = "Evolutivo" ORDER BY created DESC`;
-        const evolutivosRes = await fetchJira(`/search/jql`, {
-            method: "POST",
-            body: JSON.stringify({
-                jql: evolutivosJql,
-                maxResults: 1000,
-                fields: ['key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'customfield_10121', 'created', 'timeoriginalestimate', 'priority']
-            })
-        });
+        const evolutivos = await searchJiraIssues(evolutivosJql, [
+            'key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent',
+            'customfield_10121', 'created', 'timeoriginalestimate', 'priority'
+        ]);
 
-        // Second: Fetch all Hitos
+        // Second: Fetch all Hitos with pagination
         const hitosJql = `project IN (${projectList}) AND issuetype = "Hitos Evolutivos" ORDER BY created DESC`;
-        const hitosRes = await fetchJira(`/search/jql`, {
-            method: "POST",
-            body: JSON.stringify({
-                jql: hitosJql,
-                maxResults: 1000,
-                fields: ['key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'customfield_10121', 'created', 'timeoriginalestimate', 'priority']
-            })
-        });
+        const hitos = await searchJiraIssues(hitosJql, [
+            'key', 'summary', 'status', 'issuetype', 'assignee', 'duedate', 'parent',
+            'customfield_10121', 'created', 'timeoriginalestimate', 'priority'
+        ]);
 
-        const allIssues = [...(evolutivosRes.issues || []), ...(hitosRes.issues || [])];
+        const allIssues = [...evolutivos, ...hitos];
         if (allIssues.length === 0) return { success: false, error: "No se encontraron tickets en JIRA", message: undefined };
 
         let upsertedCount = 0;
