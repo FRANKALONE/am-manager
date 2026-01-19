@@ -102,8 +102,9 @@ export async function getPendingCierres(month: number, year: number) {
 
             if (!period) continue;
 
-            const isEventos = (wp.contractType?.toUpperCase() === 'EVENTOS');
-            const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
+            const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
+            const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
+            const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
 
             // --- EVENTOS MONITORING LOGIC ---
             if (isEventos) {
@@ -123,7 +124,33 @@ export async function getPendingCierres(month: number, year: number) {
                     const iterYYYYMM = py * 100 + pm;
                     if (iterYYYYMM > targetYYYYMM) break;
 
-                    const ticketsInMonth = wp.tickets.filter(t => t.year === py && t.month === pm).length;
+                    const includedTypes = (wp as any).includedTicketTypes
+                        ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                        : [];
+
+                    const ticketsInMonth = wp.tickets.filter(t => {
+                        if (t.year !== py || t.month !== pm) return false;
+
+                        // Filter out Evolutivos if specified in WP config
+                        const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+                        const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
+                            t.billingMode === 'Bolsa de Horas' ||
+                            t.billingMode === 'Bolsa de horas';
+
+                        if (!wp.includeEvoTM && isEvolutivoTM) return false;
+                        if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                        // Exclude Facturable/T&M Facturable entirely from consumption
+                        const billingModeLower = t.billingMode?.toLowerCase() || '';
+                        if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
+
+                        // Filter by includedTicketTypes if defined
+                        if (includedTypes.length > 0) {
+                            if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
+                        }
+
+                        return true;
+                    }).length;
 
                     // Add manual consumptions if any
                     const regs = wp.regularizations.filter(r => {
@@ -203,7 +230,7 @@ export async function getPendingCierres(month: number, year: number) {
                     }) || [];
 
                     const pReturnTotal = pRegs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                    const pRegTotal = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const pRegTotal = pRegs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
                     const pPuntualTotal = pRegs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     pConsumed = pConsumed - pReturnTotal;
@@ -230,8 +257,8 @@ export async function getPendingCierres(month: number, year: number) {
                     const pEnd = new Date(p.endDate);
                     return pEnd < firstPeriodStart && regDate >= pStart && regDate <= pEnd;
                 });
-                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled === true;
-            }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+                return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
+            }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
 
             accumulatedBalance += sobrantesBeforeSelection;
 
@@ -287,7 +314,7 @@ export async function getPendingCierres(month: number, year: number) {
                 }) || [];
 
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
                 const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                 consumed = consumed - returnTotal;
@@ -504,7 +531,8 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                     orderBy: { startDate: 'asc' }
                 },
                 monthlyMetrics: true,
-                regularizations: true
+                regularizations: true,
+                tickets: true
             }
         });
 
@@ -521,7 +549,9 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
         if (!period) throw new Error("No hay un periodo de vigencia definido para esta fecha");
 
-        const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
+        const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
+        const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
+        const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
 
         // Determine start point for the evolution table: strictly since last regularization
         let cutoffYYYYMM: number | null = null;
@@ -554,7 +584,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
             const regDate = new Date(reg.date);
             if (regDate >= firstPeriodStart) return false;
             return (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
-        }).reduce((sum, r) => sum + r.quantity, 0) || 0;
+        }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
 
         accumulatedBalance += sobrantesBeforeSelection;
 
@@ -581,16 +611,54 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 if (pIterYYYYMM > pEndYYYYMM || pIterYYYYMM > targetYYYYMM) break;
 
                 const metric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
-                let consumed = metric ? metric.consumedHours : 0;
-
                 const regs = wp.regularizations?.filter((reg: any) => {
                     const regDate = new Date(reg.date);
                     return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
                 }) || [];
 
+                let consumed = 0;
+
                 const returnTotal = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
-                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled === true).reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const regTotal = regs.filter((r: any) => (r.type === 'EXCESS' || r.type === 'SOBRANTE_ANTERIOR') && r.isBilled !== false).reduce((sum: number, r: any) => sum + r.quantity, 0);
                 const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
+                const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
+                const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
+
+                if (isEventos) {
+                    const includedTypes = (wp as any).includedTicketTypes
+                        ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
+                        : [];
+
+                    const ticketsInMonth = wp.tickets.filter(t => {
+                        if (t.year !== py || t.month !== pm) return false;
+
+                        // Filter out Evolutivos if specified in WP config
+                        const isEvolutivoTM = t.billingMode === 'T&M contra bolsa';
+                        const isEvolutivoEstimate = t.issueType === 'Evolutivo' ||
+                            t.billingMode === 'Bolsa de Horas' ||
+                            t.billingMode === 'Bolsa de horas';
+
+                        if (!wp.includeEvoTM && isEvolutivoTM) return false;
+                        if (!wp.includeEvoEstimates && isEvolutivoEstimate) return false;
+
+                        // Exclude Facturable/T&M Facturable entirely from consumption
+                        const billingModeLower = t.billingMode?.toLowerCase() || '';
+                        if (billingModeLower === 'facturable' || billingModeLower === 't&m facturable') return false;
+
+                        // Filter by includedTicketTypes if defined
+                        if (includedTypes.length > 0) {
+                            if (!includedTypes.includes(t.issueType.toLowerCase())) return false;
+                        }
+
+                        return true;
+                    }).length;
+
+                    const manualCons = regs.filter((r: any) => r.type === 'MANUAL_CONSUMPTION').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    consumed = ticketsInMonth + manualCons;
+                } else {
+                    consumed = metric ? metric.consumedHours : 0;
+                }
 
                 consumed = consumed - returnTotal;
 
