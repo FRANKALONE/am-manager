@@ -67,19 +67,24 @@ export function BulkSyncManager() {
             return;
         }
 
-        try {
-            const res = await startBulkManualSync(days);
-            if (res.error) {
-                toast.error(res.error);
-            } else {
-                toast.success("Sincronización iniciada");
-                fetchStatus();
-                // Start the iterative processing loop
-                processLoop();
+        toast.info("Iniciando sincronización...");
+
+        // Defer heavy work to unblock UI immediately
+        setTimeout(async () => {
+            try {
+                const res = await startBulkManualSync(days);
+                if (res.error) {
+                    toast.error(res.error);
+                } else {
+                    toast.success("Sincronización iniciada");
+                    fetchStatus();
+                    // Start the iterative processing loop
+                    processLoop();
+                }
+            } catch (err: any) {
+                toast.error(t('import.sync.toast.error'));
             }
-        } catch (err: any) {
-            toast.error(t('import.sync.toast.error'));
-        }
+        }, 0);
     };
 
     const processLoop = async () => {
