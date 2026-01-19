@@ -73,6 +73,8 @@ export async function getEvolutivos(): Promise<any[]> {
             'project',
             'customfield_10014', // Epic Link / Parent
             'customfield_10254', // Gestor del ticket
+            'customfield_10002', // Organization
+            'customfield_10095', // Billing Mode
             'timeoriginalestimate',
             'timespent',
             'created',

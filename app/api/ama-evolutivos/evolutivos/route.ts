@@ -32,10 +32,18 @@ export async function GET(request: Request) {
             const gestorField = evo.fields?.customfield_10254;
 
             return {
+                id: evo.id,
                 key: evo.key,
                 summary: evo.fields.summary,
                 status: evo.fields.status?.name || 'Unknown',
                 issueType: evo.fields.issuetype?.name || 'Unknown',
+                assignee: evo.fields.assignee ? {
+                    accountId: evo.fields.assignee.accountId,
+                    displayName: evo.fields.assignee.displayName,
+                    avatarUrl: evo.fields.assignee.avatarUrls?.['48x48'],
+                } : undefined,
+                organization: evo.fields.customfield_10002?.[0]?.name || undefined, // Organization field
+                billingMode: evo.fields.customfield_10095?.value || undefined, // Billing Mode field
                 gestor: gestorField ? {
                     id: gestorField.accountId,
                     name: gestorField.displayName,
@@ -46,6 +54,7 @@ export async function GET(request: Request) {
                 timespent: evo.fields.timespent || 0,
                 created: evo.fields.created,
                 updated: evo.fields.updated,
+                url: `${process.env.JIRA_URL || process.env.JIRA_DOMAIN}/browse/${evo.key}`,
             };
         });
 
