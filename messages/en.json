@@ -243,6 +243,7 @@
         "analytics": {
             "title": "Analytics",
             "contractValidity": "Contract Validity",
+            "contractValidityDesc": "Validity status and contract conditions for all Work Packages.",
             "wpAccumulatedConsumption": "Accumulated WP Consumption",
             "wpAccumulatedConsumptionDesc": "Summary of contracted hours, consumed hours, and current balance for all Work Packages.",
             "timeline": "Validity Timeline",

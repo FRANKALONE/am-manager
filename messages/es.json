@@ -243,6 +243,7 @@
         "analytics": {
             "title": "Analytics",
             "contractValidity": "Validez de Contratos",
+            "contractValidityDesc": "Estado de validez y condiciones de los contratos de todos los Work Packages.",
             "wpAccumulatedConsumption": "Estado de Consumos Acumulados",
             "wpAccumulatedConsumptionDesc": "Resumen de horas contratadas, consumidas y saldo actual para todos los Work Packages.",
             "timeline": "Línea de Tiempo de Validez",
