@@ -112,274 +112,281 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
     const currentPeriod = wp.validityPeriods?.[0];
 
     return (
-        <div className="space-y-6">
-            {/* SECTION 1: General Data */}
+        <form action={formAction} className="space-y-6">
+            <input type="hidden" name="returnUrl" value={returnTo} />
+
+            {/* Error display */}
+            {state?.error && (
+                <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
+                    {state.error}
+                </div>
+            )}
+
+            {/* SECTION 1: Header Data (WP Level) */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Datos Generales</CardTitle>
+                    <CardTitle>Datos de Cabecera del Work Package</CardTitle>
+                    <CardDescription>Información general del WP que se mantiene a través de todos los periodos</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <form action={formAction} className="space-y-4">
-                        <input type="hidden" name="returnUrl" value={returnTo} />
-                        {state?.error && (
-                            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-                                {state.error}
-                            </div>
-                        )}
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nombre WP</Label>
+                        <Input id="name" name="name" defaultValue={wp.name} required />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="contractType">Tipo de Contrato</Label>
+                        <Select name="contractType" defaultValue={wp.contractType}>
+                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                            <SelectContent>
+                                {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="jiraProjectKeys">Clave de Proyecto en JIRA</Label>
+                        <Input
+                            id="jiraProjectKeys"
+                            name="jiraProjectKeys"
+                            defaultValue={wp.jiraProjectKeys || ""}
+                            placeholder="Ej: PROJ1, PROJ2"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="oldWpId">ID de WP Antiguo</Label>
+                        <Input
+                            id="oldWpId"
+                            name="oldWpId"
+                            defaultValue={wp.oldWpId || ""}
+                            placeholder="Referencia al WP anterior"
+                            maxLength={20}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="tempoAccountId">Tempo Account ID</Label>
+                        <Input
+                            id="tempoAccountId"
+                            name="tempoAccountId"
+                            defaultValue={wp.tempoAccountId || ""}
+                            placeholder="ID interno de Tempo"
+                        />
+                    </div>
+
+                    {/* IAAS Service and Evolutivos configuration - available for all contract types */}
+                    <div className="space-y-4 pt-2 border-t mt-4">
+                        <h3 className="text-sm font-medium">Configuración de Consumo</h3>
 
                         <div className="space-y-2">
-                            <Label htmlFor="name">Nombre WP</Label>
-                            <Input id="name" name="name" defaultValue={wp.name} required />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="contractType">Tipo de Contrato</Label>
-                            <Select name="contractType" defaultValue={wp.contractType}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="jiraProjectKeys">Clave de Proyecto en JIRA</Label>
+                            <Label htmlFor="includedTicketTypes">Tipos de Ticket Consumibles</Label>
                             <Input
-                                id="jiraProjectKeys"
-                                name="jiraProjectKeys"
-                                defaultValue={wp.jiraProjectKeys || ""}
-                                placeholder="Ej: PROJ1, PROJ2"
+                                id="includedTicketTypes"
+                                name="includedTicketTypes"
+                                defaultValue={wp.includedTicketTypes || ""}
+                                placeholder="Ej: Incidencia, Consulta, Soporte AM"
                             />
+                            <p className="text-[10px] text-muted-foreground">Separar por comas. Si se deja vacío se usará la configuración global.</p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="oldWpId">ID de WP Antiguo</Label>
-                            <Input
-                                id="oldWpId"
-                                name="oldWpId"
-                                defaultValue={wp.oldWpId || ""}
-                                placeholder="Referencia al WP anterior"
-                                maxLength={20}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="tempoAccountId">Tempo Account ID</Label>
-                            <Input
-                                id="tempoAccountId"
-                                name="tempoAccountId"
-                                defaultValue={wp.tempoAccountId || ""}
-                                placeholder="ID interno de Tempo"
-                            />
-                        </div>
-
-                        {/* IAAS Service and Evolutivos configuration - available for all contract types */}
-                        <div className="space-y-4 pt-2 border-t mt-4">
-                            <h3 className="text-sm font-medium">Configuración de Consumo</h3>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="includedTicketTypes">Tipos de Ticket Consumibles</Label>
-                                <Input
-                                    id="includedTicketTypes"
-                                    name="includedTicketTypes"
-                                    defaultValue={wp.includedTicketTypes || ""}
-                                    placeholder="Ej: Incidencia, Consulta, Soporte AM"
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="hasIaasService"
+                                    name="hasIaasService"
+                                    defaultChecked={wp.hasIaasService || false}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
-                                <p className="text-[10px] text-muted-foreground">Separar por comas. Si se deja vacío se usará la configuración global.</p>
+                                <Label htmlFor="hasIaasService" className="font-normal cursor-pointer text-xs">
+                                    Incluir IAAS
+                                </Label>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id="hasIaasService"
-                                        name="hasIaasService"
-                                        defaultChecked={wp.hasIaasService || false}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <Label htmlFor="hasIaasService" className="font-normal cursor-pointer text-xs">
-                                        Incluir IAAS
-                                    </Label>
-                                </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="includeEvoEstimates"
+                                    name="includeEvoEstimates"
+                                    defaultChecked={wp.includeEvoEstimates ?? true}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="includeEvoEstimates" className="font-normal cursor-pointer text-xs">
+                                    Evolutivos Bolsa (Estimados)
+                                </Label>
+                            </div>
 
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id="includeEvoEstimates"
-                                        name="includeEvoEstimates"
-                                        defaultChecked={wp.includeEvoEstimates ?? true}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <Label htmlFor="includeEvoEstimates" className="font-normal cursor-pointer text-xs">
-                                        Evolutivos Bolsa (Estimados)
-                                    </Label>
-                                </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="includeEvoTM"
+                                    name="includeEvoTM"
+                                    defaultChecked={wp.includeEvoTM ?? true}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="includeEvoTM" className="font-normal cursor-pointer text-xs">
+                                    Evolutivos T&M (Horas)
+                                </Label>
+                            </div>
 
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id="includeEvoTM"
-                                        name="includeEvoTM"
-                                        defaultChecked={wp.includeEvoTM ?? true}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <Label htmlFor="includeEvoTM" className="font-normal cursor-pointer text-xs">
-                                        Evolutivos T&M (Horas)
-                                    </Label>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id="isMainWP"
-                                        name="isMainWP"
-                                        defaultChecked={wp.isMainWP || false}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <Label htmlFor="isMainWP" className="font-bold cursor-pointer text-xs text-green-600">
-                                        WP PRINCIPAL
-                                    </Label>
-                                </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="isMainWP"
+                                    name="isMainWP"
+                                    defaultChecked={wp.isMainWP || false}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="isMainWP" className="font-bold cursor-pointer text-xs text-green-600">
+                                    WP PRINCIPAL
+                                </Label>
                             </div>
                         </div>
-
-                        <div className="flex justify-end pt-4">
-                            <SubmitButton />
-                        </div>
-                    </form>
+                    </div>
                 </CardContent>
             </Card>
 
-            {/* SECTION 2: Current Period Data - ALL EDITABLE */}
+            {/* SECTION 2: Period-Dependent Data */}
             <Card>
                 <CardHeader>
                     <CardTitle>Datos del Periodo Vigente</CardTitle>
-                    <CardDescription>Condiciones económicas y de gestión del periodo actual - Edita aquí o en la sección de Periodos de Validez</CardDescription>
+                    <CardDescription>Condiciones económicas y de gestión específicas del periodo actual - Estos datos varían entre periodos</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <form action={formAction} className="space-y-6">
-                        <input type="hidden" name="returnUrl" value={returnTo} />
-                        {/* Row 0: Fechas del Periodo */}
-                        <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-                            <div className="space-y-2">
-                                <Label htmlFor="periodStartDate">Fecha Inicio</Label>
-                                <Input
-                                    id="periodStartDate"
-                                    name="periodStartDate"
-                                    type="date"
-                                    defaultValue={currentPeriod?.startDate ? new Date(currentPeriod.startDate).toISOString().split('T')[0] : ""}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="periodEndDate">Fecha Fin</Label>
-                                <Input
-                                    id="periodEndDate"
-                                    name="periodEndDate"
-                                    type="date"
-                                    defaultValue={currentPeriod?.endDate ? new Date(currentPeriod.endDate).toISOString().split('T')[0] : ""}
-                                />
-                            </div>
+                <CardContent className="space-y-6">
+                    {/* Row 0: Fechas del Periodo */}
+                    <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                        <div className="space-y-2">
+                            <Label htmlFor="periodStartDate">Fecha Inicio</Label>
+                            <Input
+                                id="periodStartDate"
+                                name="periodStartDate"
+                                type="date"
+                                defaultValue={currentPeriod?.startDate ? new Date(currentPeriod.startDate).toISOString().split('T')[0] : ""}
+                            />
                         </div>
-
-                        {/* Row 1: Cantidad y Unidad */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="totalQuantity">Cantidad de Alcance (TOTAL)</Label>
-                                <Input
-                                    id="totalQuantity"
-                                    name="totalQuantity"
-                                    type="number"
-                                    step="0.01"
-                                    defaultValue={currentPeriod?.totalQuantity || 0}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="scopeUnit">Unidad de la Cantidad de Alcance</Label>
-                                <Select name="scopeUnit" defaultValue={currentPeriod?.scopeUnit || "HORAS"}>
-                                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                    <SelectContent>
-                                        {scopeUnits.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="periodEndDate">Fecha Fin</Label>
+                            <Input
+                                id="periodEndDate"
+                                name="periodEndDate"
+                                type="date"
+                                defaultValue={currentPeriod?.endDate ? new Date(currentPeriod.endDate).toISOString().split('T')[0] : ""}
+                            />
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="rate">Tarifa</Label>
-                                <Input
-                                    id="rate"
-                                    name="rate"
-                                    type="number"
-                                    step="0.01"
-                                    defaultValue={currentPeriod?.rate || 0}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="rateEvolutivo">Tarifa de Evolutivos</Label>
-                                <Input
-                                    id="rateEvolutivo"
-                                    name="rateEvolutivo"
-                                    type="number"
-                                    step="0.01"
-                                    defaultValue={currentPeriod?.rateEvolutivo || ""}
-                                    placeholder="Opcional"
-                                />
-                            </div>
+                    {/* Row 1: Cantidad y Unidad */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="totalQuantity">Cantidad de Alcance (TOTAL)</Label>
+                            <Input
+                                id="totalQuantity"
+                                name="totalQuantity"
+                                type="number"
+                                step="0.01"
+                                defaultValue={currentPeriod?.totalQuantity || 0}
+                            />
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4 pt-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="billingType">Tipo de Facturación</Label>
-                                <Select name="billingType" defaultValue={wp.billingType}>
-                                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                    <SelectContent>
-                                        {billingTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="scopeUnit">Unidad de la Cantidad de Alcance</Label>
+                            <Select name="scopeUnit" defaultValue={currentPeriod?.scopeUnit || "HORAS"}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                <SelectContent>
+                                    {scopeUnits.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
+                    </div>
 
-                        {/* Row 3: Tarifa Regularización y Tipo Regularización */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="regularizationRate">Tarifa de Regularización</Label>
-                                <Input
-                                    id="regularizationRate"
-                                    name="regularizationRate"
-                                    type="number"
-                                    step="0.01"
-                                    defaultValue={currentPeriod?.regularizationRate || ""}
-                                    placeholder="Misma que tarifa normal"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="regularizationType">Tipo de Regularización</Label>
-                                <Select name="regularizationType" defaultValue={currentPeriod?.regularizationType || "NONE"}>
-                                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="NONE">No definido</SelectItem>
-                                        {regularizationTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="rate">Tarifa</Label>
+                            <Input
+                                id="rate"
+                                name="rate"
+                                type="number"
+                                step="0.01"
+                                defaultValue={currentPeriod?.rate || 0}
+                            />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="rateEvolutivo">Tarifa de Evolutivos</Label>
+                            <Input
+                                id="rateEvolutivo"
+                                name="rateEvolutivo"
+                                type="number"
+                                step="0.01"
+                                defaultValue={currentPeriod?.rateEvolutivo || ""}
+                                placeholder="Opcional"
+                            />
+                        </div>
+                    </div>
 
-                        {/* Row 4: Premium y Tipo Renovación */}
-                        <PremiumField
-                            isPremium={currentPeriod?.isPremium || false}
-                            premiumPrice={currentPeriod?.premiumPrice}
-                            renewalTypes={renewalTypes}
-                            defaultRenewalType={wp.renewalType}
-                            renewalNotes={wp.renewalNotes}
+                    <div className="grid grid-cols-2 gap-4 pt-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="billingType">Tipo de Facturación</Label>
+                            <Select name="billingType" defaultValue={wp.billingType}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                <SelectContent>
+                                    {billingTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Row 3: Tarifa Regularización y Tipo Regularización */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="regularizationRate">Tarifa de Regularización</Label>
+                            <Input
+                                id="regularizationRate"
+                                name="regularizationRate"
+                                type="number"
+                                step="0.01"
+                                defaultValue={currentPeriod?.regularizationRate || ""}
+                                placeholder="Misma que tarifa normal"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="regularizationType">Tipo de Regularización</Label>
+                            <Select name="regularizationType" defaultValue={currentPeriod?.regularizationType || "NONE"}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NONE">No definido</SelectItem>
+                                    {regularizationTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Row 3.5: Estrategia de Exceso */}
+                    <div className="space-y-2">
+                        <Label htmlFor="surplusStrategy">Estrategia de Exceso</Label>
+                        <Input
+                            id="surplusStrategy"
+                            name="surplusStrategy"
+                            defaultValue={currentPeriod?.surplusStrategy || ""}
+                            placeholder="Ej: 3_meses"
                         />
+                        <p className="text-[10px] text-muted-foreground">Define la estrategia para manejar excesos de consumo (campo opcional)</p>
+                    </div>
 
-                        <div className="flex justify-end pt-4">
-                            <SubmitButton />
-                        </div>
-                    </form>
+                    {/* Row 4: Premium y Tipo Renovación */}
+                    <PremiumField
+                        isPremium={currentPeriod?.isPremium || false}
+                        premiumPrice={currentPeriod?.premiumPrice}
+                        renewalTypes={renewalTypes}
+                        defaultRenewalType={wp.renewalType}
+                        renewalNotes={wp.renewalNotes}
+                    />
                 </CardContent>
             </Card>
-        </div>
+
+            {/* Single Save Button at the bottom */}
+            <div className="flex justify-end pt-4 pb-8">
+                <SubmitButton />
+            </div>
+        </form>
     );
 }

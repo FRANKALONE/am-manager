@@ -73,6 +73,7 @@ export function WorklogModal({ issue, onClose }: WorklogModalProps) {
                     <button
                         onClick={onClose}
                         className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                        aria-label="Cerrar modal"
                     >
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
