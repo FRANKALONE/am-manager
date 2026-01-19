@@ -413,18 +413,16 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                             </td>
                                             <td className="px-3 py-2">
                                                 {isEditing ? (
-                                                    <Select value={data.surplusStrategy || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, surplusStrategy: value === "NONE" ? null : value })}>
-                                                        <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="NONE">-</SelectItem>
-                                                            <SelectItem value="ACCUMULATE">{t('workPackages.validity.surplusOptions.accumulate')}</SelectItem>
-                                                            <SelectItem value="LOSE">{t('workPackages.validity.surplusOptions.lose')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <Input
+                                                        type="text"
+                                                        value={data.surplusStrategy || ""}
+                                                        onChange={e => setEditPeriod({ ...editPeriod, surplusStrategy: e.target.value || null })}
+                                                        className="text-xs h-7"
+                                                        placeholder="Ej: 3_meses"
+                                                    />
                                                 ) : (
                                                     <div className="text-xs">
-                                                        {data.surplusStrategy === 'ACCUMULATE' ? t('workPackages.validity.surplusOptions.accumulate') :
-                                                            data.surplusStrategy === 'LOSE' ? t('workPackages.validity.surplusOptions.lose') : "-"}
+                                                        {data.surplusStrategy || "-"}
                                                     </div>
                                                 )}
                                             </td>

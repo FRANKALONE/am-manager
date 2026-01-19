@@ -16,6 +16,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 
+// Prevent scroll wheel from changing number inputs
+const preventScrollChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+};
+
 // Submit Button Component to handle pending state
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -82,6 +87,7 @@ function PremiumField({ isPremium, premiumPrice, renewalTypes, defaultRenewalTyp
                         step="0.01"
                         defaultValue={premiumPrice || ""}
                         placeholder="Opcional"
+                        onWheel={preventScrollChange}
                     />
                 </div>
             )}
@@ -190,7 +196,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                             <p className="text-[10px] text-muted-foreground">Separar por comas. Si se deja vacío se usará la configuración global.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="flex items-center space-x-2">
                                 <input
                                     type="checkbox"
@@ -243,150 +249,124 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                 </Label>
                             </div>
                         </div>
+
+                        <div className="flex justify-end pt-4 border-t mt-4">
+                            <SubmitButton />
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* SECTION 2: Period-Dependent Data */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Datos del Periodo Vigente</CardTitle>
-                    <CardDescription>Condiciones económicas y de gestión específicas del periodo actual - Estos datos varían entre periodos</CardDescription>
+            {/* SECTION 2: Period-Dependent Data - INFORMATIONAL SUMMARY */}
+            <Card className="bg-slate-50/50 border-slate-200">
+                <CardHeader className="pb-3 text-slate-500">
+                    <CardTitle className="text-lg flex items-center justify-between">
+                        <span>Resumen del Periodo Vigente</span>
+                        <span className="text-xs font-normal px-2 py-1 bg-slate-100 rounded-full border">Solo Consulta</span>
+                    </CardTitle>
+                    <CardDescription>Parámetros económicos y de gestión actuales. Para editar, desplázate a "Gestión de Periodos de Validez".</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Row 0: Fechas del Periodo */}
-                    <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-                        <div className="space-y-2">
-                            <Label htmlFor="periodStartDate">Fecha Inicio</Label>
-                            <Input
-                                id="periodStartDate"
-                                name="periodStartDate"
-                                type="date"
-                                defaultValue={currentPeriod?.startDate ? new Date(currentPeriod.startDate).toISOString().split('T')[0] : ""}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="periodEndDate">Fecha Fin</Label>
-                            <Input
-                                id="periodEndDate"
-                                name="periodEndDate"
-                                type="date"
-                                defaultValue={currentPeriod?.endDate ? new Date(currentPeriod.endDate).toISOString().split('T')[0] : ""}
-                            />
-                        </div>
-                    </div>
+                    {currentPeriod ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Vigencia */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-1">Vigencia y Alcance</h4>
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Fechas del Periodo</p>
+                                        <p className="text-sm font-medium">
+                                            {currentPeriod.startDate ? new Date(currentPeriod.startDate).toLocaleDateString('es-ES') : '-'}
+                                            <span className="mx-2 text-muted-foreground">→</span>
+                                            {currentPeriod.endDate ? new Date(currentPeriod.endDate).toLocaleDateString('es-ES') : '-'}
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Cantidad Total</p>
+                                            <p className="text-sm font-bold text-primary">{currentPeriod.totalQuantity || 0} {currentPeriod.scopeUnit || 'HORAS'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    {/* Row 1: Cantidad y Unidad */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="totalQuantity">Cantidad de Alcance (TOTAL)</Label>
-                            <Input
-                                id="totalQuantity"
-                                name="totalQuantity"
-                                type="number"
-                                step="0.01"
-                                defaultValue={currentPeriod?.totalQuantity || 0}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="scopeUnit">Unidad de la Cantidad de Alcance</Label>
-                            <Select name="scopeUnit" defaultValue={currentPeriod?.scopeUnit || "HORAS"}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    {scopeUnits.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                            {/* Tarifas */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-1">Condiciones Económicas</h4>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Tarifa Standard</p>
+                                            <p className="text-sm font-semibold">{currentPeriod.rate || 0} €/h</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Tarifa Evolutivos</p>
+                                            <p className="text-sm font-medium">{currentPeriod.rateEvolutivo ? `${currentPeriod.rateEvolutivo} €/h` : 'Inc. en Standard'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Facturación</p>
+                                            <p className="text-sm font-medium">{wp.billingType || '-'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Premium</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className={`h-2 w-2 rounded-full ${currentPeriod.isPremium ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
+                                                <p className="text-sm font-medium">{currentPeriod.isPremium ? 'Habilitado' : 'No'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {currentPeriod.isPremium && (
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Tarifa Premium</p>
+                                            <p className="text-sm font-bold text-amber-600">{currentPeriod.premiumPrice} €</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="rate">Tarifa</Label>
-                            <Input
-                                id="rate"
-                                name="rate"
-                                type="number"
-                                step="0.01"
-                                defaultValue={currentPeriod?.rate || 0}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="rateEvolutivo">Tarifa de Evolutivos</Label>
-                            <Input
-                                id="rateEvolutivo"
-                                name="rateEvolutivo"
-                                type="number"
-                                step="0.01"
-                                defaultValue={currentPeriod?.rateEvolutivo || ""}
-                                placeholder="Opcional"
-                            />
-                        </div>
-                    </div>
+                            {/* Gestión */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-1">Gestión y Exceso</h4>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Regularización</p>
+                                            <p className="text-sm font-medium">{currentPeriod.regularizationType || 'Ninguna'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Tarifa Reg.</p>
+                                            <p className="text-sm font-medium">{currentPeriod.regularizationRate ? `${currentPeriod.regularizationRate} €/h` : 'Estándar'}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Estrategia de Exceso</p>
+                                        <p className="text-sm font-medium bg-white border px-2 py-0.5 rounded shadow-sm inline-block">
+                                            {currentPeriod.surplusStrategy || 'No definida'}
+                                        </p>
+                                    </div>
+                                    <div className="pt-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-semibold">Renovación</p>
+                                        <p className="text-xs italic text-slate-500">{wp.renewalType || 'No definida'}</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="billingType">Tipo de Facturación</Label>
-                            <Select name="billingType" defaultValue={wp.billingType}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    {billingTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            {wp.renewalNotes && (
+                                <div className="col-span-full bg-white p-3 rounded border border-dashed text-sm">
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Notas de Renovación</p>
+                                    <p className="text-slate-600 italic whitespace-pre-wrap">{wp.renewalNotes}</p>
+                                </div>
+                            )}
                         </div>
-                    </div>
-
-                    {/* Row 3: Tarifa Regularización y Tipo Regularización */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="regularizationRate">Tarifa de Regularización</Label>
-                            <Input
-                                id="regularizationRate"
-                                name="regularizationRate"
-                                type="number"
-                                step="0.01"
-                                defaultValue={currentPeriod?.regularizationRate || ""}
-                                placeholder="Misma que tarifa normal"
-                            />
+                    ) : (
+                        <div className="text-center text-muted-foreground py-8 italic">
+                            No hay información de periodo vigente para mostrar
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="regularizationType">Tipo de Regularización</Label>
-                            <Select name="regularizationType" defaultValue={currentPeriod?.regularizationType || "NONE"}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="NONE">No definido</SelectItem>
-                                    {regularizationTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Row 3.5: Estrategia de Exceso */}
-                    <div className="space-y-2">
-                        <Label htmlFor="surplusStrategy">Estrategia de Exceso</Label>
-                        <Input
-                            id="surplusStrategy"
-                            name="surplusStrategy"
-                            defaultValue={currentPeriod?.surplusStrategy || ""}
-                            placeholder="Ej: 3_meses"
-                        />
-                        <p className="text-[10px] text-muted-foreground">Define la estrategia para manejar excesos de consumo (campo opcional)</p>
-                    </div>
-
-                    {/* Row 4: Premium y Tipo Renovación */}
-                    <PremiumField
-                        isPremium={currentPeriod?.isPremium || false}
-                        premiumPrice={currentPeriod?.premiumPrice}
-                        renewalTypes={renewalTypes}
-                        defaultRenewalType={wp.renewalType}
-                        renewalNotes={wp.renewalNotes}
-                    />
+                    )}
                 </CardContent>
             </Card>
-
-            {/* Single Save Button at the bottom */}
-            <div className="flex justify-end pt-4 pb-8">
-                <SubmitButton />
-            </div>
         </form>
     );
 }
