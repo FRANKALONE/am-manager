@@ -1838,7 +1838,8 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
             for (const history of changelog.values) {
                 const statusItems = history.items.filter((item: any) => item.field === 'status');
                 for (const item of statusItems) {
-                    const statusName = item.toString;
+                    const statusName = item.toString || "";
+                    const statusNameLower = statusName.toLowerCase();
                     const transitionDate = new Date(history.created);
 
                     // Search for existing transition to avoid duplicates without unique Jira ID
@@ -1853,27 +1854,27 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
                     }
 
                     // If it's the specific status we care about for quick lookups, update the corresponding table
-                    if (type === 'TICKET' && statusName === 'ENTREGADO EN PRO') {
+                    // We support variants: "Entregado en PRD", "ENTREGADO EN PRO", "Entregado en PRO"
+                    if (type === 'TICKET' && (statusNameLower === 'entregado en prd' || statusNameLower === 'entregado en pro')) {
                         await (prisma as any).ticket.updateMany({
                             where: { issueKey },
                             data: { proDeliveryDate: transitionDate }
                         });
                     } else if (type === 'PROPOSAL') {
-                        if (statusName === 'Enviado a Gerente') {
+                        if (statusNameLower === 'oferta enviada al gerente' || statusNameLower === 'enviado a gerente') {
                             await (prisma as any).evolutivoProposal.updateMany({
                                 where: { issueKey },
                                 data: { sentToGerenteDate: transitionDate }
                             });
-                        } else if (statusName === 'Enviado a Cliente') {
+                        } else if (statusNameLower === 'oferta enviada al cliente' || statusNameLower === 'enviado a cliente') {
                             await (prisma as any).evolutivoProposal.updateMany({
                                 where: { issueKey },
                                 data: { sentToClientDate: transitionDate }
                             });
-                        } else if (statusName === 'CERRADO') {
+                        } else if (statusNameLower === 'cerrado') {
                             // Only update approvedDate if the current resolution is 'Aprobada'
-                            // We use updateMany with the resolution filter to be safe
                             await (prisma as any).evolutivoProposal.updateMany({
-                                where: { issueKey, resolution: 'Aprobada' },
+                                where: { issueKey, resolution: { equals: 'Aprobada', mode: 'insensitive' } },
                                 data: { approvedDate: transitionDate }
                             });
                         }

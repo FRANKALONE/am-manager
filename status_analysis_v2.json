@@ -1,0 +1,104 @@
+{
+  "historyStatuses2025": [
+    {
+      "_count": 455,
+      "status": "Propuesta de Solución"
+    },
+    {
+      "_count": 373,
+      "status": "Solicitud de Info"
+    },
+    {
+      "_count": 39,
+      "status": "Entregado en PRD"
+    },
+    {
+      "_count": 964,
+      "status": "En Tratamiento"
+    },
+    {
+      "_count": 14,
+      "status": "Entregado en QAS"
+    },
+    {
+      "_count": 289,
+      "status": "Cerrado"
+    },
+    {
+      "_count": 39,
+      "status": "Entregado en DES"
+    },
+    {
+      "_count": 1,
+      "status": "Abierto"
+    },
+    {
+      "_count": 3,
+      "status": "Oferta enviada al cliente"
+    },
+    {
+      "_count": 1,
+      "status": "Enviado a SAP"
+    },
+    {
+      "_count": 1,
+      "status": "Pdt. Tramitar"
+    },
+    {
+      "_count": 4,
+      "status": "Oferta Generada"
+    }
+  ],
+  "currentStatusEvolutivos2025": [
+    {
+      "_count": 1,
+      "status": "En Progreso"
+    },
+    {
+      "_count": 10,
+      "status": "Solicitud de Info"
+    },
+    {
+      "_count": 148,
+      "status": "Entregado en PRD"
+    },
+    {
+      "_count": 42,
+      "status": "En Tratamiento"
+    },
+    {
+      "_count": 20,
+      "status": "Entregado en QAS"
+    },
+    {
+      "_count": 115,
+      "status": "Cerrado"
+    },
+    {
+      "_count": 17,
+      "status": "Entregado en DES"
+    }
+  ],
+  "currentStatusPeticiones2025": [
+    {
+      "_count": 14,
+      "status": "Solicitud de Info"
+    },
+    {
+      "_count": 5,
+      "status": "Oferta enviada al gerente"
+    },
+    {
+      "_count": 16,
+      "status": "En Tratamiento"
+    },
+    {
+      "_count": 230,
+      "status": "Cerrado"
+    },
+    {
+      "_count": 45,
+      "status": "Oferta enviada al cliente"
+    }
+  ]
+}

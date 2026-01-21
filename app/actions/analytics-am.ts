@@ -102,7 +102,15 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                     transitionDate: { gte: start, lte: end }
                 }
             });
-            const validSentTransitions = sentTransitions.filter(tr => peticionesEvolutivo.some(p => p.issueKey === tr.issueKey));
+
+            const sentPeticiones = await prisma.ticket.findMany({
+                where: {
+                    issueKey: { in: sentTransitions.map(t => t.issueKey) },
+                    issueType: 'Petición de Evolutivo',
+                    workPackage: { clientId: { in: clientsListIds } }
+                }
+            });
+            const validSentTransitions = sentTransitions.filter(tr => sentPeticiones.some(p => p.issueKey === tr.issueKey));
 
             // Req 6: Ofertas Aprobadas (EvolutivoProposal Status=Cerrado, Resolution=Aprobada, RelatedTickets!=[])
             const approvedProposals = await prisma.evolutivoProposal.findMany({
@@ -127,7 +135,8 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 totalJornadas: totalEstimacionJornadas,
                 solicitadas: peticionesEvolutivo,
                 enviadas: validSentTransitions,
-                aprobadas: approvedProposals
+                aprobadas: approvedProposals,
+                sentPeticiones: sentPeticiones
             };
         };
 
@@ -142,7 +151,8 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 creados: current.creados.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
                 entregados: current.entregados.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
                 requested: current.solicitadas.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
-                sent: current.enviadas.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length
+                sent: current.enviadas.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
+                aprobadas: current.aprobadas.filter(t => new Date(t.approvedDate!).getUTCMonth() + 1 === m).length
             };
         });
 
@@ -150,6 +160,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
         const clientStats = clients.map(c => {
             const cCreados = current.creados.filter(t => t.workPackage.clientId === c.id);
             const cSolicitadas = current.solicitadas.filter(t => t.workPackage.clientId === c.id).length;
+            const cEnviadas = current.enviadas.filter(t => current.sentPeticiones.some((p: any) => p.issueKey === t.issueKey && p.workPackage.clientId === c.id)).length;
             const cAprobadas = current.aprobadas.filter(p => p.clientId === c.id).length;
             const volumne = cCreados.reduce((sum, t) => sum + (t.originalEstimate || 0), 0) / 8; // Req 9: Volumen en jornadas
 
@@ -158,7 +169,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 name: c.name,
                 ticketsCount: cCreados.length, // Req 8
                 volume: volumne, // Req 9
-                acceptanceRatio: cSolicitadas > 0 ? (cAprobadas / cSolicitadas) * 100 : 0 // Req 10
+                acceptanceRatio: cEnviadas > 0 ? (cAprobadas / cEnviadas) * 100 : 0 // Unified Acceptance Ratio
             };
         });
 
@@ -186,6 +197,8 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 proposalsRequested: previous.solicitadas.length,
                 proposalsSent: previous.enviadas.length,
                 proposalsApproved: previous.aprobadas.length,
+                acceptanceRatio: previous.enviadas.length > 0 ? (previous.aprobadas.length / previous.enviadas.length) * 100 : 0,
+                sentVsRequestedRatio: previous.solicitadas.length > 0 ? (previous.enviadas.length / previous.solicitadas.length) * 100 : 0,
             },
             monthly,
             topClientsCount,
