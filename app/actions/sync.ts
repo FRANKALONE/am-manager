@@ -1783,101 +1783,117 @@ export async function backfillHistoryData() {
     };
 
     try {
-        addLog("Starting history backfill...");
+        addLog("🚀 Starting AUTOMATED history backfill...");
 
-        let ticketErrors = 0;
-        let proposalErrors = 0;
+        const MAX_TICKETS_PER_BATCH = 100;
+        const MAX_PROPOSALS_PER_BATCH = 50;
+        const MAX_TOTAL_BATCHES = 100; // Safety limit to prevent infinite loops
 
-        // IMPORTANT: Process only a limited number to avoid timeout
-        const MAX_TICKETS = 100;
-        const MAX_PROPOSALS = 50;
+        let totalTicketsProcessed = 0;
+        let totalProposalsProcessed = 0;
+        let batchCount = 0;
+        let hasMoreWork = true;
 
-        // Get total counts to show progress
-        const totalTickets = await prisma.ticket.count();
-        const totalProposals = await (prisma as any).evolutivoProposal.count();
+        while (hasMoreWork && batchCount < MAX_TOTAL_BATCHES) {
+            batchCount++;
+            addLog(`\n--- BATCH ${batchCount} ---`);
 
-        // Count how many already have history synced (have proDeliveryDate or recent lastSyncedAt)
-        const syncedTickets = await (prisma as any).ticket.count({
-            where: { proDeliveryDate: { not: null } }
-        });
-        const syncedProposals = await (prisma as any).evolutivoProposal.count({
-            where: {
-                OR: [
-                    { sentToGerenteDate: { not: null } },
-                    { sentToClientDate: { not: null } },
-                    { approvedDate: { not: null } }
-                ]
+            // Process tickets batch
+            const unsyncedTickets = await (prisma as any).ticket.findMany({
+                select: { issueKey: true },
+                where: { proDeliveryDate: null },
+                take: MAX_TICKETS_PER_BATCH,
+                orderBy: { createdDate: 'desc' }
+            });
+
+            let ticketErrors = 0;
+            for (let i = 0; i < unsyncedTickets.length; i++) {
+                try {
+                    await syncTicketHistory(unsyncedTickets[i].issueKey, 'TICKET');
+                } catch (err: any) {
+                    ticketErrors++;
+                    if (ticketErrors <= 3) { // Only log first 3 errors per batch
+                        addLog(`[WARN] Ticket ${unsyncedTickets[i].issueKey}: ${err.message}`);
+                    }
+                }
             }
-        });
+            totalTicketsProcessed += (unsyncedTickets.length - ticketErrors);
 
-        addLog(`📊 PROGRESS: Tickets ${syncedTickets}/${totalTickets} synced (${Math.round(syncedTickets / totalTickets * 100)}%)`);
-        addLog(`📊 PROGRESS: Proposals ${syncedProposals}/${totalProposals} synced (${Math.round(syncedProposals / totalProposals * 100)}%)`);
+            // Process proposals batch
+            const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
+                select: { issueKey: true },
+                where: {
+                    AND: [
+                        { sentToGerenteDate: null },
+                        { sentToClientDate: null },
+                        { approvedDate: null }
+                    ]
+                },
+                take: MAX_PROPOSALS_PER_BATCH,
+                orderBy: { createdDate: 'desc' }
+            });
 
-        // 1. Fetch limited tickets (prioritize those without proDeliveryDate)
-        const tickets = await (prisma as any).ticket.findMany({
-            select: { issueKey: true },
-            where: { proDeliveryDate: null },
-            take: MAX_TICKETS,
-            orderBy: { createdDate: 'desc' }
-        });
-        addLog(`Found ${tickets.length} unsynced tickets to process (max ${MAX_TICKETS} per run).`);
+            let proposalErrors = 0;
+            for (let i = 0; i < unsyncedProposals.length; i++) {
+                try {
+                    await syncTicketHistory(unsyncedProposals[i].issueKey, 'PROPOSAL');
+                } catch (err: any) {
+                    proposalErrors++;
+                    if (proposalErrors <= 3) {
+                        addLog(`[WARN] Proposal ${unsyncedProposals[i].issueKey}: ${err.message}`);
+                    }
+                }
+            }
+            totalProposalsProcessed += (unsyncedProposals.length - proposalErrors);
 
-        for (let i = 0; i < tickets.length; i++) {
-            const ticket = tickets[i];
-            if (i % 10 === 0) addLog(`Processing ticket ${i + 1}/${tickets.length}...`);
-            try {
-                await syncTicketHistory(ticket.issueKey, 'TICKET');
-            } catch (err: any) {
-                ticketErrors++;
-                addLog(`[WARN] Error syncing ticket ${ticket.issueKey}: ${err.message}`);
+            addLog(`Batch ${batchCount}: Processed ${unsyncedTickets.length - ticketErrors} tickets, ${unsyncedProposals.length - proposalErrors} proposals`);
+
+            // Check if there's more work (if we got a full batch, there might be more)
+            hasMoreWork = unsyncedTickets.length === MAX_TICKETS_PER_BATCH ||
+                unsyncedProposals.length === MAX_PROPOSALS_PER_BATCH;
+
+            // Get current progress
+            if (batchCount % 5 === 0 || !hasMoreWork) { // Show progress every 5 batches or at end
+                const totalTickets = await prisma.ticket.count();
+                const totalProposals = await (prisma as any).evolutivoProposal.count();
+                const syncedTickets = await (prisma as any).ticket.count({
+                    where: { proDeliveryDate: { not: null } }
+                });
+                const syncedProposals = await (prisma as any).evolutivoProposal.count({
+                    where: {
+                        OR: [
+                            { sentToGerenteDate: { not: null } },
+                            { sentToClientDate: { not: null } },
+                            { approvedDate: { not: null } }
+                        ]
+                    }
+                });
+
+                const ticketProgress = Math.round((syncedTickets / totalTickets) * 100);
+                const proposalProgress = Math.round((syncedProposals / totalProposals) * 100);
+
+                addLog(`📊 Overall Progress: Tickets ${ticketProgress}%, Proposals ${proposalProgress}%`);
             }
         }
 
-        // 2. Fetch limited proposals (prioritize those without dates)
-        const proposals = await (prisma as any).evolutivoProposal.findMany({
-            select: { issueKey: true },
-            where: {
-                AND: [
-                    { sentToGerenteDate: null },
-                    { sentToClientDate: null },
-                    { approvedDate: null }
-                ]
-            },
-            take: MAX_PROPOSALS,
-            orderBy: { createdDate: 'desc' }
-        });
-        addLog(`Found ${proposals.length} unsynced proposals to process (max ${MAX_PROPOSALS} per run).`);
+        addLog(`\n✅ AUTOMATED SYNC COMPLETED!`);
+        addLog(`📈 Total processed: ${totalTicketsProcessed} tickets, ${totalProposalsProcessed} proposals in ${batchCount} batches`);
 
-        for (let i = 0; i < proposals.length; i++) {
-            const proposal = proposals[i];
-            if (i % 5 === 0) addLog(`Processing proposal ${i + 1}/${proposals.length}...`);
-            try {
-                await syncTicketHistory(proposal.issueKey, 'PROPOSAL');
-            } catch (err: any) {
-                proposalErrors++;
-                addLog(`[WARN] Error syncing proposal ${proposal.issueKey}: ${err.message}`);
-            }
+        if (batchCount >= MAX_TOTAL_BATCHES) {
+            addLog(`⚠️  Reached safety limit of ${MAX_TOTAL_BATCHES} batches. Run again if needed.`);
         }
-
-        const remainingTickets = totalTickets - syncedTickets - (tickets.length - ticketErrors);
-        const remainingProposals = totalProposals - syncedProposals - (proposals.length - proposalErrors);
-        const estimatedRuns = Math.ceil(Math.max(remainingTickets / MAX_TICKETS, remainingProposals / MAX_PROPOSALS));
-
-        addLog(`✅ Batch completed. Tickets: ${tickets.length - ticketErrors}/${tickets.length}, Proposals: ${proposals.length - proposalErrors}/${proposals.length}`);
-        addLog(`📈 Estimated ${estimatedRuns} more runs needed to sync all remaining records.`);
-        addLog(`⏭️  Remaining: ~${remainingTickets} tickets, ~${remainingProposals} proposals`);
 
         // Create persistent log
         await createImportLog({
             type: 'MANUAL_SYNC',
             status: 'SUCCESS',
-            filename: 'Sincronización de Historial de Estados (Parcial)',
-            totalRows: tickets.length + proposals.length,
-            processedCount: (tickets.length - ticketErrors) + (proposals.length - proposalErrors),
+            filename: `Sincronización Automática de Historial (${batchCount} lotes)`,
+            totalRows: totalTicketsProcessed + totalProposalsProcessed,
+            processedCount: totalTicketsProcessed + totalProposalsProcessed,
             errors: JSON.stringify(debugLogs)
         });
 
-        return { success: true, logs: debugLogs };
+        return { success: true, logs: debugLogs, batches: batchCount };
     } catch (error: any) {
         console.error('[backfillHistoryData] CRITICAL ERROR:', error);
         addLog(`[ERROR] ${error.message}`);
