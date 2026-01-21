@@ -104,7 +104,7 @@ export async function getPendingCierres(month: number, year: number) {
 
             const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
             const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
-            const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
+            const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && period.billingType?.trim().toUpperCase() === 'PUNTUAL');
 
             // --- EVENTOS MONITORING LOGIC ---
             if (isEventos) {
@@ -551,7 +551,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
         const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
         const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
-        const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
+        const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && period.billingType?.trim().toUpperCase() === 'PUNTUAL');
 
         // Determine start point for the evolution table: strictly since last regularization
         let cutoffYYYYMM: number | null = null;
@@ -623,7 +623,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                 const puntualTotal = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
                 const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
                 const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
-                const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && wp.billingType?.trim().toUpperCase() === 'PUNTUAL');
+                const isBolsaPuntual = (contractTypeNormalized === 'BOLSA' && p.billingType?.trim().toUpperCase() === 'PUNTUAL');
 
                 if (isEventos) {
                     const includedTypes = (wp as any).includedTicketTypes

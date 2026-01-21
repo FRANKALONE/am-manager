@@ -61,13 +61,13 @@ interface ValidityPeriod {
     regularizationType?: string;
     regularizationRate?: number;
     rateEvolutivo?: number;
+    billingType?: string;
 }
 
 interface WorkPackage {
     id: string;
     name: string;
     contractType: string;
-    billingType: string;
     renewalType: string;
     validityPeriods: ValidityPeriod[];
 }
@@ -391,7 +391,7 @@ export function ContractValidityView({ initialData }: Props) {
                                                                                     : "bg-emerald-100 border-emerald-300 text-emerald-900"
                                                                         )}
                                                                         style={style || {}}
-                                                                        onClick={() => setSelectedPeriod({ ...vp, wpName: wp.name, clientName: client.name, renewalType: wp.renewalType, contractType: wp.contractType, billingType: wp.billingType })}
+                                                                        onClick={() => setSelectedPeriod({ ...vp, wpName: wp.name, clientName: client.name, renewalType: wp.renewalType, contractType: wp.contractType, billingType: vp.billingType || "" })}
                                                                     >
                                                                         <span className="text-[10px] font-bold truncate">
                                                                             {format(new Date(vp.startDate), "dd/MM")} - {format(new Date(vp.endDate), "dd/MM")}

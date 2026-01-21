@@ -49,7 +49,13 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
             where.contractType = filters.contractType;
         }
         if (filters?.isPremium !== undefined) {
-            where.isPremium = filters.isPremium;
+            where.validityPeriods = {
+                ...where.validityPeriods,
+                some: {
+                    ...(where.validityPeriods?.some || {}),
+                    isPremium: filters.isPremium
+                }
+            };
         }
         if (filters?.renewalType) {
             where.renewalType = filters.renewalType;
@@ -81,10 +87,13 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
             const startOfMonth = new Date(filters.year, filters.month, 1);
             const endOfMonth = new Date(filters.year, filters.month + 1, 0, 23, 59, 59);
 
-            if (where.validityPeriods) {
-                where.validityPeriods.some.endDate = {
-                    gte: startOfMonth,
-                    lte: endOfMonth
+            if (where.validityPeriods?.some) {
+                where.validityPeriods.some = {
+                    ...where.validityPeriods.some,
+                    endDate: {
+                        gte: startOfMonth,
+                        lte: endOfMonth
+                    }
                 };
             } else {
                 where.validityPeriods = {
@@ -231,7 +240,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                 clientId,
                 clientName: client.name,
                 contractType,
-                billingType,
+                billingType: formData.get("billingType")?.toString() || (contractType === 'BOLSA' ? 'PUNTUAL' : 'MENSUAL'),
                 renewalType,
                 renewalNotes: renewalNotes || null,
 
@@ -262,7 +271,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                         regularizationRate,
                         surplusStrategy: surplusStrategy || null,
                         rateEvolutivo,
-                        billingType: billingType || null
+                        billingType: formData.get("billingType")?.toString() || null
                     }
                 } : undefined
             },
@@ -286,7 +295,6 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     // WorkPackage fields
     const name = formData.get("name") as string;
     const contractType = formData.get("contractType") as string;
-    const billingType = formData.get("billingType") as string;
     const renewalType = formData.get("renewalType") as string;
     const renewalNotes = formData.get("renewalNotes")?.toString();
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
@@ -388,7 +396,6 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             customAttributes: JSON.stringify(customAttributes),
             name: name || undefined,
             contractType: contractType || undefined,
-            billingType: billingType || undefined,
             renewalType: renewalType || undefined,
             renewalNotes: renewalNotes !== undefined ? (renewalNotes || null) : undefined,
             jiraProjectKeys: jiraProjectKeys !== undefined ? (jiraProjectKeys || null) : undefined,
@@ -442,7 +449,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             if (periodEndDateStr) periodUpdateData.endDate = new Date(periodEndDateStr);
 
             if (Object.keys(periodUpdateData).length > 0) {
-                if (formData.has("billingType")) periodUpdateData.billingType = billingType;
+                if (formData.has("billingType")) {
+                    periodUpdateData.billingType = formData.get("billingType") as string;
+                }
 
                 await prisma.validityPeriod.update({
                     where: { id: currentPeriod.id },

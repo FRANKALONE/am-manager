@@ -1,0 +1,132 @@
+{
+  "ticketTypes": [
+    {
+      "_count": 329,
+      "issueType": "Petición de Evolutivo"
+    },
+    {
+      "_count": 164,
+      "issueType": "Solicitud de servicio"
+    },
+    {
+      "_count": 4,
+      "issueType": "Tarea"
+    },
+    {
+      "_count": 25,
+      "issueType": "Interno"
+    },
+    {
+      "_count": 2402,
+      "issueType": "Evolutivo"
+    },
+    {
+      "_count": 546,
+      "issueType": "Consulta"
+    },
+    {
+      "_count": 30,
+      "issueType": "Garantía"
+    },
+    {
+      "_count": 118,
+      "issueType": "Soporte AM"
+    },
+    {
+      "_count": 575,
+      "issueType": "Hitos Evolutivos"
+    },
+    {
+      "_count": 75,
+      "issueType": "Servicio IAAS"
+    },
+    {
+      "_count": 1991,
+      "issueType": "Incidencia de Correctivo"
+    },
+    {
+      "_count": 2,
+      "issueType": "Incidencia"
+    }
+  ],
+  "statusCountsHistory": [
+    {
+      "_count": 695,
+      "status": "Propuesta de Solución"
+    },
+    {
+      "_count": 663,
+      "status": "Solicitud de Info"
+    },
+    {
+      "_count": 9,
+      "status": "aux"
+    },
+    {
+      "_count": 1686,
+      "status": "En Tratamiento"
+    },
+    {
+      "_count": 44,
+      "status": "Entregado en QAS"
+    },
+    {
+      "_count": 456,
+      "status": "Cerrado"
+    },
+    {
+      "_count": 39,
+      "status": "Oferta enviada al cliente"
+    },
+    {
+      "_count": 1,
+      "status": "Enviado a SAP"
+    },
+    {
+      "_count": 42,
+      "status": "Oferta Generada"
+    },
+    {
+      "_count": 3,
+      "status": "Oferta enviada al gerente"
+    },
+    {
+      "_count": 107,
+      "status": "Entregado en PRD"
+    },
+    {
+      "_count": 102,
+      "status": "Entregado en DES"
+    },
+    {
+      "_count": 1,
+      "status": "Abierto"
+    },
+    {
+      "_count": 1,
+      "status": "Pdt. Tramitar"
+    }
+  ],
+  "proposalInternalStatuses": [
+    {
+      "_count": 21,
+      "status": "En Tratamiento"
+    },
+    {
+      "_count": 20,
+      "status": "Solicitud de Info"
+    },
+    {
+      "_count": 12,
+      "status": "Oferta enviada al gerente"
+    },
+    {
+      "_count": 1518,
+      "status": "Cerrado"
+    },
+    {
+      "_count": 52,
+      "status": "Oferta enviada al cliente"
+    }
+  ]
+}

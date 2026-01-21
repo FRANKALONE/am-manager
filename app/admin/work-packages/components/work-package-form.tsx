@@ -146,25 +146,14 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="contractType">Tipo de Contrato</Label>
-                            <Select name="contractType" defaultValue={wp.contractType}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="billingType">Tipo de Facturación</Label>
-                            <Select name="billingType" defaultValue={wp.billingType}>
-                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                <SelectContent>
-                                    {billingTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="contractType">Tipo de Contrato</Label>
+                        <Select name="contractType" defaultValue={wp.contractType}>
+                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                            <SelectContent>
+                                {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">

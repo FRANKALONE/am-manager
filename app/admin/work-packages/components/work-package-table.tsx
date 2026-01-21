@@ -28,8 +28,8 @@ interface WorkPackage {
     clientId: string;
     clientName: string;
     contractType: string;
-    billingType: string;
     renewalType: string;
+    validityPeriods: any[];
     _count: {
         validityPeriods: number;
     };
@@ -158,7 +158,11 @@ export function WorkPackagesTable({ wps, contractTypeMap, renewalTypeMap }: Prop
                                     <TableCell>
                                         {contractTypeMap[wp.contractType] || wp.contractType}
                                     </TableCell>
-                                    <TableCell>{wp.billingType}</TableCell>
+                                    <TableCell>
+                                        {wp.validityPeriods?.[0]?.billingType || (
+                                            <span className="text-slate-400 italic text-xs">No definido</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell>{wp.renewalType ? (renewalTypeMap[wp.renewalType] || wp.renewalType) : "-"}</TableCell>
                                     <TableCell className="text-center">
                                         <span className="inline-flex items-center justify-center rounded-full bg-green-100 px-2.5 py-0.5 text-green-700 gap-1 text-xs">

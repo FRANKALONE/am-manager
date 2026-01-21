@@ -19,25 +19,25 @@ model Parameter {
 }
 
 model Client {
-  id               String        @unique
-  name             String
-  manager          String?
-  amOnboardingDate DateTime?
-  customAttributes String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  portalUrl        String?
-  clientLogo       String?
-  clientPortalUrl  String?
-  jiraProjectKey   String?
-  reportEmails     String?
-  isDemo           Boolean       @default(false)
-  users            User[]
-  workPackages     WorkPackage[]
+  id                 String              @unique
+  name               String
+  manager            String?
+  amOnboardingDate   DateTime?
+  customAttributes   String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  portalUrl          String?
+  clientLogo         String?
+  clientPortalUrl    String?
+  jiraProjectKey     String?
+  reportEmails       String?
+  isDemo             Boolean             @default(false)
   evolutivoProposals EvolutivoProposal[]
-  jiraOrganizations JiraOrganization[]
-  jiraCustomerUsers JiraCustomerUser[]
-  jiraUserRequests  JiraUserRequest[]
+  jiraCustomerUsers  JiraCustomerUser[]
+  jiraOrganizations  JiraOrganization[]
+  jiraUserRequests   JiraUserRequest[]
+  users              User[]
+  workPackages       WorkPackage[]
 }
 
 model WorkPackage {
@@ -48,21 +48,21 @@ model WorkPackage {
   contractType         String
   billingType          String
   renewalType          String
-  renewalNotes         String?
   accumulatedHours     Float            @default(0.0)
   accumulatedHoursDate DateTime?
   jiraProjectKeys      String?
   tempoAccountId       String?
   oldWpId              String?
   hasIaasService       Boolean          @default(false)
-  includedTicketTypes  String?
-  includeEvoEstimates  Boolean          @default(true)
-  includeEvoTM         Boolean          @default(true)
   lastSyncedAt         DateTime?
   customAttributes     String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
+  includeEvoEstimates  Boolean          @default(true)
+  includeEvoTM         Boolean          @default(true)
+  includedTicketTypes  String?
   isMainWP             Boolean          @default(false)
+  renewalNotes         String?
   monthlyMetrics       MonthlyMetric[]
   regularizations      Regularization[]
   reviewRequests       ReviewRequest[]
@@ -82,50 +82,46 @@ model Regularization {
   description           String?
   ticketId              String?
   note                  String?
-  ticketType            String?     // Ticket type for manual consumptions (Evolutivo, Correctivo, etc.)
-  reviewedForDuplicates Boolean     @default(false)
-  isRevenueRecognized   Boolean     @default(false)
-  isBilled              Boolean     @default(true)
-  createdBy             String?
-  createdByName         String?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
-  workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewedForDuplicates Boolean     @default(false)
+  isBilled              Boolean     @default(true)
+  isRevenueRecognized   Boolean     @default(false)
+  createdBy             String?
+  createdByName         String?
+  ticketType            String?
+  workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id               String          @id @default(uuid())
-  name             String
-  surname          String?
-  email            String          @unique
-  password         String
-  role             String
-  clientId         String?
-  locale           String          @default("es")
-  timezone         String          @default("Europe/Madrid")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  workPackageIds   String?
-  lastLoginAt      DateTime?
-  resetToken       String?         @unique
-  resetTokenExpiry DateTime?
-  mustChangePassword Boolean       @default(false)
-  notifications    Notification[]
-  reviewedRequests ReviewRequest[] @relation("ReviewedRequests")
-  requestedReviews ReviewRequest[] @relation("RequestedReviews")
-  client           Client?         @relation(fields: [clientId], references: [id])
-  linkedJiraCustomer JiraCustomerUser?
-  requestedJiraRequests JiraUserRequest[] @relation("RequestedJiraRequests")
-  reviewedJiraRequests  JiraUserRequest[] @relation("ReviewedJiraRequests")
-  
-  // Mass emails and landings
-  createdMassEmails MassEmail[] @relation("MassEmailCreator")
-  massEmailRecipients MassEmailRecipient[] @relation("MassEmailRecipients")
-  createdLandings   TemporaryLanding[] @relation("LandingCreator")
-  landingViews      LandingView[] @relation("LandingViews")
-
-  // AMA Evolutivos Module
-  linkedEvolUser    EVOLEvolutivoUser?
+  id                    String               @id @default(uuid())
+  name                  String
+  surname               String?
+  email                 String               @unique
+  password              String
+  role                  String
+  clientId              String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  workPackageIds        String?
+  lastLoginAt           DateTime?
+  resetToken            String?              @unique
+  resetTokenExpiry      DateTime?
+  locale                String               @default("es")
+  timezone              String               @default("Europe/Madrid")
+  mustChangePassword    Boolean              @default(false)
+  linkedEvolUser        EVOLEvolutivoUser?
+  linkedJiraCustomer    JiraCustomerUser?
+  requestedJiraRequests JiraUserRequest[]    @relation("RequestedJiraRequests")
+  reviewedJiraRequests  JiraUserRequest[]    @relation("ReviewedJiraRequests")
+  landingViews          LandingView[]        @relation("LandingViews")
+  createdMassEmails     MassEmail[]          @relation("MassEmailCreator")
+  massEmailRecipients   MassEmailRecipient[] @relation("MassEmailRecipients")
+  notifications         Notification[]
+  requestedReviews      ReviewRequest[]      @relation("RequestedReviews")
+  reviewedRequests      ReviewRequest[]      @relation("ReviewedRequests")
+  createdLandings       TemporaryLanding[]   @relation("LandingCreator")
+  client                Client?              @relation(fields: [clientId], references: [id])
 
   @@index([locale])
 }
@@ -136,9 +132,9 @@ model Role {
   description String?
   permissions String
   isActive    Boolean  @default(true)
-  isPremium   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  isPremium   Int      @default(0)
 }
 
 model ValidityPeriod {
@@ -156,7 +152,7 @@ model ValidityPeriod {
   surplusStrategy    String?
   rateEvolutivo      Float?
   billingType        String?
-  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
 model CorrectionModel {
@@ -181,7 +177,7 @@ model WPCorrection {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   correctionModel   CorrectionModel @relation(fields: [correctionModelId], references: [id])
-  workPackage       WorkPackage     @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workPackage       WorkPackage     @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
 model MonthlyMetric {
@@ -192,7 +188,7 @@ model MonthlyMetric {
   consumedHours Float       @default(0.0)
   reportSentAt  DateTime?
   reportSentBy  String?
-  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, year, month])
 }
@@ -209,59 +205,59 @@ model WorklogDetail {
   startDate        DateTime
   author           String
   tipoImputacion   String?
-  originWpId       String?
   issueCreatedDate DateTime?
+  originWpId       String?
   billingMode      String?
-  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@index([workPackageId, year, month])
 }
 
 model Ticket {
-  id            Int         @id @default(autoincrement())
-  workPackageId String
-  issueKey      String
-  issueSummary  String
-  issueType     String
-  createdDate   DateTime
-  year          Int
-  month         Int
-  status        String
-  reporter      String
-  reporterEmail String?
-  billingMode   String?
-  priority      String?
-  slaResponse       String?
+  id                Int         @id @default(autoincrement())
+  workPackageId     String
+  issueKey          String
+  issueSummary      String
+  issueType         String
+  createdDate       DateTime
+  year              Int
+  month             Int
+  status            String
+  reporter          String
+  reporterEmail     String?
+  billingMode       String?
+  priority          String?
   slaResolution     String?
-  slaResponseTime   String?
+  slaResponse       String?
   slaResolutionTime String?
+  slaResponseTime   String?
   assignee          String?
   dueDate           DateTime?
   parentKey         String?
   originalEstimate  Float?
   component         String?
-  clientJiraId      String?      // Client-specific JIRA ID (for FAIN, MOLECOR, etc.)
-  proDeliveryDate  DateTime?    // Date when status changed to "ENTREGADO EN PRO"
-  workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  clientJiraId      String?
+  proDeliveryDate   DateTime?   @db.Timestamptz(6)
+  workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])
   @@index([workPackageId, year, month])
   @@index([proDeliveryDate])
+  @@index([clientJiraId])
 }
 
 model TicketStatusHistory {
-  id              Int      @id @default(autoincrement())
-  issueKey        String   // Link to Ticket or EvolutivoProposal by issueKey
-  type            String   // 'TICKET' or 'PROPOSAL'
-  status          String
-  transitionDate  DateTime
-  author          String?
-  createdAt       DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  issueKey       String
+  type           String
+  status         String
+  transitionDate DateTime  @db.Timestamptz(6)
+  author         String?
+  createdAt      DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([issueKey, type])
   @@index([transitionDate])
 }
-
 
 model ReviewRequest {
   id              String      @id @default(cuid())
@@ -272,12 +268,12 @@ model ReviewRequest {
   status          String
   reviewedBy      String?
   reviewNotes     String?
-  approvedIds     String?     // JSON array of approved worklog IDs
+  approvedIds     String?
   createdAt       DateTime    @default(now())
   reviewedAt      DateTime?
-  reviewedByUser  User?       @relation("ReviewedRequests", fields: [reviewedBy], references: [id])
   requestedByUser User        @relation("RequestedReviews", fields: [requestedBy], references: [id])
-  workPackage     WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewedByUser  User?       @relation("ReviewedRequests", fields: [reviewedBy], references: [id])
+  workPackage     WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@index([workPackageId, status])
   @@index([requestedBy])
@@ -300,100 +296,88 @@ model Notification {
 }
 
 model NotificationSetting {
-  id          String   @id @default(cuid())
-  type        String   @unique
-  title       String
-  description String?
-  isEnabled   Boolean  @default(true)
-  sendEmail   Boolean  @default(false)
-  roles       String   @default("ADMIN,GERENTE")
-  group       String   @default("GENERAL")
-  
-  // Templates
-  appMessage     String?  @db.Text
-  emailSubject   String?  @db.Text
-  emailMessage   String?  @db.Text
-  
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  type         String   @unique
+  title        String
+  description  String?
+  isEnabled    Boolean  @default(true)
+  roles        String   @default("ADMIN,GERENTE")
+  group        String   @default("GENERAL")
+  updatedAt    DateTime @updatedAt
+  sendEmail    Boolean  @default(false)
+  appMessage   String?
+  emailSubject String?
+  emailMessage String?
 }
 
 model ImportLog {
   id             Int      @id @default(autoincrement())
   date           DateTime @default(now())
-  type           String   // 'BULK_DATA' or 'REGULARIZATIONS'
-  status         String   // 'SUCCESS', 'PARTIAL', 'ERROR'
+  type           String
+  status         String
   filename       String?
   totalRows      Int?
   processedCount Int?
-  errors         String?  // JSON stringified array of error messages
+  errors         String?
   delimiter      String?
   createdAt      DateTime @default(now())
 }
 
 model EvolutivoProposal {
-  id               Int      @id @default(autoincrement())
-  clientId         String
-  issueKey         String   @unique
-  issueSummary     String
-  status           String
-  createdDate      DateTime
-  assignee         String?
-  reporter         String?
-  components       String?
-  priority         String?
-  resolution       String?
-  relatedTickets   String?  // JSON stringified array of related tickets
-  issueCreatedDate DateTime?
-  sentToGerenteDate DateTime?
-  sentToClientDate  DateTime?
-  approvedDate      DateTime?
-  lastSyncedAt     DateTime @default(now())
-  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                Int       @id @default(autoincrement())
+  clientId          String
+  issueKey          String    @unique
+  issueSummary      String
+  status            String
+  createdDate       DateTime
+  assignee          String?
+  reporter          String?
+  components        String?
+  priority          String?
+  relatedTickets    String?
+  issueCreatedDate  DateTime?
+  lastSyncedAt      DateTime  @default(now())
+  resolution        String?
+  sentToGerenteDate DateTime? @db.Timestamptz(6)
+  sentToClientDate  DateTime? @db.Timestamptz(6)
+  approvedDate      DateTime? @db.Timestamptz(6)
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
 }
 
 model JiraOrganization {
-  id              String   @id @default(cuid())
-  jiraOrgId       String   @unique // ID de la organización en JIRA
-  name            String
-  clientId        String
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  
-  users           JiraCustomerUser[]
-  
-  lastSyncAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id         String             @id @default(cuid())
+  jiraOrgId  String             @unique
+  name       String
+  clientId   String
+  lastSyncAt DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  users      JiraCustomerUser[]
+  client     Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([clientId])
   @@index([jiraOrgId])
 }
 
 model JiraCustomerUser {
-  id                String   @id @default(cuid())
-  accountId         String   @unique // Account ID de JIRA
-  displayName       String
-  emailAddress      String?
-  active            Boolean  @default(true)
-  accountType       String?
-  
-  // Relación con organización
-  organizationId    String
-  organization      JiraOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  // Relación con cliente
-  clientId          String
-  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  
-  // Vinculación con usuario de la app (opcional)
-  linkedUserId      String?  @unique
-  linkedUser        User?    @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-  
-  lastSyncAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  id             String           @id @default(cuid())
+  accountId      String           @unique
+  displayName    String
+  emailAddress   String?
+  active         Boolean          @default(true)
+  accountType    String?
+  organizationId String
+  clientId       String
+  linkedUserId   String?          @unique
+  lastSyncAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  client         Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  linkedUser     User?            @relation(fields: [linkedUserId], references: [id])
+  organization   JiraOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([clientId])
   @@index([organizationId])
   @@index([emailAddress])
@@ -401,28 +385,23 @@ model JiraCustomerUser {
 }
 
 model JiraUserRequest {
-  id              String      @id @default(cuid())
+  id              String    @id @default(cuid())
   clientId        String
   requestedBy     String
-  type            String      // 'CREATE' or 'DELETE'
-  status          String      // 'PENDING', 'APPROVED', 'REJECTED'
-  
-  // Data for creation or reference for deletion
+  type            String
+  status          String
   email           String?
   displayName     String?
-  jiraAccountId   String?     // For DELETE requests
-  
+  jiraAccountId   String?
   reason          String?
   reviewNotes     String?
-  
   reviewedBy      String?
   reviewedAt      DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  requestedByUser User        @relation("RequestedJiraRequests", fields: [requestedBy], references: [id])
-  reviewedByUser  User?       @relation("ReviewedJiraRequests", fields: [reviewedBy], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  requestedByUser User      @relation("RequestedJiraRequests", fields: [requestedBy], references: [id])
+  reviewedByUser  User?     @relation("ReviewedJiraRequests", fields: [reviewedBy], references: [id])
 
   @@index([clientId])
   @@index([status])
@@ -432,9 +411,9 @@ model EmailLog {
   id        String   @id @default(cuid())
   to        String
   subject   String
-  content   String?  @db.Text
-  status    String   // 'SUCCESS', 'FAILED'
-  error     String?  @db.Text
+  content   String?
+  status    String
+  error     String?
   messageId String?
   createdAt DateTime @default(now())
 
@@ -444,136 +423,114 @@ model EmailLog {
 
 model SystemSetting {
   key         String   @id
-  value       String   @db.Text
+  value       String
   description String?
-  group       String   @default("GENERAL") // e.g., "EMAIL", "JIRA"
+  group       String   @default("GENERAL")
   updatedAt   DateTime @updatedAt
 
   @@index([group])
 }
 
 model MassEmail {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
+  id            String               @id @default(cuid())
+  createdAt     DateTime             @default(now())
   createdBy     String
-  creator       User     @relation("MassEmailCreator", fields: [createdBy], references: [id])
-  
   subject       String
-  htmlBody      String   @db.Text
-  
-  // Filters
-  targetRoles   String?  // CSV: "ADMIN,GERENTE"
-  targetClients String?  // CSV of client IDs
-  targetWpTypes String?  // CSV: "BOLSA,BD,EVENTOS"
-  
-  status        String   @default("DRAFT") // DRAFT, SCHEDULED, SENT
+  htmlBody      String
+  targetRoles   String?
+  targetClients String?
+  targetWpTypes String?
+  status        String               @default("DRAFT")
   scheduledFor  DateTime?
   sentAt        DateTime?
-  
-  attachments   String?  @db.Text // JSON: [{ name, url, type, size }]
+  attachments   String?
+  creator       User                 @relation("MassEmailCreator", fields: [createdBy], references: [id])
   recipients    MassEmailRecipient[]
 }
 
 model MassEmailRecipient {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   massEmailId String
-  massEmail   MassEmail @relation(fields: [massEmailId], references: [id], onDelete: Cascade)
-  
   userId      String
-  user        User     @relation("MassEmailRecipients", fields: [userId], references: [id], onDelete: Cascade)
-  
   sentAt      DateTime?
   openedAt    DateTime?
   clickedAt   DateTime?
-  
+  massEmail   MassEmail @relation(fields: [massEmailId], references: [id], onDelete: Cascade)
+  user        User      @relation("MassEmailRecipients", fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([massEmailId, userId])
   @@index([massEmailId])
   @@index([userId])
 }
 
 model TemporaryLanding {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now())
-  createdBy     String
-  creator       User     @relation("LandingCreator", fields: [createdBy], references: [id])
-  
-  slug          String   @unique // URL: /landing/{slug}
-  title         String
-  content       String   @db.Text // HTML content
-  
-  // Access control
-  allowedRoles  String   // CSV: "GERENTE,ADMIN"
-  allowedClients String? // CSV of client IDs (optional, for client-specific)
-  
-  // Scheduling
-  activeFrom    DateTime @default(now())
-  activeUntil   DateTime?
-  
-  isActive      Boolean  @default(true)
-  
-  // Display options
-  showInHeader  Boolean  @default(false) // Show link in main nav
-  priority      Int      @default(0)     // Order in nav
-  
-  views         LandingView[]
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  createdBy      String
+  slug           String        @unique
+  title          String
+  content        String
+  allowedRoles   String
+  allowedClients String?
+  activeFrom     DateTime      @default(now())
+  activeUntil    DateTime?
+  isActive       Boolean       @default(true)
+  showInHeader   Boolean       @default(false)
+  priority       Int           @default(0)
+  views          LandingView[]
+  creator        User          @relation("LandingCreator", fields: [createdBy], references: [id])
 }
 
 model LandingView {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   landingId String
-  landing   TemporaryLanding @relation(fields: [landingId], references: [id], onDelete: Cascade)
-  
   userId    String
-  user      User     @relation("LandingViews", fields: [userId], references: [id], onDelete: Cascade)
-  
-  viewedAt  DateTime @default(now())
-  
+  viewedAt  DateTime         @default(now())
+  landing   TemporaryLanding @relation(fields: [landingId], references: [id], onDelete: Cascade)
+  user      User             @relation("LandingViews", fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([landingId])
   @@index([userId])
 }
 
 model Team {
   id        String       @id @default(cuid())
-  jiraId    String?      @unique // Jira/Tempo Team ID
+  jiraId    String?      @unique
   name      String
-  members   TeamMember[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  members   TeamMember[]
 }
 
 model TeamMember {
   id             String               @id @default(cuid())
-  name           String               @unique // Matches Jira Display Name
+  name           String               @unique
   weeklyCapacity Float                @default(40.0)
   isActive       Boolean              @default(true)
-  teamId         String?
-  team           Team?                @relation(fields: [teamId], references: [id])
   linkedUserId   String?              @unique
-  assignments    CapacityAssignment[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
+  teamId         String?
+  assignments    CapacityAssignment[]
+  team           Team?                @relation(fields: [teamId], references: [id])
 }
 
 model CapacityAssignment {
   id          String     @id @default(cuid())
   memberId    String
-  member      TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  description String?    // For non-ticket assignments (internal meetings, vacations, etc)
-  ticketKey   String?    // Optional link to Jira ticket
+  description String?
+  ticketKey   String?
   hours       Float
   startDate   DateTime
   endDate     DateTime
-  status      String     @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  status      String     @default("ACTIVE")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  member      TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
   @@index([startDate, endDate])
 }
-
-// ============================================
-// MÓDULO: Control AMA Evolutivos (Prefijo: EVOL)
-// ============================================
 
 model EVOLDailyMetric {
   id        Int      @id @default(autoincrement())
@@ -584,19 +541,17 @@ model EVOLDailyMetric {
 }
 
 model EVOLEvolutivoUser {
-  id                 Int      @id @default(autoincrement())
-  email              String   @unique
+  id                 Int       @id @default(autoincrement())
+  email              String    @unique
   password           String
   name               String?
-  role               String   @default("USER") // "ADMIN" | "USER"
+  role               String    @default("USER")
   avatar             String?
   jiraGestorName     String?
-  mustChangePassword Boolean  @default(false)
+  mustChangePassword Boolean   @default(false)
   lastLogin          DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  
-  // Relación opcional con usuarios principales de Manager AM
-  linkedUserId       String?  @unique
-  linkedUser         User?    @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  linkedUserId       String?   @unique
+  linkedUser         User?     @relation(fields: [linkedUserId], references: [id])
 }

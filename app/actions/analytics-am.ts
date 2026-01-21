@@ -67,7 +67,10 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             const proTransitions = await (prisma as any).ticketStatusHistory.findMany({
                 where: {
                     type: 'TICKET',
-                    status: 'ENTREGADO EN PRO',
+                    status: {
+                        in: ['ENTREGADO EN PRO', 'Entregado en PRD', 'Entregado en PRO'],
+                        mode: 'insensitive'
+                    },
                     transitionDate: { gte: start, lte: end }
                 }
             });
@@ -110,7 +113,16 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             const sentTransitions = await (prisma as any).ticketStatusHistory.findMany({
                 where: {
                     type: 'PROPOSAL',
-                    status: { in: ['Enviado a Gerente', 'Enviado a Cliente'] },
+                    status: {
+                        in: [
+                            'Enviado a Gerente',
+                            'Enviado a Cliente',
+                            'Oferta enviada al cliente',
+                            'Oferta enviada al gerente',
+                            'Oferta Enviada'
+                        ],
+                        mode: 'insensitive'
+                    },
                     transitionDate: { gte: start, lte: end }
                 }
             });
@@ -130,7 +142,10 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             const closedTransitions = await (prisma as any).ticketStatusHistory.findMany({
                 where: {
                     type: 'PROPOSAL',
-                    status: 'CERRADO',
+                    status: {
+                        in: ['Cerrado', 'CERRADO'],
+                        mode: 'insensitive'
+                    },
                     transitionDate: { gte: start, lte: end }
                 }
             });

@@ -155,7 +155,6 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 id: true,
                 name: true,
                 contractType: true,
-                billingType: true,
                 renewalType: true,
                 jiraProjectKeys: true,
                 hasIaasService: true,
@@ -227,7 +226,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
         // 2. Logic Selection (Eventos vs Bolsa Puntual vs Standard)
         const contractTypeNormalized = wp.contractType?.trim().toUpperCase() || '';
         const isEventos = (contractTypeNormalized === 'EVENTOS' || contractTypeNormalized === 'EVENTO');
-        const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
+        const isBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && selectedPeriod.billingType?.toUpperCase() === 'PUNTUAL');
 
         const totalMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
 
@@ -489,7 +488,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             const pEnd = new Date(prevPeriod.endDate);
             const pTotalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
             const pMonthlyContracted = pTotalMonths > 0 ? (prevPeriod.totalQuantity || 0) / pTotalMonths : 0;
-            const pIsBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && wp.billingType?.toUpperCase() === 'PUNTUAL');
+            const pIsBolsaPuntual = (wp.contractType?.toUpperCase() === 'BOLSA' && prevPeriod.billingType?.toUpperCase() === 'PUNTUAL');
 
             let pIterDate = new Date(pStart);
             pIterDate.setDate(1);

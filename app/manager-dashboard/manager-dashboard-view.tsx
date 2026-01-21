@@ -286,7 +286,7 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                                                 </div>
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Facturación</p>
-                                                    <p className="text-sm text-slate-700 font-bold">{selectedWP.billingType}</p>
+                                                    <p className="text-sm text-slate-700 font-bold">{displayPeriod?.billingType || 'N/A'}</p>
                                                 </div>
                                                 {permissions.view_costs && (
                                                     <div className="space-y-1">
