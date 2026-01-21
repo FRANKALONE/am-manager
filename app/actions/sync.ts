@@ -1797,7 +1797,7 @@ export async function backfillHistoryData() {
         const totalProposals = await (prisma as any).evolutivoProposal.count();
 
         // Count how many already have history synced (have proDeliveryDate or recent lastSyncedAt)
-        const syncedTickets = await prisma.ticket.count({
+        const syncedTickets = await (prisma as any).ticket.count({
             where: { proDeliveryDate: { not: null } }
         });
         const syncedProposals = await (prisma as any).evolutivoProposal.count({
@@ -1814,7 +1814,7 @@ export async function backfillHistoryData() {
         addLog(`📊 PROGRESS: Proposals ${syncedProposals}/${totalProposals} synced (${Math.round(syncedProposals / totalProposals * 100)}%)`);
 
         // 1. Fetch limited tickets (prioritize those without proDeliveryDate)
-        const tickets = await prisma.ticket.findMany({
+        const tickets = await (prisma as any).ticket.findMany({
             select: { issueKey: true },
             where: { proDeliveryDate: null },
             take: MAX_TICKETS,
