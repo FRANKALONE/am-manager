@@ -239,11 +239,25 @@ model Ticket {
   parentKey         String?
   originalEstimate  Float?
   component         String?
-  clientJiraId      String?      // ID of ticket in client's own JIRA (for FAIN, MOLECOR, UAX)
+  proDeliveryDate  DateTime?    // Date when status changed to "ENTREGADO EN PRO"
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
   @@unique([workPackageId, issueKey])
   @@index([workPackageId, year, month])
+  @@index([proDeliveryDate])
+}
+
+model TicketStatusHistory {
+  id              Int      @id @default(autoincrement())
+  issueKey        String   // Link to Ticket or EvolutivoProposal by issueKey
+  type            String   // 'TICKET' or 'PROPOSAL'
+  status          String
+  transitionDate  DateTime
+  author          String?
+  createdAt       DateTime @default(now())
+
+  @@index([issueKey, type])
+  @@index([transitionDate])
 }
 
 

@@ -2,7 +2,7 @@ import { AdminSidebar } from "@/app/admin/components/sidebar";
 import { SharedHeader } from "@/app/components/shared-header";
 import { getTranslations } from "@/lib/get-translations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, FileText, ArrowRight } from "lucide-react";
+import { BarChart3, FileText, ArrowRight, Activity } from "lucide-react";
 import Link from "next/link";
 import { getAuthSession } from "@/lib/auth";
 
@@ -18,7 +18,8 @@ export default async function AnalyticsPage() {
             href: "/analytics/contract-validity",
             icon: FileText,
             color: "text-blue-500",
-            bg: "bg-blue-50 dark:bg-blue-900/20"
+            bg: "bg-blue-50 dark:bg-blue-900/20",
+            permission: "view_analytics_contracts"
         },
         {
             title: t("admin.analytics.wpAccumulatedConsumption"),
@@ -26,9 +27,29 @@ export default async function AnalyticsPage() {
             href: "/analytics/wp-accumulated-consumption",
             icon: BarChart3,
             color: "text-emerald-500",
-            bg: "bg-emerald-50 dark:bg-emerald-900/20"
+            bg: "bg-emerald-50 dark:bg-emerald-900/20",
+            permission: "view_analytics_wp_consumption"
+        },
+        {
+            title: "Cuadro de Mando de AM",
+            description: "Seguimiento anual de gestión operativa: Evolutivos, entregas en PRO y propuestas.",
+            href: "/analytics/am-dashboard",
+            icon: Activity,
+            color: "text-amber-500",
+            bg: "bg-amber-50 dark:bg-amber-900/20",
+            permission: "view_analytics_am_dashboard"
         }
     ];
+
+    // Filter reports based on permissions
+    const { hasPermission } = await import("@/lib/permissions");
+    const visibleReports = [];
+
+    for (const report of reports) {
+        if (isAdmin || await hasPermission(session?.userRole || '', report.permission)) {
+            visibleReports.push(report);
+        }
+    }
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
@@ -43,7 +64,7 @@ export default async function AnalyticsPage() {
                         </header>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {reports.map((report) => (
+                            {visibleReports.map((report) => (
                                 <Link key={report.href} href={report.href}>
                                     <Card className="hover:shadow-lg transition-all cursor-pointer group border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 h-full">
                                         <CardHeader className="flex flex-row items-center space-y-0 pb-2">

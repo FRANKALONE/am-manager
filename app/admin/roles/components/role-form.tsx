@@ -55,7 +55,9 @@ const PERMISSIONS: Permission[] = [
     { key: "view_all_clients", label: "Acceso Global: Ver Todos los Clientes", section: "Visibilidad" },
     { key: "view_all_wps", label: "Acceso Global: Ver Todos los WPs", section: "Visibilidad" },
 
-    { key: "view_analytics", label: "Ver Analytics y Validez de Contratos", section: "Dashboards" },
+    { key: "view_analytics_contracts", label: "Analytics: Validez de Contratos", section: "Analítica" },
+    { key: "view_analytics_wp_consumption", label: "Analytics: Consumo Acumulado WP", section: "Analítica" },
+    { key: "view_analytics_am_dashboard", label: "Analytics: Cuadro de Mando de AM", section: "Analítica" },
 ];
 
 type Props = {
@@ -150,7 +152,7 @@ export function RoleForm({ initialRole }: Props) {
                             <CardTitle>Permisos de Funciones</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-8">
-                            {["Dashboards", "General", "Administración", "Finanzas", "Comunicación"].map(section => (
+                            {["Dashboards", "Analítica", "General", "Administración", "Finanzas", "Comunicación"].map(section => (
                                 <div key={section} className="space-y-3">
                                     <h3 className="font-bold text-dark-green border-b pb-1 mb-4">{section}</h3>
                                     <div className="space-y-3">

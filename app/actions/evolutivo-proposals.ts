@@ -168,6 +168,12 @@ export async function syncEvolutivoProposals(clientId?: string) {
                         }
                     });
                     totalSynced++;
+
+                    // Sync history for proposals (status transitions)
+                    // This is handled in sync.ts but we can define it here too or import it
+                    // For now, let's assume we want to call it here.
+                    const { syncTicketHistory } = await import("./sync");
+                    syncTicketHistory(issue.key, 'PROPOSAL').catch(() => { });
                 }
             }
         }

@@ -581,6 +581,12 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                 addLog(`[INFO] Identified T&M Evolutivo for worklog sync: ${issue.key} (ID: ${issue.id}, Mode: ${billingMode})`);
                             }
 
+                            // Process history for this evolutivo
+                            if (debug) addLog(`[INFO] Syncing history for Evolutivo ${issue.key}`);
+                            syncTicketHistory(issue.key, 'TICKET').catch(err => {
+                                if (debug) console.error(`Failed to sync history for ${issue.key}:`, err);
+                            });
+
                             // Extract SLA information
                             const getSlaInfo = (field: any) => {
                                 if (!field) return { status: null, time: null };
@@ -1675,6 +1681,71 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
     } catch (error: any) {
         addLog(`[ERROR] ${error.message}\n${error.stack}`);
         return { error: error.message || "Error desconocido", logs: debug ? debugLogs : undefined };
+    }
+}
+
+/**
+ * Helper to fetch Jira changelog and sync status history to DB
+ */
+export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROPOSAL') {
+    const jiraUrl = process.env.JIRA_URL?.trim();
+    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+    const https = require('https');
+
+    try {
+        const changelog: any = await new Promise((resolve) => {
+            const req = https.request(`${jiraUrl}/rest/api/3/issue/${issueKey}/changelog`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Accept': 'application/json'
+                }
+            }, (res: any) => {
+                let data = '';
+                res.on('data', (c: any) => data += c);
+                res.on('end', () => {
+                    try {
+                        if (res.statusCode === 200) resolve(JSON.parse(data));
+                        else resolve({ values: [] });
+                    } catch (e) { resolve({ values: [] }); }
+                });
+            });
+            req.on('error', () => resolve({ values: [] }));
+            req.end();
+        });
+
+        if (changelog.values && changelog.values.length > 0) {
+            for (const history of changelog.values) {
+                const statusItems = history.items.filter((item: any) => item.field === 'status');
+                for (const item of statusItems) {
+                    const statusName = item.toString;
+                    const transitionDate = new Date(history.created);
+
+                    // Search for existing transition to avoid duplicates without unique Jira ID
+                    const existing = await (prisma as any).ticketStatusHistory.findFirst({
+                        where: { issueKey, type, status: statusName, transitionDate }
+                    });
+
+                    if (!existing) {
+                        await (prisma as any).ticketStatusHistory.create({
+                            data: { issueKey, type, status: statusName, transitionDate, author: history.author?.displayName || 'Unknown' }
+                        });
+                    }
+
+                    // If it's the specific status we care about for quick lookups, update the Ticket table
+                    if (type === 'TICKET' && statusName === 'ENTREGADO EN PRO') {
+                        await (prisma as any).ticket.updateMany({
+                            where: { issueKey },
+                            data: { proDeliveryDate: transitionDate }
+                        });
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error(`Error syncing history for ${issueKey}:`, e);
     }
 }
 
