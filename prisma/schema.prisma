@@ -239,6 +239,7 @@ model Ticket {
   parentKey         String?
   originalEstimate  Float?
   component         String?
+  clientJiraId      String?      // Client-specific JIRA ID (for FAIN, MOLECOR, etc.)
   proDeliveryDate  DateTime?    // Date when status changed to "ENTREGADO EN PRO"
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 
@@ -342,6 +343,9 @@ model EvolutivoProposal {
   resolution       String?
   relatedTickets   String?  // JSON stringified array of related tickets
   issueCreatedDate DateTime?
+  sentToGerenteDate DateTime?
+  sentToClientDate  DateTime?
+  approvedDate      DateTime?
   lastSyncedAt     DateTime @default(now())
   client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
