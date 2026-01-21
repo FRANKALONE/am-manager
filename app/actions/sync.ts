@@ -1748,6 +1748,10 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
         console.error(`Error syncing history for ${issueKey}:`, e);
     }
 }
+import { createImportLog } from "./import-logs";
+
+// ... rest of imports if any
+
 /**
  * BACKFILL: Iterates over all existing tickets and proposals and populates history
  */
@@ -1787,9 +1791,30 @@ export async function backfillHistoryData() {
         }
 
         addLog("Backfill completed successfully.");
+
+        // Create persistent log
+        await createImportLog({
+            type: 'MANUAL_SYNC',
+            status: 'SUCCESS',
+            filename: 'Sincronización de Historial de Estados',
+            totalRows: tickets.length + proposals.length,
+            processedCount: tickets.length + proposals.length,
+            errors: JSON.stringify(debugLogs)
+        });
+
         return { success: true, logs: debugLogs };
     } catch (error: any) {
         addLog(`[ERROR] ${error.message}`);
+
+        await createImportLog({
+            type: 'MANUAL_SYNC',
+            status: 'ERROR',
+            filename: 'Sincronización de Historial de Estados',
+            totalRows: 0,
+            processedCount: 0,
+            errors: JSON.stringify(debugLogs)
+        });
+
         return { success: false, error: error.message, logs: debugLogs };
     }
 }

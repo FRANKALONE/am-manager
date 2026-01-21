@@ -4,67 +4,42 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    LineChart, Line, Legend, Cell, PieChart, Pie, AreaChart, Area
+    Legend, Cell, PieChart, Pie, AreaChart, Area
 } from "recharts";
 import {
     Activity, TrendingUp, CheckCircle2, Clock, FileText, Users,
-    ArrowUpRight, ArrowDownRight, Filter, Download, Calendar, Briefcase
+    ArrowUpRight, ArrowDownRight, Filter, Download, Calendar, Briefcase,
+    BarChart3, PieChart as PieChartIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
 interface Props {
-    currentData: any;
-    previousData: any;
-    year: number;
-    allClients: any[];
-    selectedClientId?: string;
+    report: any; // Result from getAmManagementReport
 }
 
-export function AmDashboardView({ currentData, previousData, year, allClients, selectedClientId }: Props) {
+export function AmDashboardView({ report }: Props) {
     const router = useRouter();
+    const { year, current, previous, monthly, topClientsCount, topClientsVolume, topClientsRatio, clients } = report;
 
-    // Process Data logic
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const chartData = monthly.map((m: any) => ({
+        ...m,
+        name: months[m.month - 1]
+    }));
 
-    const getMonthlyData = (data: any) => {
-        return months.map((month, index) => {
-            const m = index + 1;
-            const created = data.tickets.filter((t: any) => new Date(t.createdDate).getMonth() + 1 === m).length;
-            const delivered = data.transitions.filter((h: any) =>
-                h.type === 'TICKET' &&
-                h.status === 'ENTREGADO EN PRO' &&
-                new Date(h.transitionDate).getMonth() + 1 === m
-            ).length;
-
-            return { name: month, creados: created, entregados: delivered };
-        });
-    };
-
-    const currentMonthly = getMonthlyData(currentData);
-    const prevMonthly = getMonthlyData(previousData);
-
-    const totalCreados = currentData.tickets.length;
-    const totalEntregados = currentData.transitions.filter((h: any) => h.type === 'TICKET' && h.status === 'ENTREGADO EN PRO').length;
-
-    const prevTotalCreados = previousData.tickets.length;
-    const prevTotalEntregados = previousData.transitions.filter((h: any) => h.type === 'TICKET' && h.status === 'ENTREGADO EN PRO').length;
-
-    const calcTrend = (curr: number, prev: number) => {
-        if (prev === 0) return 0;
+    const calcPercentChange = (curr: number, prev: number) => {
+        if (!prev) return 0;
         return ((curr - prev) / prev) * 100;
     };
-
-    const creadosTrend = calcTrend(totalCreados, prevTotalCreados);
-    const entregadosTrend = calcTrend(totalEntregados, prevTotalEntregados);
 
     return (
         <div className="space-y-8 pb-12">
             {/* Header / Filters */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Análisis Operativo {year}</h2>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Cuadro de Mando AM {year}</h2>
                     <p className="text-slate-500 text-sm font-medium italic">Referencia año anterior: {year - 1}</p>
                 </div>
 
@@ -85,7 +60,7 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                         </SelectContent>
                     </Select>
 
-                    <Select value={selectedClientId || "all"} onValueChange={(v) => {
+                    <Select onValueChange={(v) => {
                         const params = new URLSearchParams(window.location.search);
                         if (v === "all") params.delete('clientId');
                         else params.set('clientId', v);
@@ -97,33 +72,52 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos los Clientes</SelectItem>
-                            {allClients.map(c => (
+                            {clients.map((c: any) => (
                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-
-                    <Button variant="outline" className="rounded-xl font-bold gap-2">
-                        <Download className="w-4 h-4" />
-                        Exportar
-                    </Button>
                 </div>
             </div>
 
-            {/* KPI Cards */}
+            {/* KPI Cards (Metrics 1, 2, 3, 6) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { title: "Tickets Creados", value: totalCreados, trend: creadosTrend, icon: FileText, color: "blue", desc: "Altas totales" },
-                    { title: "Entregas en PRO", value: totalEntregados, trend: entregadosTrend, icon: CheckCircle2, color: "emerald", desc: "Pasos a producción" },
-                    { title: "Horas Vendidas", value: currentData.worklogs.reduce((s: any, w: any) => s + w.timeSpentHours, 0).toFixed(1), trend: 0, icon: Briefcase, color: "amber", desc: "Total facturable" },
-                    { title: "Ratio Aceptación", value: "85%", trend: 5, icon: TrendingUp, color: "indigo", desc: "Propuestas aprobadas" }
+                    {
+                        title: "Evolutivos Creados",
+                        value: current.ticketsCount,
+                        trend: calcPercentChange(current.ticketsCount, previous.ticketsCount),
+                        icon: FileText, color: "blue",
+                        desc: "Tickets tipo Evolutivo"
+                    },
+                    {
+                        title: "Entregas en PRO",
+                        value: current.deliveredCount,
+                        trend: calcPercentChange(current.deliveredCount, previous.deliveredCount),
+                        icon: CheckCircle2, color: "emerald",
+                        desc: "Estado 'Entregado en PRO'"
+                    },
+                    {
+                        title: "Evolutivo Medio",
+                        value: current.avgHours.toFixed(1) + " j",
+                        trend: calcPercentChange(current.avgHours, previous.avgHours),
+                        icon: Briefcase, color: "amber",
+                        desc: "Jornadas estimadas/ticket"
+                    },
+                    {
+                        title: "Ratio Aceptación",
+                        value: current.acceptanceRatio.toFixed(0) + "%",
+                        trend: 0,
+                        icon: TrendingUp, color: "indigo",
+                        desc: "Aprobadas vs Enviadas"
+                    }
                 ].map((kpi, i) => (
                     <Card key={i} className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 overflow-hidden relative group">
                         <div className={`absolute -right-4 -top-4 p-6 opacity-[0.03] group-hover:scale-150 transition-transform duration-700 text-${kpi.color}-600`}>
                             <kpi.icon className="w-20 h-20" />
                         </div>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">{kpi.title}</CardTitle>
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">{kpi.title}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-1 tracking-tight">{kpi.value}</div>
@@ -134,7 +128,29 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                                         {Math.abs(kpi.trend).toFixed(1)}%
                                     </div>
                                 )}
-                                <span className="text-[10px] font-medium text-slate-400">{kpi.desc}</span>
+                                <span className="text-[10px] font-medium text-slate-400 italic">{kpi.desc}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Metrics 4, 5, 7 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { title: "Ofertas Solicitadas", value: current.proposalsRequested, icon: Clock, desc: "Basado en creación" },
+                    { title: "Ofertas Enviadas", value: current.proposalsSent, icon: Activity, desc: "Enviado a Gerente/Cliente" },
+                    { title: "Ratio Envío/Solicitud", value: current.sentVsRequestedRatio.toFixed(1) + "%", icon: BarChart3, desc: "Procesamiento de preventa" }
+                ].map((kpi, i) => (
+                    <Card key={i} className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 bg-slate-50/50">
+                        <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-500 uppercase">{kpi.title}</p>
+                                    <h3 className="text-2xl font-black text-slate-800 mt-1">{kpi.value}</h3>
+                                    <p className="text-[10px] text-slate-400 mt-1">{kpi.desc}</p>
+                                </div>
+                                <kpi.icon className="w-8 h-8 text-slate-200" />
                             </div>
                         </CardContent>
                     </Card>
@@ -143,18 +159,18 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
 
             {/* Main Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 1. Evolución Mensual de Producción */}
-                <Card className="border-none shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-200 dark:ring-slate-800">
+                {/* Evolución Mensual (Metrics 1, 2, 4, 5 desglosadas) */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <Activity className="w-5 h-5 text-indigo-500" />
-                            Evolución Mensual de Producción
+                            Evolución Evolutivos y Producción
                         </CardTitle>
-                        <CardDescription>Comparativa entre altas de tickets y entregas certificadas en PRO</CardDescription>
+                        <CardDescription>Tickets creados vs Entregas PRO (Mensual)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={currentMonthly}>
+                            <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="colorAltas" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
@@ -171,7 +187,7 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                                 <Tooltip
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                                 />
-                                <Area type="monotone" dataKey="creados" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAltas)" name="Creados" />
+                                <Area type="monotone" dataKey="creados" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAltas)" name="Creados (Evolutivos)" />
                                 <Area type="monotone" dataKey="entregados" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPRO)" name="Entregados PRO" />
                                 <Legend verticalAlign="top" height={36} iconType="circle" />
                             </AreaChart>
@@ -179,24 +195,24 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                     </CardContent>
                 </Card>
 
-                {/* 2. Comparativa Interanual de Actividad */}
-                <Card className="border-none shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-200 dark:ring-slate-800">
+                {/* Evolución Preventa */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
-                            <TrendingUp className="w-5 h-5 text-emerald-500" />
-                            Ritmo de Creación vs Año Anterior
+                            <Clock className="w-5 h-5 text-emerald-500" />
+                            Evolución de Ofertas (Preventa)
                         </CardTitle>
-                        <CardDescription>Seguimiento de madurez del pool de peticiones</CardDescription>
+                        <CardDescription>Solicitadas vs Enviadas (Mensual)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={currentMonthly.map((m, i) => ({ ...m, p: prevMonthly[i].creados }))}>
+                            <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} />
                                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none' }} />
-                                <Bar dataKey="p" fill="#CBD5E1" radius={[4, 4, 0, 0]} name={`${year - 1}`} />
-                                <Bar dataKey="creados" fill="#6366f1" radius={[4, 4, 0, 0]} name={`${year}`} />
+                                <Bar dataKey="requested" fill="#CBD5E1" radius={[4, 4, 0, 0]} name="Solicitadas" />
+                                <Bar dataKey="sent" fill="#6366f1" radius={[4, 4, 0, 0]} name="Enviadas" />
                                 <Legend verticalAlign="top" height={36} iconType="circle" />
                             </BarChart>
                         </ResponsiveContainer>
@@ -204,68 +220,77 @@ export function AmDashboardView({ currentData, previousData, year, allClients, s
                 </Card>
             </div>
 
+            {/* Metrics 8, 9, 10 */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 3. Top Clientes por Actividad */}
-                <Card className="lg:col-span-1 border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
+                {/* Metric 8: Top 10 Clientes por Ejecución */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
                     <CardHeader>
-                        <CardTitle className="text-lg">Top 5 Clientes (Evolutivos)</CardTitle>
-                        <CardDescription>Clientes con mayor volumen este año</CardDescription>
+                        <CardTitle className="text-lg">Top 10 Clientes (Ejecución)</CardTitle>
+                        <CardDescription>Por nº de evolutivos creados</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-6">
-                            {/* Dummy data for top clients logic */}
-                            {[
-                                { name: "VISCOFAN", val: 42, color: "bg-blue-500" },
-                                { name: "UAX", val: 35, color: "bg-indigo-500" },
-                                { name: "OESÍA", val: 28, color: "bg-emerald-500" },
-                                { name: "VIROQUE", val: 15, color: "bg-amber-500" },
-                                { name: "SDG", val: 12, color: "bg-purple-500" }
-                            ].map((c, i) => (
-                                <div key={i} className="space-y-2">
-                                    <div className="flex justify-between text-sm font-bold">
-                                        <span>{c.name}</span>
-                                        <span className="text-slate-400">{c.val} tickets</span>
+                        <div className="space-y-4">
+                            {topClientsCount.map((c: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <span className="text-xs font-black text-slate-300 w-4">{i + 1}</span>
+                                        <span className="text-sm font-bold text-slate-700 truncate">{c.name}</span>
                                     </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className={`h-full ${c.color} rounded-full`} style={{ width: `${(c.val / 42) * 100}%` }} />
-                                    </div>
+                                    <span className="text-xs font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded">{c.ticketsCount}</span>
                                 </div>
                             ))}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* 4. Embudos de Propuesta y Más */}
-                <Card className="lg:col-span-2 border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
+                {/* Metric 9: Top 10 Clientes por Volumen */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
                     <CardHeader>
-                        <CardTitle className="text-lg">Producción AM por Tipología</CardTitle>
-                        <CardDescription>Distribución de carga de trabajo por tipo de petición</CardDescription>
+                        <CardTitle className="text-lg">Top 10 Clientes (Volumen)</CardTitle>
+                        <CardDescription>Por jornadas hoy firmadas</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={[
-                                        { name: 'Evolutivos', value: 60 },
-                                        { name: 'Correctivos', value: 25 },
-                                        { name: 'Consultas', value: 15 },
-                                    ]}
-                                    innerRadius={80}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {[0, 1, 2].map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#6366f1', '#10b981', '#f59e0b'][index % 3]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topClientsVolume.map((c: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <span className="text-xs font-black text-slate-300 w-4">{i + 1}</span>
+                                        <span className="text-sm font-bold text-slate-700 truncate">{c.name}</span>
+                                    </div>
+                                    <span className="text-xs font-black bg-amber-50 text-amber-600 px-2 py-1 rounded">{c.volume.toFixed(1)} j</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Metric 10: Ratio Aceptación por Cliente */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-800">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Aceptación por Cliente</CardTitle>
+                        <CardDescription>Ratio propuestas Aprobadas vs Solicitadas</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topClientsRatio.map((c: any, i: number) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex justify-between text-sm font-bold">
+                                        <span className="truncate max-w-[150px]">{c.name}</span>
+                                        <span className="text-emerald-600">{c.acceptanceRatio.toFixed(0)}%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                            style={{ width: `${c.acceptanceRatio}%` } as React.CSSProperties}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
         </div>
     );
 }
+

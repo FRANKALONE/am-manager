@@ -61,15 +61,28 @@ export function BulkSyncHistoryManager() {
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                     {t('import.historySync.toast.success')}
                                 </p>
-                                <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="h-auto p-0 text-amber-600 w-fit text-xs"
-                                    onClick={() => setShowLogs(!showLogs)}
-                                >
-                                    <ScrollText className="w-3 h-3 mr-1" />
-                                    {showLogs ? "Ocultar detalles" : "Ver detalles del proceso"}
-                                </Button>
+                                <div className="flex gap-3">
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto p-0 text-amber-600 w-fit text-xs"
+                                        onClick={() => setShowLogs(!showLogs)}
+                                    >
+                                        <ScrollText className="w-3 h-3 mr-1" />
+                                        {showLogs ? "Ocultar detalles" : "Ver detalles del proceso"}
+                                    </Button>
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto p-0 text-slate-500 w-fit text-xs italic"
+                                        onClick={() => {
+                                            const historySection = document.getElementById('import-history');
+                                            if (historySection) historySection.scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                    >
+                                        Ver en Historial de Importaciones
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>

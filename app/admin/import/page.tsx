@@ -57,7 +57,7 @@ export default async function ImportPage() {
             <ImportManager />
 
             {/* Historial de Importaciones */}
-            <div className="px-4 pb-12">
+            <div id="import-history" className="px-4 pb-12">
                 <ImportHistory />
             </div>
         </div>
