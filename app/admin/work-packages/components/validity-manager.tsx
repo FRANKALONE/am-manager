@@ -56,7 +56,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 newPeriod.regularizationType,
                 newPeriod.regularizationRate,
                 null, // surplusStrategy removed
-                newPeriod.rateEvolutivo
+                newPeriod.rateEvolutivo,
+                newPeriod.billingType
             );
             // Reset form
             setNewPeriod({
@@ -89,7 +90,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             regularizationType: p.regularizationType || null,
             regularizationRate: p.regularizationRate || null,
             surplusStrategy: p.surplusStrategy || null,
-            rateEvolutivo: p.rateEvolutivo || null
+            rateEvolutivo: p.rateEvolutivo || null,
+            billingType: p.billingType || "MENSUAL"
         });
     }
 
@@ -113,7 +115,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 editPeriod.regularizationType,
                 editPeriod.regularizationRate,
                 editPeriod.surplusStrategy,
-                editPeriod.rateEvolutivo
+                editPeriod.rateEvolutivo,
+                editPeriod.billingType
             );
             setEditingId(null);
             setEditPeriod(null);
@@ -316,6 +319,7 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                     <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.rate')}</th>
                                     <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.premium')}</th>
                                     <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.regularization')}</th>
+                                    <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.billingType')}</th>
                                     <th className="px-3 py-2 text-left font-medium">{t('workPackages.validity.tableHeader.surplus')}</th>
                                     <th className="px-3 py-2 text-right font-medium">{t('workPackages.validity.tableHeader.actions')}</th>
                                 </tr>
@@ -408,6 +412,22 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                     <div className="text-xs">
                                                         <div>{data.regularizationType || "-"}</div>
                                                         {data.regularizationRate && <div className="text-muted-foreground">{data.regularizationRate} €/h</div>}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <Select value={data.billingType || "MENSUAL"} onValueChange={(value) => setEditPeriod({ ...editPeriod, billingType: value })}>
+                                                        <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
+                                                            <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
+                                                            <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : (
+                                                    <div className="text-xs">
+                                                        {data.billingType || "MENSUAL"}
                                                     </div>
                                                 )}
                                             </td>

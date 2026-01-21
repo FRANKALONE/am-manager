@@ -210,6 +210,11 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
         // Continue without Account ID - will use slow sync method
     }
 
+    const existingWp = await prisma.workPackage.findUnique({ where: { id } });
+    if (existingWp) {
+        return { error: t('errors.alreadyExists', { item: 'ID WP' }) + " (" + id + ")" };
+    }
+
     try {
         // If this is marked as Main WP, unmark others for the same client
         if (isMainWP) {
@@ -256,7 +261,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                         regularizationType: regularizationType || null,
                         regularizationRate,
                         surplusStrategy: surplusStrategy || null,
-                        rateEvolutivo
+                        rateEvolutivo,
+                        billingType: billingType || null
                     }
                 } : undefined
             },
@@ -264,7 +270,7 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
     } catch (error) {
         console.error(error);
         const { t } = await getTranslations();
-        return { error: t('errors.createError', { item: 'WP' }) + ". " + t('errors.alreadyExists', { item: 'ID' }) };
+        return { error: t('errors.createError', { item: 'WP' }) };
     }
 
     revalidatePath("/admin/work-packages");
@@ -285,6 +291,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const renewalNotes = formData.get("renewalNotes")?.toString();
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
     const oldWpId = formData.get("oldWpId")?.toString();
+    const tempoIdFromForm = formData.get("id")?.toString(); // WP ID itself
 
     // Checkboxes in HTML form only send a value if they are checked.
     // If they are not checked, they are absent from formData.
@@ -396,14 +403,26 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             tempoAccountId: tempoAccountId !== undefined ? tempoAccountId : undefined
         };
 
+        // If ID (WP ID) has changed, update it too
+        if (tempoIdFromForm && tempoIdFromForm !== id) {
+            const checkExisting = await prisma.workPackage.findUnique({ where: { id: tempoIdFromForm } });
+            if (checkExisting) {
+                return { error: t('errors.alreadyExists', { item: 'ID WP' }) + " (" + tempoIdFromForm + ")" };
+            }
+            wpUpdateData.id = tempoIdFromForm;
+        }
+
         // Remove undefined keys
         Object.keys(wpUpdateData).forEach(key => wpUpdateData[key] === undefined && delete wpUpdateData[key]);
 
         // Update WorkPackage fields
-        await prisma.workPackage.update({
+        const updatedWP = await prisma.workPackage.update({
             where: { id },
             data: wpUpdateData
         });
+
+        // Use the new ID for subsequent operations if it changed
+        const effectiveId = updatedWP.id;
 
         // Update the current ValidityPeriod if period fields are present
         if (existingWP?.validityPeriods?.[0] && (totalQuantity || scopeUnit || rate !== undefined || isPremium !== undefined)) {
@@ -423,6 +442,8 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             if (periodEndDateStr) periodUpdateData.endDate = new Date(periodEndDateStr);
 
             if (Object.keys(periodUpdateData).length > 0) {
+                if (formData.has("billingType")) periodUpdateData.billingType = billingType;
+
                 await prisma.validityPeriod.update({
                     where: { id: currentPeriod.id },
                     data: periodUpdateData
@@ -431,17 +452,20 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         }
 
         console.log("WP Update Success");
+        revalidatePath("/admin/work-packages");
+        // If ID changed, we need to redirect to the new URL if it exists
+        const isIdChanged = tempoIdFromForm && tempoIdFromForm !== id;
+        const finalRedirectUrl = isIdChanged ? (returnUrl ? returnUrl.replace(id, effectiveId) : `/admin/work-packages/${effectiveId}/edit`) : returnUrl;
+
+        console.log("Redirecting to:", finalRedirectUrl || "/admin/work-packages");
+        redirect(finalRedirectUrl || "/admin/work-packages");
     } catch (error) {
+        if ((error as any).digest?.startsWith('NEXT_REDIRECT')) throw error;
         console.error("WP Update Error:", error);
         const { t } = await getTranslations();
         return { error: t('errors.updateError', { item: 'WP' }) };
     }
-
-    revalidatePath("/admin/work-packages");
-    console.log("Redirecting to:", returnUrl || "/admin/work-packages");
-    redirect(returnUrl || "/admin/work-packages");
 }
-
 
 export async function deleteWorkPackage(id: string) {
     if (!await canAccessWP(id)) {
@@ -470,7 +494,8 @@ export async function addValidityPeriod(
     regularizationType: string | null,
     regularizationRate: number | null,
     surplusStrategy: string | null,
-    rateEvolutivo: number | null
+    rateEvolutivo: number | null,
+    billingType: string | null
 ) {
     try {
         await prisma.validityPeriod.create({
@@ -486,7 +511,8 @@ export async function addValidityPeriod(
                 regularizationType,
                 regularizationRate,
                 surplusStrategy,
-                rateEvolutivo
+                rateEvolutivo,
+                billingType
             }
         });
 
@@ -519,7 +545,8 @@ export async function updateValidityPeriod(
     regularizationType: string | null,
     regularizationRate: number | null,
     surplusStrategy: string | null,
-    rateEvolutivo: number | null
+    rateEvolutivo: number | null,
+    billingType: string | null
 ) {
     try {
         const vp = await prisma.validityPeriod.update({
@@ -535,7 +562,8 @@ export async function updateValidityPeriod(
                 regularizationType,
                 regularizationRate,
                 surplusStrategy,
-                rateEvolutivo
+                rateEvolutivo,
+                billingType
             }
         });
         revalidatePath(`/admin/work-packages/${vp.workPackageId}/edit`);

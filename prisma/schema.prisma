@@ -90,7 +90,7 @@ model Regularization {
   createdByName         String?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
-  workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage           WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model User {
@@ -156,7 +156,7 @@ model ValidityPeriod {
   surplusStrategy    String?
   rateEvolutivo      Float?
   billingType        String?
-  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model CorrectionModel {
@@ -181,7 +181,7 @@ model WPCorrection {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   correctionModel   CorrectionModel @relation(fields: [correctionModelId], references: [id])
-  workPackage       WorkPackage     @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage       WorkPackage     @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model MonthlyMetric {
@@ -192,7 +192,7 @@ model MonthlyMetric {
   consumedHours Float       @default(0.0)
   reportSentAt  DateTime?
   reportSentBy  String?
-  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage   WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([workPackageId, year, month])
 }
@@ -212,7 +212,7 @@ model WorklogDetail {
   originWpId       String?
   issueCreatedDate DateTime?
   billingMode      String?
-  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage      WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([workPackageId, year, month])
 }
@@ -242,7 +242,7 @@ model Ticket {
   component         String?
   clientJiraId      String?      // Client-specific JIRA ID (for FAIN, MOLECOR, etc.)
   proDeliveryDate  DateTime?    // Date when status changed to "ENTREGADO EN PRO"
-  workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([workPackageId, issueKey])
   @@index([workPackageId, year, month])
@@ -277,7 +277,7 @@ model ReviewRequest {
   reviewedAt      DateTime?
   reviewedByUser  User?       @relation("ReviewedRequests", fields: [reviewedBy], references: [id])
   requestedByUser User        @relation("RequestedReviews", fields: [requestedBy], references: [id])
-  workPackage     WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  workPackage     WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([workPackageId, status])
   @@index([requestedBy])

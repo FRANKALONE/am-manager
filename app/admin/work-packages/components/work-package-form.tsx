@@ -135,19 +135,36 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                     <CardDescription>Información general del WP que se mantiene a través de todos los periodos</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Nombre WP</Label>
-                        <Input id="name" name="name" defaultValue={wp.name} required />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="id">ID de WP</Label>
+                            <Input id="id" name="id" defaultValue={wp.id} required maxLength={20} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nombre WP</Label>
+                            <Input id="name" name="name" defaultValue={wp.name} required />
+                        </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="contractType">Tipo de Contrato</Label>
-                        <Select name="contractType" defaultValue={wp.contractType}>
-                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                            <SelectContent>
-                                {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="contractType">Tipo de Contrato</Label>
+                            <Select name="contractType" defaultValue={wp.contractType}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                <SelectContent>
+                                    {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="billingType">Tipo de Facturación</Label>
+                            <Select name="billingType" defaultValue={wp.billingType}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                <SelectContent>
+                                    {billingTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="space-y-2">
