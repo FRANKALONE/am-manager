@@ -1734,12 +1734,31 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
                         });
                     }
 
-                    // If it's the specific status we care about for quick lookups, update the Ticket table
+                    // If it's the specific status we care about for quick lookups, update the corresponding table
                     if (type === 'TICKET' && statusName === 'ENTREGADO EN PRO') {
                         await (prisma as any).ticket.updateMany({
                             where: { issueKey },
                             data: { proDeliveryDate: transitionDate }
                         });
+                    } else if (type === 'PROPOSAL') {
+                        if (statusName === 'Enviado a Gerente') {
+                            await (prisma as any).evolutivoProposal.updateMany({
+                                where: { issueKey },
+                                data: { sentToGerenteDate: transitionDate }
+                            });
+                        } else if (statusName === 'Enviado a Cliente') {
+                            await (prisma as any).evolutivoProposal.updateMany({
+                                where: { issueKey },
+                                data: { sentToClientDate: transitionDate }
+                            });
+                        } else if (statusName === 'CERRADO') {
+                            // Only update approvedDate if the current resolution is 'Aprobada'
+                            // We use updateMany with the resolution filter to be safe
+                            await (prisma as any).evolutivoProposal.updateMany({
+                                where: { issueKey, resolution: 'Aprobada' },
+                                data: { approvedDate: transitionDate }
+                            });
+                        }
                     }
                 }
             }

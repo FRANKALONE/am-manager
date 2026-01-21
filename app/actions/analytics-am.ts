@@ -63,21 +63,29 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             // Metrics for tickets
             const evolutivosCreados = tickets.filter(t => t.issueType === 'Evolutivo');
 
-            // Metric 2: Entregados en PRO (Historical status check)
+            // Metric 2: Entregados en PRO (Historical status check for ALL tickets)
             const proTransitions = await (prisma as any).ticketStatusHistory.findMany({
                 where: {
                     type: 'TICKET',
                     status: 'ENTREGADO EN PRO',
-                    transitionDate: { gte: start, lte: end },
-                    issueKey: { in: tickets.map(t => t.issueKey) } // Optimization: only check transitions for tickets in this year
+                    transitionDate: { gte: start, lte: end }
                 }
             });
 
-            // Map transitions back to ticket types
-            const evolutivosEntregadosPro = proTransitions.filter((tr: any) => {
-                const ticket = tickets.find(t => t.issueKey === tr.issueKey);
-                return ticket && ticket.issueType === 'Evolutivo';
+            // Map transitions back to ticket types and filter by client
+            const proIssueKeys = proTransitions.map((tr: any) => tr.issueKey);
+            const proTickets = await prisma.ticket.findMany({
+                where: {
+                    issueKey: { in: proIssueKeys },
+                    issueType: 'Evolutivo',
+                    workPackage: { clientId: { in: clientsListIds } }
+                }
             });
+
+            // Map transitions back to found tickets to keep the transition date for monthly breakdown correctly
+            const evolutivosEntregadosPro = proTransitions.filter((tr: any) =>
+                proTickets.some(t => t.issueKey === tr.issueKey)
+            );
 
             // Metric 3: Evolutivo Medio (Hours)
             const facturableEvolutivos = evolutivosCreados.filter(t =>
@@ -86,7 +94,9 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 t.workPackage.contractType === 'EVOLUTIVOS'
             );
             const totalEstimatedHours = facturableEvolutivos.reduce((sum, t) => sum + (t.originalEstimate || 0), 0);
-            const avgEstimatedHours = facturableEvolutivos.length > 0 ? totalEstimatedHours / facturableEvolutivos.length : 0;
+            // 1 journal = 8 hours
+            const avgEstimatedHours = facturableEvolutivos.length > 0 ? (totalEstimatedHours / facturableEvolutivos.length) / 8 : 0;
+            const totalEstimatedJournals = totalEstimatedHours / 8;
 
             // PROPOSALS (Metric 4, 5, 6, 7, 9, 10)
             const proposals = await (prisma as any).evolutivoProposal.findMany({
@@ -96,36 +106,54 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 }
             });
 
-            // Metric 5: Ofertas Enviadas (Sent to Gerente or Sent to Client dates)
+            // Metric 5: Ofertas Enviadas (Using transitions to be more reliable)
+            const sentTransitions = await (prisma as any).ticketStatusHistory.findMany({
+                where: {
+                    type: 'PROPOSAL',
+                    status: { in: ['Enviado a Gerente', 'Enviado a Cliente'] },
+                    transitionDate: { gte: start, lte: end }
+                }
+            });
+            const sentProposalKeys = sentTransitions.map((tr: any) => tr.issueKey);
             const sentProposals = await (prisma as any).evolutivoProposal.findMany({
                 where: {
-                    clientId: { in: clientsListIds },
-                    OR: [
-                        { sentToGerenteDate: { gte: start, lte: end } },
-                        { sentToClientDate: { gte: start, lte: end } }
-                    ]
+                    issueKey: { in: sentProposalKeys },
+                    clientId: { in: clientsListIds }
                 }
             });
+            // Match transitions back to filter by client
+            const filteredSentTransitions = sentTransitions.filter((tr: any) =>
+                sentProposals.some((p: any) => p.issueKey === tr.issueKey)
+            );
 
-            // Metric 6: Ofertas Aprobadas (CERRADO + Aprobada + Link to Ticket)
+            // Metric 6: Ofertas Aprobadas (Transitions to CERRADO + resolution study)
+            const closedTransitions = await (prisma as any).ticketStatusHistory.findMany({
+                where: {
+                    type: 'PROPOSAL',
+                    status: 'CERRADO',
+                    transitionDate: { gte: start, lte: end }
+                }
+            });
+            const closedProposalKeys = closedTransitions.map((tr: any) => tr.issueKey);
             const approvedProposals = await (prisma as any).evolutivoProposal.findMany({
                 where: {
+                    issueKey: { in: closedProposalKeys },
                     clientId: { in: clientsListIds },
-                    status: 'CERRADO',
-                    resolution: 'Aprobada',
-                    // Note: original code had ticketId: { not: null }, but schema says relatedTickets is a string or linked dynamically. 
-                    // Let's check status/resolution which are primary indicators.
-                    approvedDate: { gte: start, lte: end }
+                    resolution: 'Aprobada'
                 }
             });
+            // Match transitions back
+            const filteredApprovedTransitions = closedTransitions.filter((tr: any) =>
+                approvedProposals.some((p: any) => p.issueKey === tr.issueKey)
+            );
 
             return {
                 tickets: evolutivosCreados,
                 delivered: evolutivosEntregadosPro,
                 avgHours: avgEstimatedHours,
-                totalHours: totalEstimatedHours,
+                totalHours: totalEstimatedJournals,
                 proposalsRequested: proposals,
-                proposalsSent: sentProposals,
+                proposalsSent: filteredSentTransitions,
                 proposalsApproved: approvedProposals,
                 rawTickets: tickets
             };
