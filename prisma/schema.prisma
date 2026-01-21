@@ -155,6 +155,7 @@ model ValidityPeriod {
   regularizationType String?
   surplusStrategy    String?
   rateEvolutivo      Float?
+  billingType        String?
   workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 

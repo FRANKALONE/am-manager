@@ -6,10 +6,13 @@ import { getHistorySyncStatus, setHistorySyncStatus, HistorySyncJobStatus } from
 
 export async function startHistorySync() {
     try {
-        // Get all unsynced tickets and proposals
+        // Get all unsynced tickets and proposals (ONLY Evolutivos for tickets)
         const unsyncedTickets = await (prisma as any).ticket.findMany({
             select: { issueKey: true },
-            where: { proDeliveryDate: null },
+            where: {
+                proDeliveryDate: null,
+                issueType: 'Evolutivo'
+            },
             orderBy: { createdDate: 'desc' }
         });
 
@@ -28,7 +31,7 @@ export async function startHistorySync() {
         const totalRecords = unsyncedTickets.length + unsyncedProposals.length;
 
         if (totalRecords === 0) {
-            return { error: "No records to sync" };
+            return { error: "No hay registros pendientes de sincronización (Evolutivos)." };
         }
 
         // Combine into single array with type info
@@ -62,96 +65,78 @@ export async function startHistorySync() {
 export async function processNextHistoryBatch() {
     try {
         const currentStatus = await getHistorySyncStatus();
-        if (!currentStatus || !currentStatus.isSyncing) return { finished: true };
+        if (!currentStatus || !currentStatus.isSyncing || currentStatus.stopped) {
+            return { finished: true };
+        }
 
-        // Get all records again (in case some were synced externally)
+        const BATCH_SIZE = 50;
+
+        // Get next batch of unsynced records
         const unsyncedTickets = await (prisma as any).ticket.findMany({
             select: { issueKey: true },
-            where: { proDeliveryDate: null },
-            orderBy: { createdDate: 'desc' }
-        });
-
-        const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
-            select: { issueKey: true },
             where: {
-                AND: [
-                    { sentToGerenteDate: null },
-                    { sentToClientDate: null },
-                    { approvedDate: null }
-                ]
+                proDeliveryDate: null,
+                issueType: 'Evolutivo'
             },
-            orderBy: { createdDate: 'desc' }
+            orderBy: { createdDate: 'desc' },
+            take: BATCH_SIZE
         });
 
-        const allRecords = [
-            ...unsyncedTickets.map((t: any) => ({ key: t.issueKey, type: 'TICKET' as const })),
-            ...unsyncedProposals.map((p: any) => ({ key: p.issueKey, type: 'PROPOSAL' as const }))
-        ];
+        let allRecords: { key: string, type: 'TICKET' | 'PROPOSAL' }[] = [];
+
+        if (unsyncedTickets.length > 0) {
+            allRecords = unsyncedTickets.map((t: any) => ({ key: t.issueKey, type: 'TICKET' as const }));
+        } else {
+            // If no tickets, try proposals
+            const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
+                select: { issueKey: true },
+                where: {
+                    AND: [
+                        { sentToGerenteDate: null },
+                        { sentToClientDate: null },
+                        { approvedDate: null }
+                    ]
+                },
+                orderBy: { createdDate: 'desc' },
+                take: BATCH_SIZE
+            });
+            allRecords = unsyncedProposals.map((p: any) => ({ key: p.issueKey, type: 'PROPOSAL' as const }));
+        }
 
         if (allRecords.length === 0) {
             // All done!
             await setHistorySyncStatus({ ...currentStatus, isSyncing: false, progress: 100 });
-
-            await prisma.importLog.create({
-                data: {
-                    type: 'MANUAL_SYNC',
-                    status: 'SUCCESS',
-                    filename: `history_sync_complete_${new Date().toISOString().split('T')[0]}`,
-                    totalRows: currentStatus.results.success + currentStatus.results.errors,
-                    processedCount: currentStatus.results.success,
-                    errors: JSON.stringify({
-                        success: currentStatus.results.success,
-                        errors: currentStatus.results.errors,
-                        executionTime: Date.now() - (currentStatus.startTime || Date.now())
-                    }),
-                    date: new Date()
-                }
-            });
-
             return { finished: true };
         }
 
-        // Process first record
-        const record = allRecords[0];
-
-        // Update status STARTING
+        // Update status for current batch
         await setHistorySyncStatus({
             ...currentStatus,
-            currentKey: record.key,
-            currentType: record.type,
+            currentKey: `${allRecords[0].key} ... ${allRecords[allRecords.length - 1].key}`,
+            currentType: allRecords[0].type,
             lastUpdate: Date.now()
         });
 
-        // Sync the record
-        let success = false;
-        try {
-            await syncTicketHistory(record.key, record.type);
-            success = true;
-        } catch (err: any) {
-            console.error(`[HISTORY_SYNC] Error syncing ${record.type} ${record.key}:`, err);
-        }
+        // Sync the batch using the bulk helper
+        const { syncHistoryInBulk } = require("./sync");
+        await syncHistoryInBulk(allRecords.map(r => r.key), allRecords[0].type);
 
         // Update results
         const updatedStatus = await getHistorySyncStatus();
         if (updatedStatus && updatedStatus.isSyncing) {
             const nextResults = { ...updatedStatus.results };
-            if (success) {
-                nextResults.success++;
-            } else {
-                nextResults.errors++;
-            }
+            nextResults.success += allRecords.length;
 
-            const totalProcessed = nextResults.success + nextResults.errors;
+            const totalProcessed = updatedStatus.currentIdx + allRecords.length;
             const nextStepStatus: HistorySyncJobStatus = {
                 ...updatedStatus,
                 currentIdx: totalProcessed,
-                progress: (totalProcessed / currentStatus.totalRecords) * 100,
+                progress: (totalProcessed / updatedStatus.totalRecords) * 100,
                 results: nextResults,
                 lastUpdate: Date.now()
             };
 
             await setHistorySyncStatus(nextStepStatus);
-
             return { finished: false, status: nextStepStatus };
         }
 

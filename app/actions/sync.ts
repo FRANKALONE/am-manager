@@ -1685,6 +1685,124 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
 }
 
 /**
+ * Helper to fetch Jira changelog for MULTIPLE issues and sync to DB
+ */
+export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'PROPOSAL') {
+    if (!issueKeys || issueKeys.length === 0) return;
+
+    const jiraUrl = process.env.JIRA_URL?.trim();
+    const jiraEmail = process.env.JIRA_USER_EMAIL?.trim();
+    const jiraToken = process.env.JIRA_API_TOKEN?.trim();
+    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+    const https = require('https');
+
+    try {
+        // Build JQL to fetch all issueKeys in this batch
+        const jql = `key in (${issueKeys.map(k => `"${k}"`).join(',')})`;
+
+        const payload = JSON.stringify({
+            jql,
+            maxResults: 100,
+            fields: ['status', 'resolution', 'updated'],
+            expand: ['changelog']
+        });
+
+        const jiraRes: any = await new Promise((resolve, reject) => {
+            const req = https.request(`${jiraUrl}/rest/api/3/search`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }, (res: any) => {
+                let data = '';
+                res.on('data', (c: any) => data += c);
+                res.on('end', () => {
+                    try {
+                        if (res.statusCode === 200) resolve(JSON.parse(data));
+                        else resolve({ issues: [] });
+                    } catch (e) { resolve({ issues: [] }); }
+                });
+            });
+            req.on('error', (e: any) => reject(e));
+            req.write(payload);
+            req.end();
+        });
+
+        if (!jiraRes.issues || jiraRes.issues.length === 0) return;
+
+        for (const issue of jiraRes.issues) {
+            const issueKey = issue.key;
+            const changelog = issue.changelog;
+            const currentResolution = issue.fields?.resolution?.name;
+
+            if (changelog && changelog.values) {
+                // Filter for relevant statuses only to save time
+                const relevantStatuses = type === 'TICKET'
+                    ? ['ENTREGADO EN PRO']
+                    : ['Enviado a Gerente', 'Enviado a Cliente', 'CERRADO'];
+
+                for (const history of changelog.values) {
+                    const statusItems = history.items.filter((item: any) =>
+                        item.field === 'status' && relevantStatuses.includes(item.toString)
+                    );
+
+                    for (const item of statusItems) {
+                        const statusName = item.toString;
+                        const transitionDate = new Date(history.created);
+
+                        // Update main record dates
+                        if (type === 'TICKET' && statusName === 'ENTREGADO EN PRO') {
+                            await (prisma as any).ticket.updateMany({
+                                where: { issueKey },
+                                data: { proDeliveryDate: transitionDate }
+                            });
+                        } else if (type === 'PROPOSAL') {
+                            if (statusName === 'Enviado a Gerente') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { sentToGerenteDate: transitionDate }
+                                });
+                            } else if (statusName === 'Enviado a Cliente') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { sentToClientDate: transitionDate }
+                                });
+                            } else if (statusName === 'CERRADO' && currentResolution === 'Aprobada') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { approvedDate: transitionDate }
+                                });
+                            }
+                        }
+
+                        // Also save to history table for the report granularity
+                        const existing = await (prisma as any).ticketStatusHistory.findFirst({
+                            where: { issueKey, type, status: statusName, transitionDate }
+                        });
+
+                        if (!existing) {
+                            await (prisma as any).ticketStatusHistory.create({
+                                data: {
+                                    issueKey,
+                                    type,
+                                    status: statusName,
+                                    transitionDate,
+                                    author: history.author?.displayName || 'Unknown'
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error(`Error syncing history in bulk:`, e);
+    }
+}
+
+/**
  * Helper to fetch Jira changelog and sync status history to DB
  */
 export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROPOSAL') {
