@@ -1788,15 +1788,21 @@ export async function backfillHistoryData() {
         let ticketErrors = 0;
         let proposalErrors = 0;
 
-        // 1. Fetch all tickets
+        // IMPORTANT: Process only a limited number to avoid timeout
+        const MAX_TICKETS = 100;
+        const MAX_PROPOSALS = 50;
+
+        // 1. Fetch limited tickets
         const tickets = await prisma.ticket.findMany({
-            select: { issueKey: true }
+            select: { issueKey: true },
+            take: MAX_TICKETS,
+            orderBy: { createdDate: 'desc' }
         });
-        addLog(`Found ${tickets.length} tickets to process.`);
+        addLog(`Found ${tickets.length} recent tickets to process (limited to ${MAX_TICKETS}).`);
 
         for (let i = 0; i < tickets.length; i++) {
             const ticket = tickets[i];
-            if (i % 50 === 0) addLog(`Processing ticket ${i + 1}/${tickets.length}...`);
+            if (i % 10 === 0) addLog(`Processing ticket ${i + 1}/${tickets.length}...`);
             try {
                 await syncTicketHistory(ticket.issueKey, 'TICKET');
             } catch (err: any) {
@@ -1805,15 +1811,17 @@ export async function backfillHistoryData() {
             }
         }
 
-        // 2. Fetch all proposals
+        // 2. Fetch limited proposals
         const proposals = await (prisma as any).evolutivoProposal.findMany({
-            select: { issueKey: true }
+            select: { issueKey: true },
+            take: MAX_PROPOSALS,
+            orderBy: { createdDate: 'desc' }
         });
-        addLog(`Found ${proposals.length} proposals to process.`);
+        addLog(`Found ${proposals.length} recent proposals to process (limited to ${MAX_PROPOSALS}).`);
 
         for (let i = 0; i < proposals.length; i++) {
             const proposal = proposals[i];
-            if (i % 10 === 0) addLog(`Processing proposal ${i + 1}/${proposals.length}...`);
+            if (i % 5 === 0) addLog(`Processing proposal ${i + 1}/${proposals.length}...`);
             try {
                 await syncTicketHistory(proposal.issueKey, 'PROPOSAL');
             } catch (err: any) {
@@ -1823,20 +1831,23 @@ export async function backfillHistoryData() {
         }
 
         addLog(`Backfill completed. Tickets processed: ${tickets.length - ticketErrors}/${tickets.length}, Proposals processed: ${proposals.length - proposalErrors}/${proposals.length}`);
+        addLog(`NOTE: This is a limited sync. Run multiple times to process all records.`);
 
         // Create persistent log
         await createImportLog({
             type: 'MANUAL_SYNC',
             status: 'SUCCESS',
-            filename: 'Sincronización de Historial de Estados',
+            filename: 'Sincronización de Historial de Estados (Parcial)',
             totalRows: tickets.length + proposals.length,
-            processedCount: tickets.length + proposals.length,
+            processedCount: (tickets.length - ticketErrors) + (proposals.length - proposalErrors),
             errors: JSON.stringify(debugLogs)
         });
 
         return { success: true, logs: debugLogs };
     } catch (error: any) {
+        console.error('[backfillHistoryData] CRITICAL ERROR:', error);
         addLog(`[ERROR] ${error.message}`);
+        addLog(`[ERROR STACK] ${error.stack || 'No stack trace'}`);
 
         await createImportLog({
             type: 'MANUAL_SYNC',
