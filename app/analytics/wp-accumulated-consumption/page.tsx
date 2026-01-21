@@ -2,14 +2,17 @@ import { getWpAccumulatedConsumptionReport } from "@/app/actions/analytics";
 import { SharedHeader } from "@/app/components/shared-header";
 import { AdminSidebar } from "@/app/admin/components/sidebar";
 import { WpAccumulatedConsumptionView } from "./wp-accumulated-consumption-view";
+import { getAuthSession } from "@/lib/auth";
 
 export default async function WpAccumulatedConsumptionPage() {
     try {
+        const session = await getAuthSession();
+        const isAdmin = session?.userRole === 'ADMIN';
         const data = await getWpAccumulatedConsumptionReport();
 
         return (
             <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-                <AdminSidebar />
+                {isAdmin && <AdminSidebar />}
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                     <SharedHeader title="Estado de Consumos Acumulados" />
                     <main className="flex-1 overflow-y-auto p-6 scrollbar-thin">

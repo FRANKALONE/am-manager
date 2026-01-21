@@ -19,7 +19,11 @@ export async function getContractValidityData() {
             include: {
                 workPackages: {
                     where: filter.isGlobal ? {} : {
-                        id: { in: filter.wpIds || [] }
+                        OR: [
+                            { id: { in: filter.wpIds || [] } },
+                            { client: { manager: filter.managerId } },
+                            { client: { id: { in: filter.clientIds || [] } } }
+                        ]
                     },
                     include: {
                         validityPeriods: true
@@ -64,8 +68,8 @@ export async function getWpAccumulatedConsumptionReport() {
 
         const wps = await prisma.workPackage.findMany({
             where: filter.isGlobal ? {} : {
-                id: { in: filter.wpIds || [] },
                 OR: [
+                    { id: { in: filter.wpIds || [] } },
                     { client: { id: { in: filter.clientIds || [] } } },
                     { client: { manager: filter.managerId } }
                 ]

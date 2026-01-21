@@ -93,8 +93,8 @@ export async function getVisibilityFilter(): Promise<VisibilityFilter> {
         }
     }
 
-    // For GERENTE role, we also check if they are the manager of any client
-    const isManager = session.userRole === 'GERENTE';
+    // For GERENTE and DIRECTOR role, we also check if they are the manager of any client
+    const isManager = session.userRole === 'GERENTE' || session.userRole === 'DIRECTOR';
 
     return {
         isGlobal: false,

@@ -4,8 +4,11 @@ import { getTranslations } from "@/lib/get-translations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, FileText, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { getAuthSession } from "@/lib/auth";
 
 export default async function AnalyticsPage() {
+    const session = await getAuthSession();
+    const isAdmin = session?.userRole === 'ADMIN';
     const { t } = await getTranslations();
 
     const reports = [
@@ -29,7 +32,7 @@ export default async function AnalyticsPage() {
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-            <AdminSidebar />
+            {isAdmin && <AdminSidebar />}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <SharedHeader title="Analytics" />
                 <main className="flex-1 overflow-y-auto p-8 scrollbar-thin">
