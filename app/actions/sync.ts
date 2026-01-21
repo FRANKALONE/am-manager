@@ -1785,6 +1785,9 @@ export async function backfillHistoryData() {
     try {
         addLog("Starting history backfill...");
 
+        let ticketErrors = 0;
+        let proposalErrors = 0;
+
         // 1. Fetch all tickets
         const tickets = await prisma.ticket.findMany({
             select: { issueKey: true }
@@ -1794,7 +1797,12 @@ export async function backfillHistoryData() {
         for (let i = 0; i < tickets.length; i++) {
             const ticket = tickets[i];
             if (i % 50 === 0) addLog(`Processing ticket ${i + 1}/${tickets.length}...`);
-            await syncTicketHistory(ticket.issueKey, 'TICKET');
+            try {
+                await syncTicketHistory(ticket.issueKey, 'TICKET');
+            } catch (err: any) {
+                ticketErrors++;
+                addLog(`[WARN] Error syncing ticket ${ticket.issueKey}: ${err.message}`);
+            }
         }
 
         // 2. Fetch all proposals
@@ -1806,10 +1814,15 @@ export async function backfillHistoryData() {
         for (let i = 0; i < proposals.length; i++) {
             const proposal = proposals[i];
             if (i % 10 === 0) addLog(`Processing proposal ${i + 1}/${proposals.length}...`);
-            await syncTicketHistory(proposal.issueKey, 'PROPOSAL');
+            try {
+                await syncTicketHistory(proposal.issueKey, 'PROPOSAL');
+            } catch (err: any) {
+                proposalErrors++;
+                addLog(`[WARN] Error syncing proposal ${proposal.issueKey}: ${err.message}`);
+            }
         }
 
-        addLog("Backfill completed successfully.");
+        addLog(`Backfill completed. Tickets processed: ${tickets.length - ticketErrors}/${tickets.length}, Proposals processed: ${proposals.length - proposalErrors}/${proposals.length}`);
 
         // Create persistent log
         await createImportLog({
