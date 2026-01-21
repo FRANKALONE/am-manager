@@ -67,6 +67,7 @@ interface WorkPackage {
     id: string;
     name: string;
     contractType: string;
+    billingType: string;
     renewalType: string;
     validityPeriods: ValidityPeriod[];
 }
@@ -84,7 +85,7 @@ interface Props {
 export function ContractValidityView({ initialData }: Props) {
     const { t } = useTranslations();
     const [viewDate, setViewDate] = useState(new Date());
-    const [selectedPeriod, setSelectedPeriod] = useState<(ValidityPeriod & { wpName: string, clientName: string, renewalType: string, contractType: string }) | null>(null);
+    const [selectedPeriod, setSelectedPeriod] = useState<(ValidityPeriod & { wpName: string, clientName: string, renewalType: string, contractType: string, billingType: string }) | null>(null);
     const [filters, setFilters] = useState({
         client: "all",
         contractType: "all",
@@ -390,7 +391,7 @@ export function ContractValidityView({ initialData }: Props) {
                                                                                     : "bg-emerald-100 border-emerald-300 text-emerald-900"
                                                                         )}
                                                                         style={style || {}}
-                                                                        onClick={() => setSelectedPeriod({ ...vp, wpName: wp.name, clientName: client.name, renewalType: wp.renewalType, contractType: wp.contractType })}
+                                                                        onClick={() => setSelectedPeriod({ ...vp, wpName: wp.name, clientName: client.name, renewalType: wp.renewalType, contractType: wp.contractType, billingType: wp.billingType })}
                                                                     >
                                                                         <span className="text-[10px] font-bold truncate">
                                                                             {format(new Date(vp.startDate), "dd/MM")} - {format(new Date(vp.endDate), "dd/MM")}
@@ -517,6 +518,10 @@ export function ContractValidityView({ initialData }: Props) {
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-semibold">{t("admin.analytics.filters.renewalType")}:</span>
                                         <Badge variant="outline" className="bg-white text-dark-green uppercase">{selectedPeriod?.renewalType === 'AUTO' ? t("admin.analytics.filters.automation") : t("admin.analytics.filters.onDemand")}</Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-semibold">{t("admin.analytics.filters.billingPeriod")}:</span>
+                                        <Badge variant="outline" className="bg-white text-dark-green uppercase">{selectedPeriod?.billingType || "-"}</Badge>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-semibold">{t("admin.analytics.filters.level")}:</span>

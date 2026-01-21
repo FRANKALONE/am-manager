@@ -285,6 +285,7 @@
                 "regularization": "Regularization",
                 "regularizationRate": "Regularization Rate",
                 "evolutivoRate": "Evolutive Rate",
+                "billingPeriod": "Billing Period",
                 "quarterly": "QUARTERLY",
                 "closeDetails": "CLOSE DETAILS",
                 "hours": "HOURS",

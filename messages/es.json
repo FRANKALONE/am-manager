@@ -285,6 +285,7 @@
                 "regularization": "Regularización",
                 "regularizationRate": "Tarifa de Regularización",
                 "evolutivoRate": "Tarifa de Evolutivos",
+                "billingPeriod": "Periodo de facturación",
                 "quarterly": "TRIMESTRAL",
                 "closeDetails": "CERRAR DETALLES",
                 "hours": "HORAS",
