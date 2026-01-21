@@ -285,11 +285,15 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     const renewalNotes = formData.get("renewalNotes")?.toString();
     const jiraProjectKeys = formData.get("jiraProjectKeys")?.toString();
     const oldWpId = formData.get("oldWpId")?.toString();
-    const hasIaasService = formData.get("hasIaasService") === "on";
+
+    // Checkboxes in HTML form only send a value if they are checked.
+    // If they are not checked, they are absent from formData.
+    const hasIaasService = formData.has("hasIaasService");
+    const includeEvoEstimates = formData.has("includeEvoEstimates");
+    const includeEvoTM = formData.has("includeEvoTM");
+    const isMainWP = formData.has("isMainWP");
+
     const includedTicketTypes = formData.get("includedTicketTypes")?.toString();
-    const includeEvoEstimates = formData.get("includeEvoEstimates") === "on";
-    const includeEvoTM = formData.get("includeEvoTM") === "on";
-    const isMainWP = formData.get("isMainWP") === "on";
     const returnUrl = formData.get("returnUrl") as string;
 
     // ValidityPeriod fields (economic and management)
@@ -325,7 +329,7 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
         }
     });
 
-    console.log("Updating WP:", { name, jiraProjectKeys, isPremium });
+    console.log("Updating WP:", { name, jiraProjectKeys, isPremium, isMainWP });
 
     // Fetch existing WP to handle Tempo Account ID and Validity Periods
     const existingWP = await prisma.workPackage.findUnique({
@@ -347,9 +351,10 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     // Handle Tempo Account ID update
     let tempoAccountId: string | null | undefined = undefined;
 
-    // Priority: 1. Field from form (if provided), 2. Keep existing or Auto-fetch if DB is empty
-    if (tempoAccountIdFromForm !== undefined && tempoAccountIdFromForm !== "") {
-        tempoAccountId = tempoAccountIdFromForm;
+    // Priority: 1. Field from form (if provided, even if empty), 2. Keep existing or Auto-fetch if DB is empty
+    if (tempoAccountIdFromForm !== undefined) {
+        // If it's undefined, we didn't send it. If it's empty string, we want to clear it.
+        tempoAccountId = tempoAccountIdFromForm === "" ? null : tempoAccountIdFromForm;
     } else if (!existingWP.tempoAccountId) {
         try {
             const fetchedId = await fetchTempoAccountId(id);
@@ -363,37 +368,38 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
     }
 
     try {
-        // Handle Main WP logic
+        // Handle Main WP logic - if this WP is marked as Main, unmark others
         if (isMainWP) {
             await prisma.workPackage.updateMany({
-                where: { clientId: existingWP.clientId },
+                where: { clientId: existingWP.clientId, id: { not: id } },
                 data: { isMainWP: false }
             });
         }
 
-        // Build update data object conditionally
+        // Build update data object
         const wpUpdateData: any = {
             customAttributes: JSON.stringify(customAttributes),
+            name: name || undefined,
+            contractType: contractType || undefined,
+            billingType: billingType || undefined,
+            renewalType: renewalType || undefined,
+            renewalNotes: renewalNotes !== undefined ? (renewalNotes || null) : undefined,
+            jiraProjectKeys: jiraProjectKeys !== undefined ? (jiraProjectKeys || null) : undefined,
+            oldWpId: oldWpId !== undefined ? (oldWpId || null) : undefined,
+            includedTicketTypes: includedTicketTypes !== undefined ? (includedTicketTypes || null) : undefined,
+            hasIaasService,
+            includeEvoEstimates,
+            includeEvoTM,
+            isMainWP,
+            accumulatedHours: isNaN(accumulatedHours) ? undefined : accumulatedHours,
+            accumulatedHoursDate: (accumulatedHoursDateStr !== undefined && accumulatedHoursDateStr !== null) ? accumulatedHoursDate : undefined,
+            tempoAccountId: tempoAccountId !== undefined ? tempoAccountId : undefined
         };
 
-        // Only update fields that are present in the form
-        if (name) wpUpdateData.name = name;
-        if (contractType) wpUpdateData.contractType = contractType;
-        if (billingType) wpUpdateData.billingType = billingType;
-        if (renewalType) wpUpdateData.renewalType = renewalType;
-        if (renewalNotes !== undefined) wpUpdateData.renewalNotes = renewalNotes || null;
-        if (jiraProjectKeys !== undefined) wpUpdateData.jiraProjectKeys = jiraProjectKeys || null;
-        if (oldWpId !== undefined) wpUpdateData.oldWpId = oldWpId || null;
-        if (formData.has("hasIaasService")) wpUpdateData.hasIaasService = hasIaasService;
-        if (includedTicketTypes !== undefined) wpUpdateData.includedTicketTypes = includedTicketTypes || null;
-        if (formData.has("includeEvoEstimates")) wpUpdateData.includeEvoEstimates = includeEvoEstimates;
-        if (formData.has("includeEvoTM")) wpUpdateData.includeEvoTM = includeEvoTM;
-        if (formData.has("isMainWP")) wpUpdateData.isMainWP = isMainWP;
-        if (accumulatedHoursStr) wpUpdateData.accumulatedHours = accumulatedHours;
-        if (accumulatedHoursDateStr) wpUpdateData.accumulatedHoursDate = accumulatedHoursDate;
-        if (tempoAccountId !== undefined) wpUpdateData.tempoAccountId = tempoAccountId;
+        // Remove undefined keys
+        Object.keys(wpUpdateData).forEach(key => wpUpdateData[key] === undefined && delete wpUpdateData[key]);
 
-        // Update WorkPackage fields only
+        // Update WorkPackage fields
         await prisma.workPackage.update({
             where: { id },
             data: wpUpdateData
