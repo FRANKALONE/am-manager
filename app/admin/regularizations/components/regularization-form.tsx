@@ -76,10 +76,14 @@ export function RegularizationForm({ workPackages, user }: RegularizationFormPro
     const selectedWpData = workPackages.find(wp => wp.id === formData.workPackageId);
     const isEventosWp = selectedWpData?.contractType?.toUpperCase() === 'EVENTOS';
 
-    // Get available ticket types from selected WP
-    const availableTicketTypes = selectedWpData?.includedTicketTypes
+    // Standard ticket types and those from WP
+    const allStandardTypes = ['Consulta', 'Incidencia de correctivo', 'Soporte AM', 'Solicitud de servicio', 'Evolutivo'];
+    const wpIncludedTypes = selectedWpData?.includedTicketTypes
         ? selectedWpData.includedTicketTypes.split(',').map(t => t.trim()).filter(Boolean)
-        : ['Evolutivo', 'Correctivo', 'Consulta'];
+        : [];
+
+    // Merge them and remove duplicates
+    const availableTicketTypes = Array.from(new Set([...allStandardTypes, ...wpIncludedTypes]));
 
     return (
         <div className="space-y-6">
