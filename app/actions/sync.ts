@@ -1783,117 +1783,138 @@ export async function backfillHistoryData() {
     };
 
     try {
-        addLog("🚀 Starting AUTOMATED history backfill...");
+        addLog("🚀 Starting history sync batch...");
 
-        const MAX_TICKETS_PER_BATCH = 100;
-        const MAX_PROPOSALS_PER_BATCH = 50;
-        const MAX_TOTAL_BATCHES = 100; // Safety limit to prevent infinite loops
+        // Process ONE large batch per execution to avoid timeout
+        const BATCH_SIZE_TICKETS = 500;
+        const BATCH_SIZE_PROPOSALS = 250;
 
-        let totalTicketsProcessed = 0;
-        let totalProposalsProcessed = 0;
-        let batchCount = 0;
-        let hasMoreWork = true;
+        // Get total counts
+        const totalTickets = await prisma.ticket.count();
+        const totalProposals = await (prisma as any).evolutivoProposal.count();
 
-        while (hasMoreWork && batchCount < MAX_TOTAL_BATCHES) {
-            batchCount++;
-            addLog(`\n--- BATCH ${batchCount} ---`);
-
-            // Process tickets batch
-            const unsyncedTickets = await (prisma as any).ticket.findMany({
-                select: { issueKey: true },
-                where: { proDeliveryDate: null },
-                take: MAX_TICKETS_PER_BATCH,
-                orderBy: { createdDate: 'desc' }
-            });
-
-            let ticketErrors = 0;
-            for (let i = 0; i < unsyncedTickets.length; i++) {
-                try {
-                    await syncTicketHistory(unsyncedTickets[i].issueKey, 'TICKET');
-                } catch (err: any) {
-                    ticketErrors++;
-                    if (ticketErrors <= 3) { // Only log first 3 errors per batch
-                        addLog(`[WARN] Ticket ${unsyncedTickets[i].issueKey}: ${err.message}`);
-                    }
-                }
+        // Count already synced
+        const syncedTickets = await (prisma as any).ticket.count({
+            where: { proDeliveryDate: { not: null } }
+        });
+        const syncedProposals = await (prisma as any).evolutivoProposal.count({
+            where: {
+                OR: [
+                    { sentToGerenteDate: { not: null } },
+                    { sentToClientDate: { not: null } },
+                    { approvedDate: { not: null } }
+                ]
             }
-            totalTicketsProcessed += (unsyncedTickets.length - ticketErrors);
+        });
 
-            // Process proposals batch
-            const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
-                select: { issueKey: true },
-                where: {
-                    AND: [
-                        { sentToGerenteDate: null },
-                        { sentToClientDate: null },
-                        { approvedDate: null }
-                    ]
-                },
-                take: MAX_PROPOSALS_PER_BATCH,
-                orderBy: { createdDate: 'desc' }
+        const ticketProgress = Math.round((syncedTickets / totalTickets) * 100);
+        const proposalProgress = Math.round((syncedProposals / totalProposals) * 100);
+
+        addLog(`📊 Current Progress: Tickets ${syncedTickets}/${totalTickets} (${ticketProgress}%), Proposals ${syncedProposals}/${totalProposals} (${proposalProgress}%)`);
+
+        // Fetch unsynced records
+        const unsyncedTickets = await (prisma as any).ticket.findMany({
+            select: { issueKey: true },
+            where: { proDeliveryDate: null },
+            take: BATCH_SIZE_TICKETS,
+            orderBy: { createdDate: 'desc' }
+        });
+
+        const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
+            select: { issueKey: true },
+            where: {
+                AND: [
+                    { sentToGerenteDate: null },
+                    { sentToClientDate: null },
+                    { approvedDate: null }
+                ]
+            },
+            take: BATCH_SIZE_PROPOSALS,
+            orderBy: { createdDate: 'desc' }
+        });
+
+        // Check if already complete
+        if (unsyncedTickets.length === 0 && unsyncedProposals.length === 0) {
+            addLog("✅ All records already synced!");
+            await createImportLog({
+                type: 'MANUAL_SYNC',
+                status: 'SUCCESS',
+                filename: 'Sincronización Completada',
+                totalRows: 0,
+                processedCount: 0,
+                errors: JSON.stringify(debugLogs)
             });
+            return { success: true, logs: debugLogs, completed: true, hasMore: false };
+        }
 
-            let proposalErrors = 0;
-            for (let i = 0; i < unsyncedProposals.length; i++) {
-                try {
-                    await syncTicketHistory(unsyncedProposals[i].issueKey, 'PROPOSAL');
-                } catch (err: any) {
-                    proposalErrors++;
-                    if (proposalErrors <= 3) {
-                        addLog(`[WARN] Proposal ${unsyncedProposals[i].issueKey}: ${err.message}`);
-                    }
+        addLog(`Processing ${unsyncedTickets.length} tickets and ${unsyncedProposals.length} proposals...`);
+
+        // Process tickets
+        let ticketErrors = 0;
+        for (let i = 0; i < unsyncedTickets.length; i++) {
+            try {
+                await syncTicketHistory(unsyncedTickets[i].issueKey, 'TICKET');
+            } catch (err: any) {
+                ticketErrors++;
+                if (ticketErrors <= 5) {
+                    addLog(`[WARN] Ticket ${unsyncedTickets[i].issueKey}: ${err.message}`);
                 }
-            }
-            totalProposalsProcessed += (unsyncedProposals.length - proposalErrors);
-
-            addLog(`Batch ${batchCount}: Processed ${unsyncedTickets.length - ticketErrors} tickets, ${unsyncedProposals.length - proposalErrors} proposals`);
-
-            // Check if there's more work (if we got a full batch, there might be more)
-            hasMoreWork = unsyncedTickets.length === MAX_TICKETS_PER_BATCH ||
-                unsyncedProposals.length === MAX_PROPOSALS_PER_BATCH;
-
-            // Get current progress
-            if (batchCount % 5 === 0 || !hasMoreWork) { // Show progress every 5 batches or at end
-                const totalTickets = await prisma.ticket.count();
-                const totalProposals = await (prisma as any).evolutivoProposal.count();
-                const syncedTickets = await (prisma as any).ticket.count({
-                    where: { proDeliveryDate: { not: null } }
-                });
-                const syncedProposals = await (prisma as any).evolutivoProposal.count({
-                    where: {
-                        OR: [
-                            { sentToGerenteDate: { not: null } },
-                            { sentToClientDate: { not: null } },
-                            { approvedDate: { not: null } }
-                        ]
-                    }
-                });
-
-                const ticketProgress = Math.round((syncedTickets / totalTickets) * 100);
-                const proposalProgress = Math.round((syncedProposals / totalProposals) * 100);
-
-                addLog(`📊 Overall Progress: Tickets ${ticketProgress}%, Proposals ${proposalProgress}%`);
             }
         }
 
-        addLog(`\n✅ AUTOMATED SYNC COMPLETED!`);
-        addLog(`📈 Total processed: ${totalTicketsProcessed} tickets, ${totalProposalsProcessed} proposals in ${batchCount} batches`);
-
-        if (batchCount >= MAX_TOTAL_BATCHES) {
-            addLog(`⚠️  Reached safety limit of ${MAX_TOTAL_BATCHES} batches. Run again if needed.`);
+        // Process proposals
+        let proposalErrors = 0;
+        for (let i = 0; i < unsyncedProposals.length; i++) {
+            try {
+                await syncTicketHistory(unsyncedProposals[i].issueKey, 'PROPOSAL');
+            } catch (err: any) {
+                proposalErrors++;
+                if (proposalErrors <= 5) {
+                    addLog(`[WARN] Proposal ${unsyncedProposals[i].issueKey}: ${err.message}`);
+                }
+            }
         }
 
-        // Create persistent log
+        const processed = {
+            tickets: unsyncedTickets.length - ticketErrors,
+            proposals: unsyncedProposals.length - proposalErrors
+        };
+
+        // Calculate remaining
+        const remainingTickets = totalTickets - syncedTickets - processed.tickets;
+        const remainingProposals = totalProposals - syncedProposals - processed.proposals;
+        const estimatedRuns = Math.ceil(Math.max(
+            remainingTickets / BATCH_SIZE_TICKETS,
+            remainingProposals / BATCH_SIZE_PROPOSALS
+        ));
+
+        const hasMore = remainingTickets > 0 || remainingProposals > 0;
+
+        addLog(`✅ Batch complete: ${processed.tickets} tickets, ${processed.proposals} proposals`);
+        addLog(`📈 Remaining: ~${remainingTickets} tickets, ~${remainingProposals} proposals`);
+        if (hasMore) {
+            addLog(`⏭️  Estimated ${estimatedRuns} more runs needed`);
+        } else {
+            addLog(`🎉 Synchronization complete!`);
+        }
+
         await createImportLog({
             type: 'MANUAL_SYNC',
             status: 'SUCCESS',
-            filename: `Sincronización Automática de Historial (${batchCount} lotes)`,
-            totalRows: totalTicketsProcessed + totalProposalsProcessed,
-            processedCount: totalTicketsProcessed + totalProposalsProcessed,
+            filename: hasMore ? `Sincronización Parcial - ${estimatedRuns} ejecuciones restantes` : 'Sincronización Completada',
+            totalRows: processed.tickets + processed.proposals,
+            processedCount: processed.tickets + processed.proposals,
             errors: JSON.stringify(debugLogs)
         });
 
-        return { success: true, logs: debugLogs, batches: batchCount };
+        return {
+            success: true,
+            logs: debugLogs,
+            hasMore,
+            remaining: { tickets: remainingTickets, proposals: remainingProposals },
+            estimatedRuns,
+            completed: !hasMore
+        };
     } catch (error: any) {
         console.error('[backfillHistoryData] CRITICAL ERROR:', error);
         addLog(`[ERROR] ${error.message}`);

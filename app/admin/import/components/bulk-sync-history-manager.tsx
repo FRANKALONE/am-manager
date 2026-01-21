@@ -26,7 +26,13 @@ export function BulkSyncHistoryManager() {
         try {
             const res = await backfillHistoryData();
             if (res.success) {
-                toast.success(`✅ Sincronización completada en ${res.batches || 1} lotes`);
+                if (res.completed) {
+                    toast.success(`🎉 Sincronización completada!`);
+                } else if (res.hasMore) {
+                    toast.success(`✅ Lote procesado. ${res.estimatedRuns} ejecuciones restantes`);
+                } else {
+                    toast.success(`✅ Sincronización completada`);
+                }
                 setSuccess(res.logs || ["Finalizado correctamente"]);
             } else {
                 toast.error(res.error || t('import.historySync.toast.error'));
