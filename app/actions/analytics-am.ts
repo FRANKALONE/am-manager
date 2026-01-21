@@ -46,7 +46,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
         console.log(`[getAmManagementReport] Found ${clients.length} clients.`);
 
         // HELPER: Fetch metrics for a specific time range
-        async function fetchYearlyMetrics(start: Date, end: Date, clientsListIds: string[]) {
+        const fetchYearlyMetrics = async (start: Date, end: Date, clientsListIds: string[]) => {
             console.log(`[getAmManagementReport] Fetching yearly metrics for period ${start.toISOString()} to ${end.toISOString()}...`);
 
             // TICKETS (Metric 1, 2, 3, 8)
