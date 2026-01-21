@@ -1792,13 +1792,35 @@ export async function backfillHistoryData() {
         const MAX_TICKETS = 100;
         const MAX_PROPOSALS = 50;
 
-        // 1. Fetch limited tickets
+        // Get total counts to show progress
+        const totalTickets = await prisma.ticket.count();
+        const totalProposals = await (prisma as any).evolutivoProposal.count();
+
+        // Count how many already have history synced (have proDeliveryDate or recent lastSyncedAt)
+        const syncedTickets = await prisma.ticket.count({
+            where: { proDeliveryDate: { not: null } }
+        });
+        const syncedProposals = await (prisma as any).evolutivoProposal.count({
+            where: {
+                OR: [
+                    { sentToGerenteDate: { not: null } },
+                    { sentToClientDate: { not: null } },
+                    { approvedDate: { not: null } }
+                ]
+            }
+        });
+
+        addLog(`📊 PROGRESS: Tickets ${syncedTickets}/${totalTickets} synced (${Math.round(syncedTickets / totalTickets * 100)}%)`);
+        addLog(`📊 PROGRESS: Proposals ${syncedProposals}/${totalProposals} synced (${Math.round(syncedProposals / totalProposals * 100)}%)`);
+
+        // 1. Fetch limited tickets (prioritize those without proDeliveryDate)
         const tickets = await prisma.ticket.findMany({
             select: { issueKey: true },
+            where: { proDeliveryDate: null },
             take: MAX_TICKETS,
             orderBy: { createdDate: 'desc' }
         });
-        addLog(`Found ${tickets.length} recent tickets to process (limited to ${MAX_TICKETS}).`);
+        addLog(`Found ${tickets.length} unsynced tickets to process (max ${MAX_TICKETS} per run).`);
 
         for (let i = 0; i < tickets.length; i++) {
             const ticket = tickets[i];
@@ -1811,13 +1833,20 @@ export async function backfillHistoryData() {
             }
         }
 
-        // 2. Fetch limited proposals
+        // 2. Fetch limited proposals (prioritize those without dates)
         const proposals = await (prisma as any).evolutivoProposal.findMany({
             select: { issueKey: true },
+            where: {
+                AND: [
+                    { sentToGerenteDate: null },
+                    { sentToClientDate: null },
+                    { approvedDate: null }
+                ]
+            },
             take: MAX_PROPOSALS,
             orderBy: { createdDate: 'desc' }
         });
-        addLog(`Found ${proposals.length} recent proposals to process (limited to ${MAX_PROPOSALS}).`);
+        addLog(`Found ${proposals.length} unsynced proposals to process (max ${MAX_PROPOSALS} per run).`);
 
         for (let i = 0; i < proposals.length; i++) {
             const proposal = proposals[i];
@@ -1830,8 +1859,13 @@ export async function backfillHistoryData() {
             }
         }
 
-        addLog(`Backfill completed. Tickets processed: ${tickets.length - ticketErrors}/${tickets.length}, Proposals processed: ${proposals.length - proposalErrors}/${proposals.length}`);
-        addLog(`NOTE: This is a limited sync. Run multiple times to process all records.`);
+        const remainingTickets = totalTickets - syncedTickets - (tickets.length - ticketErrors);
+        const remainingProposals = totalProposals - syncedProposals - (proposals.length - proposalErrors);
+        const estimatedRuns = Math.ceil(Math.max(remainingTickets / MAX_TICKETS, remainingProposals / MAX_PROPOSALS));
+
+        addLog(`✅ Batch completed. Tickets: ${tickets.length - ticketErrors}/${tickets.length}, Proposals: ${proposals.length - proposalErrors}/${proposals.length}`);
+        addLog(`📈 Estimated ${estimatedRuns} more runs needed to sync all remaining records.`);
+        addLog(`⏭️  Remaining: ~${remainingTickets} tickets, ~${remainingProposals} proposals`);
 
         // Create persistent log
         await createImportLog({
