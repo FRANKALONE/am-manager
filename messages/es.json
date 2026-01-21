@@ -586,6 +586,19 @@
                 "noLogs": "No hay logs para mostrar. Selecciona un WP y pulsa 'Ejecutar Diagnóstico'.",
                 "loadingLogs": "Sincronizando y recolectando logs...",
                 "success": "Éxito: {processed} worklogs procesados, {hours}h totales."
+            },
+            "historySync": {
+                "title": "Sincronización de Historial de Estados",
+                "description": "Recupera de JIRA el historial completo de cambios de estado para todos los tickets y propuestas.",
+                "warning": "Este proceso es necesario para rellenar los datos del Cuadro de Mando de AM. Solo se consultan metadatos de transición, sin afectar consumos.",
+                "confirm": "¿Deseas iniciar la sincronización de históricos? Se consultará el historial de cambios de cada ticket registrado.",
+                "button": "Sincronizar Históricos",
+                "syncing": "Sincronizando Historial...",
+                "toast": {
+                    "success": "Sincronización de históricos finalizada",
+                    "error": "Error en la sincronización",
+                    "critical": "Error crítico al sincronizar históricos"
+                }
             }
         }
     },

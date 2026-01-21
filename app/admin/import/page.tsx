@@ -5,6 +5,7 @@ import { BulkSyncManager } from "./components/bulk-sync-manager";
 import { BulkSyncEvolutivosManager } from "./components/bulk-sync-evolutivos-manager";
 import { BulkSyncProposalsManager } from "./components/bulk-sync-proposals-manager";
 import { BulkSyncJiraCustomersManager } from "./components/bulk-sync-jira-customers-manager";
+import { BulkSyncHistoryManager } from "./components/bulk-sync-history-manager";
 import { EvolutivosDiagnostic } from "./components/evolutivos-diagnostic";
 import { WpSyncDiagnostic } from "./components/wp-sync-diagnostic";
 import { SyncKillSwitch } from "../settings/components/sync-kill-switch";
@@ -44,6 +45,8 @@ export default async function ImportPage() {
             <BulkSyncProposalsManager />
 
             <BulkSyncJiraCustomersManager />
+
+            <BulkSyncHistoryManager />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <EvolutivosDiagnostic clients={clients} />

@@ -1748,4 +1748,48 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
         console.error(`Error syncing history for ${issueKey}:`, e);
     }
 }
+/**
+ * BACKFILL: Iterates over all existing tickets and proposals and populates history
+ */
+export async function backfillHistoryData() {
+    const debugLogs: string[] = [];
+    const addLog = (msg: string) => {
+        const log = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        console.log(log);
+        debugLogs.push(log);
+    };
 
+    try {
+        addLog("Starting history backfill...");
+
+        // 1. Fetch all tickets
+        const tickets = await prisma.ticket.findMany({
+            select: { issueKey: true }
+        });
+        addLog(`Found ${tickets.length} tickets to process.`);
+
+        for (let i = 0; i < tickets.length; i++) {
+            const ticket = tickets[i];
+            if (i % 50 === 0) addLog(`Processing ticket ${i + 1}/${tickets.length}...`);
+            await syncTicketHistory(ticket.issueKey, 'TICKET');
+        }
+
+        // 2. Fetch all proposals
+        const proposals = await (prisma as any).evolutivoProposal.findMany({
+            select: { issueKey: true }
+        });
+        addLog(`Found ${proposals.length} proposals to process.`);
+
+        for (let i = 0; i < proposals.length; i++) {
+            const proposal = proposals[i];
+            if (i % 10 === 0) addLog(`Processing proposal ${i + 1}/${proposals.length}...`);
+            await syncTicketHistory(proposal.issueKey, 'PROPOSAL');
+        }
+
+        addLog("Backfill completed successfully.");
+        return { success: true, logs: debugLogs };
+    } catch (error: any) {
+        addLog(`[ERROR] ${error.message}`);
+        return { success: false, error: error.message, logs: debugLogs };
+    }
+}
