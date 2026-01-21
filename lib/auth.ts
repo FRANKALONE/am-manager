@@ -96,12 +96,18 @@ export async function getVisibilityFilter(): Promise<VisibilityFilter> {
     // For GERENTE and DIRECTOR role, we also check if they are the manager of any client
     const isManager = session.userRole === 'GERENTE' || session.userRole === 'DIRECTOR';
 
-    return {
+    const filter = {
         isGlobal: false,
         clientIds: clientIds.length > 0 ? clientIds : undefined,
         wpIds: wpIds.length > 0 ? wpIds : undefined,
         managerId: isManager ? user.id : undefined
     };
+
+    if (isManager) {
+        console.log(`[Visibility Filter] User: ${user.name}, Role: ${session.userRole}, ManagerId: ${filter.managerId}`);
+    }
+
+    return filter;
 }
 
 /**

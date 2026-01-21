@@ -12,8 +12,8 @@ export async function getContractValidityData() {
         const clients = await prisma.client.findMany({
             where: filter.isGlobal ? {} : {
                 OR: [
-                    { id: { in: filter.clientIds || [] } },
-                    { manager: filter.managerId }
+                    { manager: filter.managerId },
+                    { id: { in: filter.clientIds || [] } }
                 ]
             },
             include: {
