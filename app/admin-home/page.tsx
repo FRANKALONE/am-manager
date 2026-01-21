@@ -65,7 +65,7 @@ export default async function AdminHomePage() {
             color: "text-blue-500",
             bg: "bg-blue-500/10",
             gradient: "from-blue-600 to-blue-400",
-            visible: perms.view_analytics
+            visible: perms.view_analytics || perms.view_analytics_contracts || perms.view_analytics_wp_consumption || perms.view_analytics_am_dashboard
         },
         {
             title: t('adminHome.administration'),

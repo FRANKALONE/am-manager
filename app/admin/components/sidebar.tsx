@@ -17,7 +17,7 @@ export async function AdminSidebar() {
                     <LayoutDashboard className="h-4 w-4" />
                 </SidebarLink>
 
-                {perms.view_analytics && (
+                {(perms.view_analytics || perms.view_analytics_contracts || perms.view_analytics_wp_consumption || perms.view_analytics_am_dashboard) && (
                     <SidebarLink href="/analytics" label="Analytics">
                         <TrendingUp className="h-4 w-4" />
                     </SidebarLink>
