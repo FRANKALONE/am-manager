@@ -59,7 +59,10 @@ export function BulkSyncHistoryManager() {
                             <div className="flex flex-col gap-2 pt-2">
                                 <p className="text-xs text-amber-700 font-medium flex items-center gap-1">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                    {t('import.historySync.toast.success')}
+                                    Última sincronización completada: {new Date().toLocaleTimeString()}
+                                </p>
+                                <p className="text-[10px] text-slate-500 italic">
+                                    💡 Puedes salir de esta página. El resultado quedará registrado en "Historial de Importaciones" más abajo.
                                 </p>
                                 <div className="flex gap-3">
                                     <Button
@@ -84,6 +87,12 @@ export function BulkSyncHistoryManager() {
                                     </Button>
                                 </div>
                             </div>
+                        )}
+                        {isSyncing && (
+                            <p className="text-xs text-amber-600 font-medium flex items-center gap-1 pt-2">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Sincronización en curso... Puedes salir de esta página, el proceso continuará en segundo plano.
+                            </p>
                         )}
                     </div>
                     <Button
