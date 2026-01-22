@@ -96,7 +96,7 @@ export async function getPendingCierres(month: number, year: number) {
         for (const wp of wps) {
             // Find validity period for target date
             const targetDateForPeriod = new Date(year, month - 1, 1);
-            const period = wp.validityPeriods.find(p => {
+            const period = wp.validityPeriods.find((p: any) => {
                 const start = new Date(p.startDate);
                 const end = new Date(p.endDate);
                 return targetDateForPeriod >= start && targetDateForPeriod <= end;
@@ -130,7 +130,7 @@ export async function getPendingCierres(month: number, year: number) {
                         ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
                         : [];
 
-                    const ticketsInMonth = wp.tickets.filter(t => {
+                    const ticketsInMonth = wp.tickets.filter((t: any) => {
                         if (t.year !== py || t.month !== pm) return false;
 
                         // Filter out Evolutivos if specified in WP config
@@ -155,13 +155,13 @@ export async function getPendingCierres(month: number, year: number) {
                     }).length;
 
                     // Add manual consumptions if any
-                    const regs = wp.regularizations.filter(r => {
+                    const regs = wp.regularizations.filter((r: any) => {
                         const rd = new Date(r.date);
                         return rd.getMonth() + 1 === pm && rd.getFullYear() === py;
                     });
-                    const manualCons = regs.filter(r => r.type === 'MANUAL_CONSUMPTION').reduce((sum, r) => sum + r.quantity, 0);
-                    const returns = regs.filter(r => r.type === 'RETURN').reduce((sum, r) => sum + r.quantity, 0);
-                    const puntualContracted = regs.filter(r => r.type === 'CONTRATACION_PUNTUAL').reduce((sum, r) => sum + r.quantity, 0);
+                    const manualCons = regs.filter((r: any) => r.type === 'MANUAL_CONSUMPTION').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const returns = regs.filter((r: any) => r.type === 'RETURN').reduce((sum: number, r: any) => sum + r.quantity, 0);
+                    const puntualContracted = regs.filter((r: any) => r.type === 'CONTRATACION_PUNTUAL').reduce((sum: number, r: any) => sum + r.quantity, 0);
 
                     const consumed = ticketsInMonth + manualCons - returns;
 
@@ -176,8 +176,8 @@ export async function getPendingCierres(month: number, year: number) {
                     safety++;
                 }
 
-                const totalContracted = monthsData.reduce((sum, m) => sum + m.contracted, 0);
-                const totalConsumed = monthsData.reduce((sum, m) => sum + m.consumed, 0);
+                const totalContracted = monthsData.reduce((sum: number, m: any) => sum + m.contracted, 0);
+                const totalConsumed = monthsData.reduce((sum: number, m: any) => sum + m.consumed, 0);
 
                 eventosMonitor.push({
                     wpId: wp.id,
@@ -200,11 +200,11 @@ export async function getPendingCierres(month: number, year: number) {
             const currentPeriodStart = new Date(period.startDate);
             const currentPeriodStartYYYYMM = currentPeriodStart.getFullYear() * 100 + (currentPeriodStart.getMonth() + 1);
 
-            const previousPeriods = wp.validityPeriods.filter(p => {
+            const previousPeriods = wp.validityPeriods.filter((p: any) => {
                 const pEnd = new Date(p.endDate);
                 const pEndYYYYMM = pEnd.getFullYear() * 100 + (pEnd.getMonth() + 1);
                 return pEndYYYYMM < currentPeriodStartYYYYMM;
-            }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+            }).sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
             for (const prevPeriod of previousPeriods) {
                 const pStart = new Date(prevPeriod.startDate);
@@ -223,10 +223,10 @@ export async function getPendingCierres(month: number, year: number) {
                     if (pIterYYYYMM > prevEndLimitYYYYMM) break;
 
                     safety++;
-                    const pMetric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
+                    const pMetric = wp.monthlyMetrics.find((met: any) => met.month === pm && met.year === py);
                     let pConsumed = pMetric ? pMetric.consumedHours : 0;
 
-                    const pRegs = wp.regularizations?.filter(reg => {
+                    const pRegs = wp.regularizations?.filter((reg: any) => {
                         const regDate = new Date(reg.date);
                         return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
                     }) || [];
@@ -251,16 +251,16 @@ export async function getPendingCierres(month: number, year: number) {
 
             // 1.5 Add initial gaps/sobrantes before selection (mirroring dashboard.ts)
             const firstPeriodStart = new Date(wp.validityPeriods[0].startDate);
-            const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+            const sobrantesBeforeSelection = wp.regularizations?.filter((reg: any) => {
                 const regDate = new Date(reg.date);
                 if (regDate >= firstPeriodStart) return false;
-                const isInPreviousPeriod = wp.validityPeriods.some(p => {
+                const isInPreviousPeriod = wp.validityPeriods.some((p: any) => {
                     const pStart = new Date(p.startDate);
                     const pEnd = new Date(p.endDate);
                     return pEnd < firstPeriodStart && regDate >= pStart && regDate <= pEnd;
                 });
                 return !isInPreviousPeriod && (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
-            }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
+            }).reduce((sum: number, r: any) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
 
             accumulatedBalance += sobrantesBeforeSelection;
 
@@ -277,7 +277,7 @@ export async function getPendingCierres(month: number, year: number) {
             let alreadyInvoicedAmount = 0;
 
             // Direct check for processing in target month to be 100% sure
-            const monthProcessedReg = wp.regularizations?.find(r => {
+            const monthProcessedReg = wp.regularizations?.find((r: any) => {
                 const rd = new Date(r.date);
                 // We use UTC to avoid local timezone shifts at end-of-month dates
                 const isExcessBilled = (r.type === 'EXCESS' && r.isBilled === true);
@@ -307,10 +307,10 @@ export async function getPendingCierres(month: number, year: number) {
                 if (iterYYYYMM > targetYYYYMM) break;
 
                 safety++;
-                const metric = wp.monthlyMetrics.find(met => met.month === m && met.year === y);
+                const metric = wp.monthlyMetrics.find((met: any) => met.month === m && met.year === y);
                 let consumed = metric ? metric.consumedHours : 0;
 
-                const regs = wp.regularizations?.filter(reg => {
+                const regs = wp.regularizations?.filter((reg: any) => {
                     const regDate = new Date(reg.date);
                     return regDate.getMonth() + 1 === m && regDate.getFullYear() === y;
                 }) || [];
@@ -364,8 +364,8 @@ export async function getPendingCierres(month: number, year: number) {
                 suggestedCashAmount: suggestedCashAmount,
                 needsPO: balance < -0.01 && period.regularizationType?.toUpperCase() === 'BAJO_PEDIDO',
                 reportEmails: wp.client.reportEmails,
-                reportSentAt: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentAt,
-                reportSentBy: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentBy
+                reportSentAt: wp.monthlyMetrics.find((m: any) => m.month === month && m.year === year)?.reportSentAt,
+                reportSentBy: wp.monthlyMetrics.find((m: any) => m.month === month && m.year === year)?.reportSentBy
             };
 
             // Only add to "processed" list if ACTUALLY BILLED (not just revenue recognized)
@@ -376,9 +376,9 @@ export async function getPendingCierres(month: number, year: number) {
                     suggestedCashAmount: alreadyInvoicedAmount * regRate
                 });
             } else {
-                const monthlyMetric = wp.monthlyMetrics.find(met => met.month === month && met.year === year);
+                const monthlyMetric = wp.monthlyMetrics.find((met: any) => met.month === month && met.year === year);
                 const monthlyConsumed = monthlyMetric ? monthlyMetric.consumedHours : 0;
-                const monthlyRegs = wp.regularizations?.filter(r => {
+                const monthlyRegs = wp.regularizations?.filter((r: any) => {
                     const rd = new Date(r.date);
                     return rd.getMonth() + 1 === month && rd.getFullYear() === year;
                 }) || [];
@@ -556,7 +556,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
         const targetDate = new Date(year, month - 1, 1);
         const targetYYYYMM = year * 100 + month;
 
-        const period = wp.validityPeriods.find(p => {
+        const period = wp.validityPeriods.find((p: any) => {
             const start = new Date(p.startDate);
             const end = new Date(p.endDate);
             return targetDate >= start && targetDate <= end;
@@ -573,12 +573,12 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
         // Find the most recent EXCESS regularization BEFORE the target month
         const prevExcessRegs = wp.regularizations
-            ?.filter(r => {
+            ?.filter((r: any) => {
                 const rd = new Date(r.date);
                 const regYYYYMM = rd.getFullYear() * 100 + (rd.getMonth() + 1);
                 return r.type === 'EXCESS' && regYYYYMM < targetYYYYMM;
             })
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         if (prevExcessRegs && prevExcessRegs.length > 0) {
             const lastRegDate = new Date(prevExcessRegs[0].date);
@@ -595,11 +595,11 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
         // 1. Initial balance from sobrantes before any period
         const firstPeriodStart = new Date(wp.validityPeriods[0].startDate);
-        const sobrantesBeforeSelection = wp.regularizations?.filter(reg => {
+        const sobrantesBeforeSelection = wp.regularizations?.filter((reg: any) => {
             const regDate = new Date(reg.date);
             if (regDate >= firstPeriodStart) return false;
             return (reg.type === 'EXCESS' || reg.type === 'SOBRANTE_ANTERIOR' || reg.type === 'RETURN') && reg.isBilled !== false;
-        }).reduce((sum, r) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
+        }).reduce((sum: number, r: any) => sum + (r.type === 'RETURN' ? -r.quantity : r.quantity), 0) || 0;
 
         accumulatedBalance += sobrantesBeforeSelection;
 
@@ -625,7 +625,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
 
                 if (pIterYYYYMM > pEndYYYYMM || pIterYYYYMM > targetYYYYMM) break;
 
-                const metric = wp.monthlyMetrics.find(met => met.month === pm && met.year === py);
+                const metric = wp.monthlyMetrics.find((met: any) => met.month === pm && met.year === py);
                 const regs = wp.regularizations?.filter((reg: any) => {
                     const regDate = new Date(reg.date);
                     return regDate.getMonth() + 1 === pm && regDate.getFullYear() === py;
@@ -645,7 +645,7 @@ export async function getClosureReportData(wpId: string, month: number, year: nu
                         ? (wp as any).includedTicketTypes.split(',').map((t: string) => t.trim().toLowerCase()).filter(Boolean)
                         : [];
 
-                    const ticketsInMonth = wp.tickets.filter(t => {
+                    const ticketsInMonth = wp.tickets.filter((t: any) => {
                         if (t.year !== py || t.month !== pm) return false;
 
                         // Filter out Evolutivos if specified in WP config

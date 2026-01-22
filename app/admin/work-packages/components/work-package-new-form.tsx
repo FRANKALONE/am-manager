@@ -114,6 +114,7 @@ export function WorkPackageNewForm({
                                 <Input
                                     id="includedTicketTypes"
                                     name="includedTicketTypes"
+                                    title="Tipos de Ticket Consumibles"
                                     placeholder="Ej: Incidencia, Consulta, Soporte AM"
                                 />
                                 <p className="text-[10px] text-muted-foreground">Separar por comas. Vacío = global.</p>
