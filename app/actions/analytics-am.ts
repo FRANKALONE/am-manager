@@ -108,7 +108,8 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                     issueKey: { in: sentTransitions.map(t => t.issueKey) },
                     issueType: 'Petición de Evolutivo',
                     workPackage: { clientId: { in: clientsListIds } }
-                }
+                },
+                select: { issueKey: true, workPackage: { select: { clientId: true } } }
             });
             const validSentTransitions = sentTransitions.filter(tr => sentPeticiones.some(p => p.issueKey === tr.issueKey));
 
@@ -152,7 +153,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 entregados: current.entregados.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
                 requested: current.solicitadas.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
                 sent: current.enviadas.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
-                aprobadas: current.aprobadas.filter(t => new Date(t.approvedDate!).getUTCMonth() + 1 === m).length
+                aprobadas: current.aprobadas.filter(t => t.approvedDate && new Date(t.approvedDate).getUTCMonth() + 1 === m).length
             };
         });
 
