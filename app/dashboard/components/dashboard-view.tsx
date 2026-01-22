@@ -19,10 +19,19 @@ import { formatDate } from "@/lib/date-utils";
 
 // Simple Progress Component
 function ProgressBar({ value, max = 100, className }: { value: number, max?: number, className?: string }) {
+    const { t } = useTranslations();
     const p = Math.min(100, Math.max(0, (value / max) * 100));
     return (
-        <div className={`h-4 w-full bg-secondary rounded-full overflow-hidden ${className}`}>
-            <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${p}%` }} />
+        <div
+            className={`h-4 w-full bg-secondary rounded-full overflow-hidden ${className}`}
+            role="progressbar"
+            aria-label={t('dashboard.consumptionProgress')}
+            aria-valuenow={Math.round(p) as any}
+            aria-valuemin={"0" as any}
+            aria-valuemax={"100" as any}
+            title={t('dashboard.consumptionProgress')}
+        >
+            <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${p}%` } as React.CSSProperties} />
         </div>
     );
 }
@@ -469,6 +478,7 @@ export function DashboardView({
                                                             <select
                                                                 value={startMonth}
                                                                 onChange={(e) => setStartMonth(parseInt(e.target.value))}
+                                                                title={t('dashboard.month')}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
                                                                 {monthNamesShort.map((m, i) => (
@@ -478,6 +488,7 @@ export function DashboardView({
                                                             <select
                                                                 value={startYear}
                                                                 onChange={(e) => setStartYear(parseInt(e.target.value))}
+                                                                title={t('dashboard.year')}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
                                                                 {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
@@ -491,6 +502,7 @@ export function DashboardView({
                                                             <select
                                                                 value={endMonth}
                                                                 onChange={(e) => setEndMonth(parseInt(e.target.value))}
+                                                                title={t('dashboard.month')}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
                                                                 {monthNamesShort.map((m, i) => (
@@ -500,6 +512,7 @@ export function DashboardView({
                                                             <select
                                                                 value={endYear}
                                                                 onChange={(e) => setEndYear(parseInt(e.target.value))}
+                                                                title={t('dashboard.year')}
                                                                 className="h-8 px-2 text-xs border rounded-md bg-background"
                                                             >
                                                                 {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (

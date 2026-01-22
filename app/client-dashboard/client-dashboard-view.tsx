@@ -153,6 +153,7 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                             id="wpSelect"
                                             value={selectedWpId}
                                             onChange={(e) => setSelectedWpId(e.target.value)}
+                                            title="Seleccionar Work Package (Contrato)"
                                             className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malachite transition-all cursor-pointer hover:border-malachite/50"
                                         >
                                             <option value="">-- Seleccionar Work Package --</option>

@@ -2,12 +2,12 @@
 
 import { prisma } from '@/lib/prisma';
 import { type Locale } from '@/lib/i18n-config';
-import { setLocaleCookie, setTimezoneCookie } from '@/lib/preferences-actions';
+import { setLocaleCookie, setTimezoneCookie, setDateFormatCookie } from '@/lib/preferences-actions';
 import { revalidatePath } from 'next/cache';
 
 export async function updateUserPreferences(
     userId: string,
-    preferences: { locale?: Locale; timezone?: string }
+    preferences: { locale?: Locale; timezone?: string; dateFormat?: string }
 ) {
     try {
         const updateData: any = {};
@@ -22,6 +22,12 @@ export async function updateUserPreferences(
             updateData.timezone = preferences.timezone;
             // Also update the cookie
             await setTimezoneCookie(preferences.timezone);
+        }
+
+        if (preferences.dateFormat) {
+            updateData.dateFormat = preferences.dateFormat;
+            // Also update the cookie
+            await setDateFormatCookie(preferences.dateFormat);
         }
 
         await prisma.user.update({
@@ -45,6 +51,7 @@ export async function getUserPreferences(userId: string) {
             select: {
                 locale: true,
                 timezone: true,
+                dateFormat: true,
             },
         });
 

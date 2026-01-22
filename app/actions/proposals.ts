@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
+import { formatShortDate } from "@/lib/date-utils";
 
 export async function generateProposalAction(clientId: string, type: string, insightData: any) {
     console.log('[PROPOSAL-SERVER] Starting generation:', { clientId, type, sampleTickets: insightData.sampleTickets?.length });
@@ -94,7 +95,7 @@ export async function generateProposalAction(clientId: string, type: string, ins
                             spacing: { before: 4000 },
                             children: [
                                 new TextRun({
-                                    text: `Fecha: ${new Date().toLocaleDateString('es-ES')}`,
+                                    text: `Fecha: ${formatShortDate(new Date())}`,
                                     size: 20
                                 })
                             ]

@@ -636,6 +636,7 @@
             "languagePlaceholder": "Select a language",
             "timezoneLabel": "Timezone",
             "timezonePlaceholder": "Select a timezone",
+            "dateFormatLabel": "Date Format",
             "saveButton": "Save Preferences",
             "saving": "Saving...",
             "successMessage": "Preferences updated successfully",

@@ -322,6 +322,7 @@ export function TicketConsumptionReport({ data, validityPeriods, selectedPeriodI
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
+                            title={t('dashboard.ticketsReport.type')}
                             className="w-full h-9 px-3 text-sm border rounded-md bg-background"
                         >
                             <option value="all">{t('dashboard.ticketsReport.allTypes')}</option>

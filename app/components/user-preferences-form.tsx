@@ -30,24 +30,31 @@ interface UserPreferencesFormProps {
     userId: string;
     currentLocale: string;
     currentTimezone: string;
+    currentDateFormat: string;
 }
 
-export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: UserPreferencesFormProps) {
+export function UserPreferencesForm({ userId, currentLocale, currentTimezone, currentDateFormat }: UserPreferencesFormProps) {
     const { t } = useTranslations();
     const router = useRouter();
     const [locale, setLocale] = useState(currentLocale);
     const [timezone, setTimezone] = useState(currentTimezone);
+    const [dateFormat, setDateFormat] = useState(currentDateFormat);
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         setSaving(true);
         try {
-            const result = await updateUserPreferences(userId, { locale: locale as Locale, timezone });
+            const result = await updateUserPreferences(userId, {
+                locale: locale as Locale,
+                timezone,
+                dateFormat
+            });
 
             if (result.success) {
                 // Backup to localStorage for client-side persistence
                 try {
                     localStorage.setItem('NEXT_LOCALE', locale);
+                    localStorage.setItem('NEXT_DATE_FORMAT', dateFormat);
                 } catch (e) {
                     console.error('Failed to save to localStorage:', e);
                 }
@@ -105,6 +112,20 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone }: 
                                     {tz.label}
                                 </SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="date-format">{t('preferences.dateFormatLabel') || 'Formato de Fecha'}</Label>
+                    <Select value={dateFormat} onValueChange={setDateFormat}>
+                        <SelectTrigger id="date-format">
+                            <SelectValue placeholder="Seleccionar formato..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (España)</SelectItem>
+                            <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (USA)</SelectItem>
+                            <SelectItem value="YYYY-MM-DD">YYYY-MM-DD (ISO)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

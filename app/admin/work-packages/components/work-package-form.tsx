@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { formatShortDate } from "@/lib/date-utils";
 
 // Prevent scroll wheel from changing number inputs
 const preventScrollChange = (e: React.WheelEvent<HTMLInputElement>) => {
@@ -208,6 +209,8 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     type="checkbox"
                                     id="hasIaasService"
                                     name="hasIaasService"
+                                    title="Incluir IAAS"
+                                    aria-label="Incluir IAAS"
                                     defaultChecked={wp.hasIaasService || false}
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
@@ -221,6 +224,8 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     type="checkbox"
                                     id="includeEvoEstimates"
                                     name="includeEvoEstimates"
+                                    title="Evolutivos Bolsa (Estimados)"
+                                    aria-label="Evolutivos Bolsa (Estimados)"
                                     defaultChecked={wp.includeEvoEstimates ?? true}
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
@@ -234,6 +239,8 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     type="checkbox"
                                     id="includeEvoTM"
                                     name="includeEvoTM"
+                                    title="Evolutivos T&M (Horas)"
+                                    aria-label="Evolutivos T&M (Horas)"
                                     defaultChecked={wp.includeEvoTM ?? true}
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
@@ -247,6 +254,8 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     type="checkbox"
                                     id="isMainWP"
                                     name="isMainWP"
+                                    title="WP PRINCIPAL"
+                                    aria-label="WP PRINCIPAL"
                                     defaultChecked={wp.isMainWP || false}
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
@@ -282,9 +291,9 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                     <div>
                                         <p className="text-[10px] text-muted-foreground uppercase font-semibold">Fechas del Periodo</p>
                                         <p className="text-sm font-medium">
-                                            {currentPeriod.startDate ? new Date(currentPeriod.startDate).toLocaleDateString('es-ES') : '-'}
+                                            {currentPeriod.startDate ? formatShortDate(currentPeriod.startDate) : '-'}
                                             <span className="mx-2 text-muted-foreground">→</span>
-                                            {currentPeriod.endDate ? new Date(currentPeriod.endDate).toLocaleDateString('es-ES') : '-'}
+                                            {currentPeriod.endDate ? formatShortDate(currentPeriod.endDate) : '-'}
                                         </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">

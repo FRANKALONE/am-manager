@@ -16,3 +16,11 @@ export async function setTimezoneCookie(timezone: string) {
         path: '/',
     });
 }
+
+export async function setDateFormatCookie(format: string) {
+    cookies().set('NEXT_DATE_FORMAT', format, {
+        maxAge: 365 * 24 * 60 * 60, // 1 year
+        path: '/',
+    });
+}
+

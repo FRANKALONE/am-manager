@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncWorkPackage } from "@/app/actions/sync";
 import https from 'https';
-import { getNow, formatDate } from "@/lib/date-utils";
+import { getNow, formatDate, formatShortDate } from "@/lib/date-utils";
 
 // Helper function to count tickets created in a specific month from JIRA
 async function getTicketCountFromJira(projectKeys: string, month: number, year: number): Promise<number> {
@@ -2143,7 +2143,7 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
                     .map(t => ({
                         key: t.issueKey,
                         summary: t.issueSummary,
-                        date: new Date(t.createdDate).toLocaleDateString('es-ES') // Format date early
+                        date: formatShortDate(t.createdDate) // Format date early
                     }));
 
                 return {
@@ -2208,7 +2208,7 @@ export async function getClientOptimizationMetrics(clientId: string, range: stri
                     .map(t => ({
                         key: t.issueKey,
                         summary: t.issueSummary,
-                        date: new Date(t.createdDate).toLocaleDateString('es-ES')
+                        date: formatShortDate(t.createdDate)
                     }));
 
                 const mainModule = data.subModules.size > 0 ? Array.from(data.subModules)[0] : name;

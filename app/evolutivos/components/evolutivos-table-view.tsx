@@ -124,7 +124,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                         <div className="flex items-center gap-2">
                             {(isAdmin || user.permissions?.view_all_clients || clients.length > 1) && clients.length > 0 && (
                                 <Select value={selectedClientId} onValueChange={handleClientChange}>
-                                    <SelectTrigger className="w-[250px]">
+                                    <SelectTrigger className="w-[250px]" title="Seleccionar cliente">
                                         <SelectValue placeholder="Seleccionar cliente..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -156,6 +156,7 @@ export function EvolutivosTableView({ user, clients, initialData, isAdmin, initi
                                     placeholder="Ticket o descripción..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    title="Buscar evolutivos"
                                     className="pl-10 bg-white dark:bg-slate-950"
                                 />
                             </div>

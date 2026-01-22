@@ -109,6 +109,7 @@ model User {
   resetTokenExpiry      DateTime?
   locale                String               @default("es")
   timezone              String               @default("Europe/Madrid")
+  dateFormat            String               @default("DD/MM/YYYY")
   mustChangePassword    Boolean              @default(false)
   linkedEvolUser        EVOLEvolutivoUser?
   linkedJiraCustomer    JiraCustomerUser?

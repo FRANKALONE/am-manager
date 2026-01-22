@@ -1,5 +1,7 @@
 import { getTimezone } from './get-timezone';
 import { getLocale } from './get-locale';
+import { getDateFormat } from './get-date-format';
+import { format as dateFnsFormat } from 'date-fns';
 
 /**
  * Formats a date according to the user's locale and timezone.
@@ -14,6 +16,17 @@ export function formatDate(date: Date | string | number, options: Intl.DateTimeF
     second: '2-digit',
 }) {
     const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+
+    // If options specifically only ask for date (Y, M, D) without time, 
+    // we use our formatShortDate which respects user preference
+    const isShortDate = options.year && options.month && options.day &&
+        !options.hour && !options.minute && !options.second;
+
+    if (isShortDate) {
+        return formatShortDate(date);
+    }
+
     const locale = getLocale();
     const timeZone = getTimezone();
 
@@ -53,14 +66,21 @@ export function toUserTimezone(date: Date | string | number): Date {
 }
 
 /**
- * Short date format: DD/MM/YYYY (depending on locale)
+ * Short date format: DD/MM/YYYY (depending on locale or user preference)
  */
 export function formatShortDate(date: Date | string | number) {
-    return formatDate(date, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    });
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+
+    const formatStr = getDateFormat();
+
+    // Map common user preference formats to date-fns tokens
+    let fnsFormat = 'dd/MM/yyyy';
+    if (formatStr === 'MM/DD/YYYY') fnsFormat = 'MM/dd/yyyy';
+    if (formatStr === 'YYYY-MM-DD') fnsFormat = 'yyyy-MM-dd';
+    if (formatStr === 'DD-MM-YYYY') fnsFormat = 'dd-MM-yyyy';
+
+    return dateFnsFormat(d, fnsFormat);
 }
 
 /**

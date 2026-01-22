@@ -266,6 +266,7 @@ export function ExpandableMonthlyRow({
                                                 <input
                                                     type="checkbox"
                                                     id={`select-all-${idx}`}
+                                                    title={t('dashboard.details.selectAll')}
                                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                                     onChange={(e) => handleSelectAll(e.target.checked)}
                                                     checked={selectedTickets.size > 0 && Array.from(selectedTickets).length === details.ticketTypes.reduce((acc: number, val: any) => acc + val.ticketCount, 0)}
@@ -333,6 +334,7 @@ export function ExpandableMonthlyRow({
                                                                         <div className="flex items-center gap-3 flex-1">
                                                                             <input
                                                                                 type="checkbox"
+                                                                                title={t('common.select')}
                                                                                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                                                                 checked={isTicketSelected}
                                                                                 onChange={(e) => handleTicketSelect(ticketKey, e.target.checked)}
@@ -432,6 +434,7 @@ export function ExpandableMonthlyRow({
                                                                                                     <td className="p-2 text-center text-xs">
                                                                                                         <input
                                                                                                             type="checkbox"
+                                                                                                            title={t('common.select')}
                                                                                                             className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
                                                                                                             checked={isSelected}
                                                                                                             onChange={(e) => onWorklogSelect(w, e.target.checked)}

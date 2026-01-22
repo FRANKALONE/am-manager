@@ -50,6 +50,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/utils";
+import { formatDate } from "@/lib/date-utils";
 
 interface CapacityDashboardProps {
     initialWorkload: {
@@ -229,7 +230,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 min-w-[240px] justify-between">
+                                <Button variant="outline" title="Filtrar por equipos" className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 min-w-[240px] justify-between">
                                     <span className="truncate">
                                         {selectedTeamIds.length === 0
                                             ? "Todos los equipos"
@@ -324,6 +325,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                             className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm"
                                             value={newMember.teamId}
                                             onChange={(e) => setNewMember({ ...newMember, teamId: e.target.value })}
+                                            title="Seleccionar Equipo"
                                         >
                                             <option value="">Sin equipo</option>
                                             {teams.map(t => (
@@ -359,6 +361,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                         className="w-full h-10 px-3 rounded-lg border border-slate-200"
                                         value={selectedMemberId}
                                         onChange={(e) => setSelectedMemberId(e.target.value)}
+                                        title="Seleccionar Miembro"
                                     >
                                         <option value="">Selecciona...</option>
                                         {allMembers.map(m => (
@@ -479,7 +482,7 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                     <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest bg-slate-50/30 sticky left-0 z-10 w-[240px]">Miembro</th>
                                     {workload.weeks.map((w, idx) => (
                                         <th key={idx} className="px-4 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest min-w-[120px]">
-                                            Sem. {new Date(w.start).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                                            Sem. {formatDate(w.start, { day: '2-digit', month: '2-digit' })}
                                         </th>
                                     ))}
                                 </tr>
@@ -526,10 +529,21 @@ export function CapacityDashboard({ initialWorkload, forecast, members: allMembe
                                                                 <span className={week.utilization > 100 ? 'text-rose-600' : 'text-slate-900'}>{week.utilization.toFixed(0)}%</span>
                                                             </div>
                                                             <div className="h-2 w-full max-w-[120px] bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                                <div
-                                                                    className={`h-full ${color} transition-all duration-1000 shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
-                                                                    style={{ width: `${Math.min(100, week.utilization)}%` }}
-                                                                />
+                                                                {(() => {
+                                                                    const util = Math.round(Math.min(100, week.utilization || 0));
+                                                                    return (
+                                                                        <div
+                                                                            className={`h-full ${color} transition-all duration-1000 shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
+                                                                            style={{ width: `${util}%` } as React.CSSProperties}
+                                                                            role="progressbar"
+                                                                            aria-label={`Ocupación: ${util}%`}
+                                                                            aria-valuenow={util as any}
+                                                                            aria-valuemin={"0" as any}
+                                                                            aria-valuemax={"100" as any}
+                                                                            title={`Ocupación: ${util}%`}
+                                                                        />
+                                                                    );
+                                                                })()}
                                                             </div>
                                                             <div className="flex gap-1.5 mt-1 opacity-40 group-hover:opacity-100 transition-opacity">
                                                                 <div className="w-1 h-1 rounded-full bg-slate-400" title={`Tickets: ${week.ticketHours.toFixed(1)}h`} />

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useId } from "react";
 
 const initialState = {
     error: "",
@@ -80,6 +81,7 @@ export function RoleForm({ initialRole }: Props) {
     // Bind the updateRole action with the role ID if editing
     const updateWithId = isEdit ? updateRole.bind(null, initialRole.id) : createRole;
     const [state, formAction] = useFormState(updateWithId as any, initialState);
+    const baseId = useId();
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -108,24 +110,28 @@ export function RoleForm({ initialRole }: Props) {
                                 <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
-                                        id="isActive"
+                                        id={`${baseId}-isActive`}
                                         name="isActive"
+                                        title="Rol activo"
+                                        aria-label="Rol activo"
                                         defaultChecked={initialRole ? initialRole.isActive : true}
                                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
-                                    <Label htmlFor="isActive" className="font-normal cursor-pointer">
+                                    <Label htmlFor={`${baseId}-isActive`} className="font-normal cursor-pointer">
                                         Rol activo
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
-                                        id="isPremium"
+                                        id={`${baseId}-isPremium`}
                                         name="isPremium"
+                                        title="Rol Premium"
+                                        aria-label="Rol Premium"
                                         defaultChecked={initialRole?.isPremium === 1}
                                         className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                                     />
-                                    <Label htmlFor="isPremium" className="font-normal cursor-pointer">
+                                    <Label htmlFor={`${baseId}-isPremium`} className="font-normal cursor-pointer">
                                         ⭐ Rol Premium
                                     </Label>
                                 </div>
@@ -160,12 +166,14 @@ export function RoleForm({ initialRole }: Props) {
                                             <div key={p.key} className="flex items-center space-x-3">
                                                 <input
                                                     type="checkbox"
-                                                    id={`perm_${p.key}`}
+                                                    id={`${baseId}-perm-${p.key}`}
                                                     name={`perm_${p.key}`}
+                                                    title={p.label}
+                                                    aria-label={p.label}
                                                     defaultChecked={currentPermissions[p.key]}
                                                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 />
-                                                <Label htmlFor={`perm_${p.key}`} className="font-medium cursor-pointer">
+                                                <Label htmlFor={`${baseId}-perm-${p.key}`} className="font-medium cursor-pointer">
                                                     {p.label}
                                                 </Label>
                                             </div>
@@ -191,13 +199,15 @@ export function RoleForm({ initialRole }: Props) {
                                     <div key={p.key} className="flex items-center space-x-3 p-3 bg-white border rounded shadow-sm">
                                         <input
                                             type="checkbox"
-                                            id={`perm_${p.key}`}
+                                            id={`${baseId}-vis-${p.key}`}
                                             name={`perm_${p.key}`}
+                                            title={p.label}
+                                            aria-label={p.label}
                                             defaultChecked={currentPermissions[p.key]}
                                             className="h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                                         />
                                         <div className="flex flex-col">
-                                            <Label htmlFor={`perm_${p.key}`} className="font-bold cursor-pointer">
+                                            <Label htmlFor={`${baseId}-vis-${p.key}`} className="font-bold cursor-pointer">
                                                 {p.label}
                                             </Label>
                                             <span className="text-xs text-muted-foreground">Omitir restricciones por asignación</span>

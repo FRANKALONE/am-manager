@@ -20,6 +20,7 @@ export default async function PreferencesPage() {
                     userId={user.id}
                     currentLocale={user.locale || 'es'}
                     currentTimezone={user.timezone || 'Europe/Madrid'}
+                    currentDateFormat={user.dateFormat || 'DD/MM/YYYY'}
                 />
             </main>
         </div>

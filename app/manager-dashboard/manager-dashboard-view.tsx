@@ -174,6 +174,7 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                                         id="clientSelect"
                                         value={selectedClientId}
                                         onChange={(e) => setSelectedClientId(e.target.value)}
+                                        title="Seleccionar Cliente"
                                         className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malachite transition-all cursor-pointer hover:border-malachite/50"
                                     >
                                         <option value="">-- Seleccionar Cliente --</option>
@@ -195,6 +196,7 @@ export function ManagerDashboardView({ user, clients, permissions, isAdmin = fal
                                         value={selectedWpId}
                                         onChange={(e) => setSelectedWpId(e.target.value)}
                                         disabled={!selectedClientId || isLoadingWPs}
+                                        title="Seleccionar Work Package"
                                         className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malachite transition-all cursor-pointer hover:border-malachite/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <option value="">

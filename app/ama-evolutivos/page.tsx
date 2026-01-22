@@ -161,6 +161,8 @@ export default function AMAEvolutivosPage() {
                                 className="bg-transparent font-medium text-gray-700 outline-none cursor-pointer pr-2"
                                 value={selectedManager}
                                 onChange={(e) => setSelectedManager(e.target.value)}
+                                title="Filtrar por Gestor"
+                                aria-label="Filtrar por Gestor"
                             >
                                 <option value="">Todos los Gestores</option>
                                 <option value="unassigned">⚠️ Sin asignar</option>

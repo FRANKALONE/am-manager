@@ -646,6 +646,7 @@
         "languagePlaceholder": "Selecciona un idioma",
         "timezoneLabel": "Zona Horaria",
         "timezonePlaceholder": "Selecciona una zona horaria",
+        "dateFormatLabel": "Formato de Fecha",
         "saveButton": "Guardar Preferencias",
         "saving": "Guardando...",
         "successMessage": "Preferencias actualizadas correctamente",

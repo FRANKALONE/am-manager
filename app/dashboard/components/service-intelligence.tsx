@@ -219,16 +219,18 @@ export function ServiceIntelligence({
                                     <div key={i} className="flex-1 max-w-[80px] flex flex-col items-center gap-3 group relative h-full">
                                         <div className="w-full flex-1 flex flex-col items-center justify-end gap-0.5 min-h-[140px]">
                                             <div
-                                                className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500 relative"
-                                                style={{ height: `${item.correctivePct}%` }}
+                                                className="w-full rounded-t-sm bg-rose-500/80 transition-all duration-700 hover:bg-rose-500 relative h-[var(--h)]"
+                                                style={{ '--h': `${item.correctivePct}%` } as any}
+                                                role="img"
+                                                aria-label={`Correctivo: ${item.correctivePct.toFixed(1)}%`}
                                             >
                                                 {item.correctivePct > 10 && (
                                                     <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white/40 rotate-90 whitespace-nowrap">FIX</span>
                                                 )}
                                             </div>
                                             <div
-                                                className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/30"
-                                                style={{ height: `${100 - item.correctivePct}%` }}
+                                                className="w-full rounded-b-sm bg-malachite/20 transition-all duration-700 hover:bg-malachite/30 h-[var(--h)]"
+                                                style={{ '--h': `${100 - item.correctivePct}%` } as any}
                                             />
                                         </div>
                                         {/* INFO CLOUD / TOOLTIP */}
@@ -713,6 +715,7 @@ export function ServiceIntelligence({
                                         max="100"
                                         value={reductionPct}
                                         onChange={(e) => setReductionPct(parseInt(e.target.value))}
+                                        title="Reducción de Ruido Operativo (%)"
                                         className="w-full h-3 bg-slate-100 rounded-full appearance-none cursor-pointer accent-indigo-600"
                                     />
                                 </div>
@@ -763,6 +766,7 @@ export function ServiceIntelligence({
                                             max={item.max}
                                             value={forecastCounts[item.key as keyof typeof forecastCounts] as number}
                                             onChange={(e) => setForecastCounts({ ...forecastCounts, [item.key]: parseInt(e.target.value) })}
+                                            title={item.label}
                                             className="w-full h-2.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-emerald-600 transition-all hover:bg-slate-300"
                                         />
                                     </div>
