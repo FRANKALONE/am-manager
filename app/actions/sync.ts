@@ -7,6 +7,7 @@ import { getNow } from "@/lib/date-utils";
 import { getTranslations } from "@/lib/get-translations";
 import { formatDate } from "@/lib/date-utils";
 import { extractClientJiraId } from "@/lib/ticket-utils";
+import { createImportLog } from "./import-logs";
 
 async function isKillSwitchActive() {
     try {
@@ -316,7 +317,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter', 'resolution']
                 });
 
                 try {
@@ -398,6 +399,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                                 slaResolutionTime: resolSla.time,
                                 component: component,
                                 reporter: issue.fields.reporter?.displayName || 'Unknown',
+                                resolution: issue.fields.resolution?.name || null,
                                 clientJiraId: clientJiraId
                             });
                         });
@@ -1182,7 +1184,8 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                         timeSpentHours: reg.quantity,
                         startDate: regDate,
                         author: (reg as any).createdByName || 'Sistema',
-                        tipoImputacion: 'Consumo Manual'
+                        tipoImputacion: 'Consumo Manual',
+                        billingMode: (reg as any).billingMode || (ticketData ? 'Facturable' : null) // Try to preserve or default if from ticket
                     });
                 } else if (reg.type === 'EXCESS' || reg.type === 'RETURN' || reg.type === 'SOBRANTE_ANTERIOR') {
                     // DON'T subtract from consumption - regularizations are separate!
@@ -1526,6 +1529,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                     parentKey: ticketData.parentKey,
                     component: ticketData.component,
                     reporter: ticketData.reporter,
+                    resolution: ticketData.resolution,
                     clientJiraId: ticketData.clientJiraId || null
                 },
                 create: {
@@ -1549,6 +1553,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                     dueDate: ticketData.dueDate,
                     parentKey: ticketData.parentKey,
                     component: ticketData.component,
+                    resolution: ticketData.resolution,
                     clientJiraId: ticketData.clientJiraId || null
                 }
             });
@@ -1735,7 +1740,7 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
         for (const issue of jiraRes.issues) {
             const issueKey = issue.key;
             const changelog = issue.changelog;
-            const currentResolution = issue.fields?.resolution?.name;
+            const currentResolution = issue.fields?.resolution?.name || null;
 
             if (changelog && changelog.values) {
                 // Filter for relevant statuses only to save time
@@ -1793,10 +1798,16 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
                                     where: { issueKey },
                                     data: { sentToClientDate: transitionDate }
                                 });
-                            } else if (statusLower === 'cerrado' && currentResolution === 'Aprobada') {
+                            } else if (statusLower === 'cerrado') {
+                                // If it's a TICKET, we also update its resolution field if not already set or changed
+                                await (prisma as any).ticket.updateMany({
+                                    where: { issueKey, resolution: null },
+                                    data: { resolution: currentResolution }
+                                });
+
                                 await (prisma as any).evolutivoProposal.updateMany({
                                     where: { issueKey },
-                                    data: { approvedDate: transitionDate }
+                                    data: { approvedDate: transitionDate, resolution: currentResolution }
                                 });
                             }
                         }
@@ -1820,8 +1831,9 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
     const https = require('https');
 
     try {
-        const changelog: any = await new Promise((resolve) => {
-            const req = https.request(`${jiraUrl}/rest/api/3/issue/${issueKey}/changelog`, {
+        // We fetch the issue to get both changelog AND current resolution
+        const issue: any = await new Promise((resolve, reject) => {
+            const req = https.request(`${jiraUrl}/rest/api/3/issue/${issueKey}?expand=changelog&fields=status,resolution`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Basic ${auth}`,
@@ -1833,58 +1845,65 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
                 res.on('end', () => {
                     try {
                         if (res.statusCode === 200) resolve(JSON.parse(data));
-                        else resolve({ values: [] });
-                    } catch (e) { resolve({ values: [] }); }
+                        else resolve(null);
+                    } catch (e) { resolve(null); }
                 });
             });
-            req.on('error', () => resolve({ values: [] }));
+            req.on('error', () => resolve(null));
             req.end();
         });
 
-        if (changelog.values && changelog.values.length > 0) {
-            for (const history of changelog.values) {
-                const statusItems = history.items.filter((item: any) => item.field === 'status');
-                for (const item of statusItems) {
-                    const statusName = item.toString || "";
-                    const statusNameLower = statusName.toLowerCase();
-                    const transitionDate = new Date(history.created);
+        if (!issue || !issue.changelog) return;
 
-                    // Search for existing transition to avoid duplicates without unique Jira ID
-                    const existing = await (prisma as any).ticketStatusHistory.findFirst({
-                        where: { issueKey, type, status: statusName, transitionDate }
+        const changelog = issue.changelog;
+        const currentResolution = issue.fields?.resolution?.name || null;
+        for (const history of changelog.values) {
+            const statusItems = history.items.filter((item: any) => item.field === 'status');
+            for (const item of statusItems) {
+                const statusName = item.toString || "";
+                const statusNameLower = statusName.toLowerCase();
+                const transitionDate = new Date(history.created);
+
+                // Search for existing transition to avoid duplicates without unique Jira ID
+                const existing = await (prisma as any).ticketStatusHistory.findFirst({
+                    where: { issueKey, type, status: statusName, transitionDate }
+                });
+
+                if (!existing) {
+                    await (prisma as any).ticketStatusHistory.create({
+                        data: { issueKey, type, status: statusName, transitionDate, author: history.author?.displayName || 'Unknown' }
                     });
+                }
 
-                    if (!existing) {
-                        await (prisma as any).ticketStatusHistory.create({
-                            data: { issueKey, type, status: statusName, transitionDate, author: history.author?.displayName || 'Unknown' }
-                        });
-                    }
-
-                    // If it's the specific status we care about for quick lookups, update the corresponding table
-                    // We support variants: "Entregado en PRD", "ENTREGADO EN PRO", "Entregado en PRO"
-                    if (type === 'TICKET' && (statusNameLower === 'entregado en prd' || statusNameLower === 'entregado en pro')) {
-                        await (prisma as any).ticket.updateMany({
+                // If it's the specific status we care about for quick lookups, update the corresponding table
+                // We support variants: "Entregado en PRD", "ENTREGADO EN PRO", "Entregado en PRO"
+                if (type === 'TICKET' && (statusNameLower === 'entregado en prd' || statusNameLower === 'entregado en pro')) {
+                    await (prisma as any).ticket.updateMany({
+                        where: { issueKey },
+                        data: { proDeliveryDate: transitionDate }
+                    });
+                } else if (type === 'PROPOSAL') {
+                    if (statusNameLower === 'oferta enviada al gerente' || statusNameLower === 'enviado a gerente') {
+                        await (prisma as any).evolutivoProposal.updateMany({
                             where: { issueKey },
-                            data: { proDeliveryDate: transitionDate }
+                            data: { sentToGerenteDate: transitionDate }
                         });
-                    } else if (type === 'PROPOSAL') {
-                        if (statusNameLower === 'oferta enviada al gerente' || statusNameLower === 'enviado a gerente') {
-                            await (prisma as any).evolutivoProposal.updateMany({
-                                where: { issueKey },
-                                data: { sentToGerenteDate: transitionDate }
-                            });
-                        } else if (statusNameLower === 'oferta enviada al cliente' || statusNameLower === 'enviado a cliente') {
-                            await (prisma as any).evolutivoProposal.updateMany({
-                                where: { issueKey },
-                                data: { sentToClientDate: transitionDate }
-                            });
-                        } else if (statusNameLower === 'cerrado') {
-                            // Only update approvedDate if the current resolution is 'Aprobada'
-                            await (prisma as any).evolutivoProposal.updateMany({
-                                where: { issueKey, resolution: { equals: 'Aprobada', mode: 'insensitive' } },
-                                data: { approvedDate: transitionDate }
-                            });
-                        }
+                    } else if (statusNameLower === 'oferta enviada al cliente' || statusNameLower === 'enviado a cliente') {
+                        await (prisma as any).evolutivoProposal.updateMany({
+                            where: { issueKey },
+                            data: { sentToClientDate: transitionDate }
+                        });
+                    } else if (statusNameLower === 'cerrado') {
+                        // If it's a TICKET, we also update its resolution field if not already set or changed
+                        await (prisma as any).ticket.updateMany({
+                            where: { issueKey, resolution: null },
+                            data: { resolution: currentResolution }
+                        });
+
+                        await (prisma as any).evolutivoProposal.updateMany({
+                            where: { issueKey },
+                            data: { approvedDate: transitionDate, resolution: currentResolution }
+                        });
                     }
                 }
             }
@@ -1893,9 +1912,6 @@ export async function syncTicketHistory(issueKey: string, type: 'TICKET' | 'PROP
         console.error(`Error syncing history for ${issueKey}:`, e);
     }
 }
-import { createImportLog } from "./import-logs";
-
-// ... rest of imports if any
 
 /**
  * BACKFILL: Iterates over all existing tickets and proposals and populates history

@@ -238,6 +238,7 @@ model Ticket {
   originalEstimate  Float?
   component         String?
   clientJiraId      String?
+  resolution        String?
   proDeliveryDate   DateTime?   @db.Timestamptz(6)
   workPackage       WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 

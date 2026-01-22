@@ -781,18 +781,25 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 month,
                 // Exclude tickets billed separately (Facturable / T&M Facturable)
                 // They show up in the specialized Evolutivos Billing report, not here.
-                NOT: {
-                    AND: [
-                        { issueType: { contains: 'Evolutivo', mode: 'insensitive' } },
-                        {
-                            billingMode: {
-                                in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable'],
-                                // Mode insensitive is not supported for 'in' prisma queries directly this way for some databases
-                                // but we list the common variants.
-                            }
+                OR: [
+                    {
+                        NOT: {
+                            issueType: { contains: 'Evolutivo', mode: 'insensitive' }
                         }
-                    ]
-                }
+                    },
+                    {
+                        AND: [
+                            { issueType: { contains: 'Evolutivo', mode: 'insensitive' } },
+                            {
+                                NOT: {
+                                    billingMode: {
+                                        in: ['T&M facturable', 'T&M Facturable', 'Facturable', 'facturable']
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
             },
             orderBy: [
                 { issueType: 'asc' },
@@ -800,19 +807,6 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
                 { startDate: 'asc' }
             ]
         });
-
-        // DEBUG: Write to a file since we can't see server logs easily
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const logPath = path.join(process.cwd(), 'detail-debug.log');
-            fs.appendFileSync(logPath, `\n[${new Date().toISOString()}] WP:${wpId} Y:${year} M:${month} Logs:${worklogs.length}\n`);
-            worklogs.forEach(w => {
-                if (w.issueKey && w.issueKey.includes('1218')) {
-                    fs.appendFileSync(logPath, `FOUND 1218: ${JSON.stringify(w)}\n`);
-                }
-            });
-        } catch (e) { }
 
         // Get all regularizations for this month (EXCESS, RETURN, SOBRANTE_ANTERIOR, MANUAL_CONSUMPTION)
         const regularizations = await prisma.regularization.findMany({
@@ -825,6 +819,33 @@ export async function getMonthlyDetails(wpId: string, year: number, month: numbe
             },
             orderBy: { date: 'asc' }
         });
+
+        // VIRTUAL WORKLOGS: Manual consumptions that aren't synced yet
+        const manualConsumptions = regularizations.filter(r => r.type === 'MANUAL_CONSUMPTION');
+        for (const reg of manualConsumptions) {
+            const ticketKey = reg.ticketId || `MANUAL-${reg.id}`;
+            // Check if it already exists in worklogs (synced)
+            const alreadySynced = worklogs.some(w => w.issueKey === ticketKey && w.tipoImputacion === 'Consumo Manual');
+
+            if (!alreadySynced) {
+                worklogs.push({
+                    id: -reg.id, // Negative ID for virtual
+                    workPackageId: wpId,
+                    year,
+                    month,
+                    issueKey: ticketKey,
+                    issueType: reg.ticketType || 'Evolutivo',
+                    issueSummary: reg.description || 'Consumo Manual',
+                    timeSpentHours: reg.quantity,
+                    startDate: reg.date,
+                    author: reg.createdByName || 'Sistema',
+                    tipoImputacion: 'Consumo Manual',
+                    issueCreatedDate: reg.date,
+                    originWpId: null,
+                    billingMode: null
+                } as any);
+            }
+        }
 
         // Get pending and approved review requests for this WP to mark worklogs
         const allReviewRequests = await prisma.reviewRequest.findMany({
