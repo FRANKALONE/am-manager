@@ -584,6 +584,9 @@ export async function syncTeamsFromTempo() {
                 // Upsert Member
                 try {
                     const memberCapacity = capacityMap.get(accountId) || 40.0;
+                    if (memberName.includes("Victoria Aranda")) {
+                        console.log(`[DEBUG] Victoria Aranda accountId: ${accountId}, capacity from map: ${capacityMap.get(accountId)}, final: ${memberCapacity}`);
+                    }
                     await (prisma as any).teamMember.upsert({
                         where: { name: memberName },
                         update: {
