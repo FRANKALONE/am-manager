@@ -1,4 +1,6 @@
 // Deployment trigger: 2026-01-22 19:33
+"use server";
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
