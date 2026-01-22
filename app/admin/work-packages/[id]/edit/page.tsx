@@ -1,6 +1,7 @@
 import { getWorkPackageById, updateWorkPackage } from "@/app/actions/work-packages";
 import { getParametersByCategory } from "@/app/actions/parameters";
 import { getCorrectionModels, getWPCorrections } from "@/app/actions/corrections";
+import { getSpecialRegularizations } from "@/app/actions/special-regularizations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -26,7 +27,8 @@ export default async function EditWorkPackagePage({ params, searchParams }: { pa
         billingTypes,
         scopeUnits,
         correctionModels,
-        wpCorrections
+        wpCorrections,
+        specialRegularizations
     ] = await Promise.all([
         getParametersByCategory("CONTRACT_TYPE"),
         getParametersByCategory("REGULARIZATION_TYPE"),
@@ -34,7 +36,8 @@ export default async function EditWorkPackagePage({ params, searchParams }: { pa
         getParametersByCategory("BILLING_TYPE"),
         getParametersByCategory("SCOPE_UNIT"),
         getCorrectionModels(),
-        getWPCorrections(params.id)
+        getWPCorrections(params.id),
+        getSpecialRegularizations()
     ]);
 
     // Bind ID and null prevState to update action to match (formData) => Promise signature
@@ -58,6 +61,7 @@ export default async function EditWorkPackagePage({ params, searchParams }: { pa
                     renewalTypes={renewalTypes}
                     regularizationTypes={regularizationTypes}
                     scopeUnits={scopeUnits}
+                    specialRegularizations={specialRegularizations}
                     returnTo={returnTo}
                 />
 
@@ -68,7 +72,13 @@ export default async function EditWorkPackagePage({ params, searchParams }: { pa
                         <CardDescription>Añade y gestiona múltiples periodos con sus propias condiciones económicas</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ValidityPeriodsManager wpId={wp.id} periods={wp.validityPeriods} scopeUnits={scopeUnits} regularizationTypes={regularizationTypes} />
+                        <ValidityPeriodsManager
+                            wpId={wp.id}
+                            periods={wp.validityPeriods}
+                            scopeUnits={scopeUnits}
+                            regularizationTypes={regularizationTypes}
+                            specialRegularizations={specialRegularizations}
+                        />
                     </CardContent>
                 </Card>
 

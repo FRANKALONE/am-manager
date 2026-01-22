@@ -2,11 +2,11 @@ import { getParametersByCategory } from "@/app/actions/parameters";
 import { getClients } from "@/app/actions/clients";
 import { WorkPackageNewForm } from "../components/work-package-new-form";
 import { getTranslations } from "@/lib/get-translations";
+import { getSpecialRegularizations } from "@/app/actions/special-regularizations";
 
 export default async function NewWorkPackagePage() {
     const { t } = await getTranslations();
 
-    // Parallel data fetching
     const [
         clients,
         contractTypes,
@@ -14,7 +14,8 @@ export default async function NewWorkPackagePage() {
         billingTypes,
         scopeUnits,
         regularizationTypes,
-        customFieldsDef
+        customFieldsDef,
+        specialRegularizations
     ] = await Promise.all([
         getClients(),
         getParametersByCategory("CONTRACT_TYPE"),
@@ -22,7 +23,8 @@ export default async function NewWorkPackagePage() {
         getParametersByCategory("BILLING_TYPE"),
         getParametersByCategory("SCOPE_UNIT"),
         getParametersByCategory("REGULARIZATION_TYPE"),
-        getParametersByCategory("CUSTOM_FIELD_WP")
+        getParametersByCategory("CUSTOM_FIELD_WP"),
+        getSpecialRegularizations()
     ]);
 
     return (
@@ -42,6 +44,7 @@ export default async function NewWorkPackagePage() {
                 renewalTypes={renewalTypes}
                 regularizationTypes={regularizationTypes}
                 customFieldsDef={customFieldsDef}
+                specialRegularizations={specialRegularizations}
             />
         </div>
     );

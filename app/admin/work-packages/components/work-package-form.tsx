@@ -108,10 +108,11 @@ type Props = {
     renewalTypes: any[];
     regularizationTypes: any[];
     scopeUnits: any[];
+    specialRegularizations?: any[];
     returnTo?: string;
 };
 
-export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits, returnTo }: Props) {
+export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes, regularizationTypes, scopeUnits, specialRegularizations = [], returnTo }: Props) {
     const updateAction = updateWorkPackage.bind(null, wp.id);
     const [state, formAction] = useFormState(updateAction, initialState);
 
@@ -355,6 +356,14 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                                             <p className="text-sm font-medium">{currentPeriod.regularizationRate ? `${currentPeriod.regularizationRate} €/h` : 'Estándar'}</p>
                                         </div>
                                     </div>
+                                    {currentPeriod.specialRegularizationId && (
+                                        <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                                            <p className="text-[10px] text-blue-600 uppercase font-bold">Estrategia Especial</p>
+                                            <p className="text-sm font-bold text-blue-700">
+                                                {specialRegularizations.find((r: any) => r.id === currentPeriod.specialRegularizationId)?.name || 'Configurada'}
+                                            </p>
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="text-[10px] text-muted-foreground uppercase font-semibold">Estrategia de Exceso</p>
                                         <p className="text-sm font-medium bg-white border px-2 py-0.5 rounded shadow-sm inline-block">

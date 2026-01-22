@@ -271,7 +271,8 @@ export async function createWorkPackage(prevState: any, formData: FormData) {
                         regularizationRate,
                         surplusStrategy: surplusStrategy || null,
                         rateEvolutivo,
-                        billingType: formData.get("billingType")?.toString() || null
+                        billingType: formData.get("billingType")?.toString() || null,
+                        specialRegularizationId: formData.get("specialRegularizationId")?.toString() || null
                     }
                 } : undefined
             },
@@ -447,6 +448,9 @@ export async function updateWorkPackage(id: string, prevState: any, formData: Fo
             if (rateEvolutivoStr !== null && rateEvolutivoStr !== undefined) periodUpdateData.rateEvolutivo = rateEvolutivo;
             if (periodStartDateStr) periodUpdateData.startDate = new Date(periodStartDateStr);
             if (periodEndDateStr) periodUpdateData.endDate = new Date(periodEndDateStr);
+            if (formData.has("specialRegularizationId")) {
+                periodUpdateData.specialRegularizationId = formData.get("specialRegularizationId") as string || null;
+            }
 
             if (Object.keys(periodUpdateData).length > 0) {
                 if (formData.has("billingType")) {
@@ -504,10 +508,11 @@ export async function addValidityPeriod(
     regularizationRate: number | null,
     surplusStrategy: string | null,
     rateEvolutivo: number | null,
-    billingType: string | null
+    billingType: string | null,
+    specialRegularizationId: string | null = null
 ) {
     try {
-        await prisma.validityPeriod.create({
+        await (prisma as any).validityPeriod.create({
             data: {
                 workPackageId: wpId,
                 startDate,
@@ -521,7 +526,8 @@ export async function addValidityPeriod(
                 regularizationRate,
                 surplusStrategy,
                 rateEvolutivo,
-                billingType
+                billingType,
+                specialRegularizationId
             }
         });
 
@@ -555,10 +561,11 @@ export async function updateValidityPeriod(
     regularizationRate: number | null,
     surplusStrategy: string | null,
     rateEvolutivo: number | null,
-    billingType: string | null
+    billingType: string | null,
+    specialRegularizationId: string | null = null
 ) {
     try {
-        const vp = await prisma.validityPeriod.update({
+        const vp = await (prisma as any).validityPeriod.update({
             where: { id },
             data: {
                 startDate,
@@ -572,7 +579,8 @@ export async function updateValidityPeriod(
                 regularizationRate,
                 surplusStrategy,
                 rateEvolutivo,
-                billingType
+                billingType,
+                specialRegularizationId
             }
         });
         revalidatePath(`/admin/work-packages/${vp.workPackageId}/edit`);

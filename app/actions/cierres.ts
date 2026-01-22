@@ -5,6 +5,7 @@ import { syncWorkPackage } from "@/app/actions/sync";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "./notifications";
 import { formatDate, getNow } from "@/lib/date-utils";
+import { calculateRegularizationAmount } from "@/lib/regularization-engine";
 
 export interface CierreCandidate {
     wpId: string;
@@ -73,10 +74,11 @@ function checkIsDueThisMonth(startDate: Date, regType: string | null, targetMont
 
 export async function getPendingCierres(month: number, year: number) {
     try {
-        const wps = await prisma.workPackage.findMany({
+        const wps = await (prisma as any).workPackage.findMany({
             include: {
                 client: { select: { name: true, reportEmails: true } },
                 validityPeriods: {
+                    include: { specialRegularization: true },
                     orderBy: { startDate: 'asc' }
                 },
                 monthlyMetrics: true,
@@ -335,6 +337,18 @@ export async function getPendingCierres(month: number, year: number) {
             const isOutdated = !wp.lastSyncedAt || (now.getTime() - new Date(wp.lastSyncedAt).getTime() > 24 * 60 * 60 * 1000);
 
             const regRate = period.regularizationRate || period.rate || 0;
+            const suggestedAmount = balance < 0 ? Math.abs(balance) : 0;
+
+            // Calculate cash amount using strategy engine
+            const suggestedCashAmount = calculateRegularizationAmount(
+                suggestedAmount,
+                period.rate,
+                (period as any).specialRegularization ? {
+                    type: (period as any).specialRegularization.type,
+                    config: (period as any).specialRegularization.config
+                } : undefined
+            );
+
             const candidateData = {
                 wpId: wp.id,
                 wpName: wp.name,
@@ -346,8 +360,8 @@ export async function getPendingCierres(month: number, year: number) {
                 isDueThisMonth: isDue,
                 needsSync: isOutdated,
                 unit: period.scopeUnit || 'HORAS',
-                suggestedAmount: balance < 0 ? Math.abs(balance) : 0,
-                suggestedCashAmount: (balance < 0 ? Math.abs(balance) : 0) * regRate,
+                suggestedAmount: suggestedAmount,
+                suggestedCashAmount: suggestedCashAmount,
                 needsPO: balance < -0.01 && period.regularizationType?.toUpperCase() === 'BAJO_PEDIDO',
                 reportEmails: wp.client.reportEmails,
                 reportSentAt: wp.monthlyMetrics.find(m => m.month === month && m.year === year)?.reportSentAt,
@@ -523,11 +537,12 @@ export async function markReportAsSent(wpId: string, month: number, year: number
 
 export async function getClosureReportData(wpId: string, month: number, year: number) {
     try {
-        const wp = await prisma.workPackage.findUnique({
+        const wp = await (prisma as any).workPackage.findUnique({
             where: { id: wpId },
             include: {
                 client: true,
                 validityPeriods: {
+                    include: { specialRegularization: true },
                     orderBy: { startDate: 'asc' }
                 },
                 monthlyMetrics: true,

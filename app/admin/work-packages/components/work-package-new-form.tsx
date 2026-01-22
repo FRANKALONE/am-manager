@@ -17,6 +17,7 @@ function SelectField({ label, name, options, defaultValue, required = false, chi
             <select
                 id={name}
                 name={name}
+                title={label}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 defaultValue={defaultValue || ""}
                 required={required}
@@ -40,7 +41,8 @@ export function WorkPackageNewForm({
     scopeUnits,
     renewalTypes,
     regularizationTypes,
-    customFieldsDef
+    customFieldsDef,
+    specialRegularizations = []
 }: any) {
     const { t } = useTranslations();
     const [state, formAction] = useFormState(createWorkPackage, { error: "" });
@@ -64,6 +66,7 @@ export function WorkPackageNewForm({
                             <Label htmlFor="clientId">{t('workPackages.form.labels.client')}</Label>
                             <select
                                 name="clientId"
+                                title={t('workPackages.form.labels.client')}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 required
                             >
@@ -122,6 +125,7 @@ export function WorkPackageNewForm({
                                         type="checkbox"
                                         id="hasIaasService"
                                         name="hasIaasService"
+                                        title="Incluir IAAS"
                                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
                                     <Label htmlFor="hasIaasService" className="font-normal cursor-pointer text-xs">
@@ -134,6 +138,7 @@ export function WorkPackageNewForm({
                                         type="checkbox"
                                         id="includeEvoEstimates"
                                         name="includeEvoEstimates"
+                                        title="Evolutivos Bolsa (Estimados)"
                                         defaultChecked={true}
                                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
@@ -147,6 +152,7 @@ export function WorkPackageNewForm({
                                         type="checkbox"
                                         id="includeEvoTM"
                                         name="includeEvoTM"
+                                        title="Evolutivos T&M (Horas)"
                                         defaultChecked={true}
                                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                     />
@@ -230,11 +236,26 @@ export function WorkPackageNewForm({
                                     <SelectField label={t('workPackages.form.labels.billingType')} name="billingType" options={billingTypes} required t={t} />
                                     <SelectField label={t('workPackages.form.labels.regularizationType')} name="regularizationType" options={regularizationTypes} defaultValue="NONE" t={t} />
                                 </div>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <SelectField
+                                        label="Regularización Especial (Configurada)"
+                                        name="specialRegularizationId"
+                                        options={specialRegularizations}
+                                        t={t}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic -mt-2">
+                                        Si se selecciona, prevalecerá sobre la tarifa de regularización estándar.
+                                    </p>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <SelectField label={t('workPackages.form.labels.renewalType')} name="renewalType" options={renewalTypes} required t={t} />
                                     <div className="space-y-2">
                                         <Label htmlFor="isPremium">Premium</Label>
-                                        <select name="isPremium" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                        <select
+                                            name="isPremium"
+                                            title="Premium"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        >
                                             <option value="false">No</option>
                                             <option value="true">Sí</option>
                                         </select>

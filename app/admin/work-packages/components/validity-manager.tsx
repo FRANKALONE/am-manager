@@ -17,7 +17,19 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "@/lib/use-translations";
 import { formatDate as formatTimezoneDate } from "@/lib/date-utils";
 
-export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizationTypes }: { wpId: string, periods: any[], scopeUnits?: any[], regularizationTypes?: any[] }) {
+export function ValidityPeriodsManager({
+    wpId,
+    periods,
+    scopeUnits,
+    regularizationTypes,
+    specialRegularizations = []
+}: {
+    wpId: string,
+    periods: any[],
+    scopeUnits?: any[],
+    regularizationTypes?: any[],
+    specialRegularizations?: any[]
+}) {
     const { t, locale } = useTranslations();
     const [isPending, startTransition] = useTransition();
 
@@ -34,7 +46,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
         regularizationType: null as string | null,
         regularizationRate: null as number | null,
         renewalType: null as string | null,
-        rateEvolutivo: null as number | null
+        rateEvolutivo: null as number | null,
+        specialRegularizationId: null as string | null
     });
 
     // Editing state
@@ -57,7 +70,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 newPeriod.regularizationRate,
                 null, // surplusStrategy removed
                 newPeriod.rateEvolutivo,
-                newPeriod.billingType
+                newPeriod.billingType,
+                newPeriod.specialRegularizationId
             );
             // Reset form
             setNewPeriod({
@@ -72,7 +86,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 regularizationType: null,
                 regularizationRate: null,
                 renewalType: null,
-                rateEvolutivo: null
+                rateEvolutivo: null,
+                specialRegularizationId: null
             });
         });
     }
@@ -91,7 +106,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
             regularizationRate: p.regularizationRate || null,
             surplusStrategy: p.surplusStrategy || null,
             rateEvolutivo: p.rateEvolutivo || null,
-            billingType: p.billingType || "MENSUAL"
+            billingType: p.billingType || "MENSUAL",
+            specialRegularizationId: p.specialRegularizationId || null
         });
     }
 
@@ -116,7 +132,8 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                 editPeriod.regularizationRate,
                 editPeriod.surplusStrategy,
                 editPeriod.rateEvolutivo,
-                editPeriod.billingType
+                editPeriod.billingType,
+                editPeriod.specialRegularizationId
             );
             setEditingId(null);
             setEditPeriod(null);
@@ -256,7 +273,29 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                         </div>
                     </div>
 
-                    {/* Row 4: Premium y Tipo Renovación */}
+                    {/* Row 3.5: Regularización Especial */}
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="newSpecialRegularizationId">Regularización Especial (Configurada)</Label>
+                            <Select
+                                value={newPeriod.specialRegularizationId || "NONE"}
+                                onValueChange={(value) => setNewPeriod({ ...newPeriod, specialRegularizationId: value === "NONE" ? null : value })}
+                            >
+                                <SelectTrigger id="newSpecialRegularizationId">
+                                    <SelectValue placeholder="Seleccionar estrategia..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NONE">{t('workPackages.validity.notDefined')}</SelectItem>
+                                    {specialRegularizations.map(r => (
+                                        <SelectItem key={r.id} value={r.id}>{r.name} ({r.type})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Si se selecciona una regularización especial, esta prevalecerá sobre la tarifa de regularización estándar.
+                            </p>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="newIsPremium">{t('workPackages.validity.premium')}</Label>
@@ -407,11 +446,25 @@ export function ValidityPeriodsManager({ wpId, periods, scopeUnits, regularizati
                                                             </SelectContent>
                                                         </Select>
                                                         <Input type="number" step="0.01" value={data.regularizationRate || ""} onChange={e => setEditPeriod({ ...editPeriod, regularizationRate: e.target.value ? parseFloat(e.target.value) : null })} className="text-xs h-7" placeholder={t('workPackages.validity.regRate')} />
+                                                        <Select value={data.specialRegularizationId || "NONE"} onValueChange={(value) => setEditPeriod({ ...editPeriod, specialRegularizationId: value === "NONE" ? null : value })}>
+                                                            <SelectTrigger className="text-xs h-7"><SelectValue placeholder="Reg. Especial" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="NONE">Sin Reg. Especial</SelectItem>
+                                                                {specialRegularizations.map(r => (
+                                                                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
                                                         <div>{data.regularizationType || "-"}</div>
                                                         {data.regularizationRate && <div className="text-muted-foreground">{data.regularizationRate} €/h</div>}
+                                                        {data.specialRegularizationId && (
+                                                            <div className="text-blue-600 font-medium">
+                                                                {specialRegularizations.find(r => r.id === data.specialRegularizationId)?.name || "Reg. Especial"}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>

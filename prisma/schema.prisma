@@ -139,21 +139,23 @@ model Role {
 }
 
 model ValidityPeriod {
-  id                 Int         @id @default(autoincrement())
-  workPackageId      String
-  startDate          DateTime
-  endDate            DateTime
-  totalQuantity      Float       @default(0)
-  rate               Float       @default(0)
-  isPremium          Boolean     @default(false)
-  premiumPrice       Float?
-  regularizationRate Float?
-  scopeUnit          String      @default("HORAS")
-  regularizationType String?
-  surplusStrategy    String?
-  rateEvolutivo      Float?
-  billingType        String?
-  workPackage        WorkPackage @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  id                       Int                   @id @default(autoincrement())
+  workPackageId            String
+  startDate                DateTime
+  endDate                  DateTime
+  totalQuantity            Float                 @default(0)
+  rate                     Float                 @default(0)
+  isPremium                Boolean               @default(false)
+  premiumPrice             Float?
+  regularizationRate       Float?
+  scopeUnit                String                @default("HORAS")
+  regularizationType       String?
+  surplusStrategy          String?
+  rateEvolutivo            Float?
+  billingType              String?
+  specialRegularizationId  String?
+  specialRegularization    SpecialRegularization? @relation(fields: [specialRegularizationId], references: [id])
+  workPackage              WorkPackage           @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
 }
 
 model CorrectionModel {
@@ -504,12 +506,23 @@ model Team {
   members   TeamMember[]
 }
 
+model SpecialRegularization {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  type            String           // RAPPEL, CONSULTANT_LEVEL
+  config          String           // JSON config
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  validityPeriods ValidityPeriod[]
+}
+
 model TeamMember {
   id             String               @id @default(cuid())
   name           String               @unique
   weeklyCapacity Float                @default(40.0)
   isActive       Boolean              @default(true)
   linkedUserId   String?              @unique
+  level          String?              // Junior, Senior, etc.
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   teamId         String?

@@ -48,6 +48,18 @@ export async function AdminSidebar() {
                     </SidebarLink>
                 )}
 
+                {perms.edit_billing && (
+                    <SidebarLink href="/admin/special-regularizations" label="Reg. Especiales">
+                        <Activity className="h-4 w-4" />
+                    </SidebarLink>
+                )}
+
+                {perms.manage_wps && (
+                    <SidebarLink href="/admin/team-members" label="Equipo AM">
+                        <Users className="h-4 w-4" />
+                    </SidebarLink>
+                )}
+
                 {(perms.manage_wps || perms.manage_clients || perms.view_renewals) && (
                     <SidebarLink href="/admin/renewals" label={t('sidebar.renewals')}>
                         <Calendar className="h-4 w-4" />
