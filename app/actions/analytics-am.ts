@@ -92,26 +92,64 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             });
 
             // Req 5: Ofertas Enviadas (Petición de Evolutivo -> Status "Oferta enviada...")
-            const sentTransitions = await prisma.ticketStatusHistory.findMany({
+            // Fetch ALL transitions for common "sent" statuses
+            const allSentTransitions = await prisma.ticketStatusHistory.findMany({
                 where: {
                     type: 'TICKET',
                     status: {
-                        in: ['Oferta enviada al cliente', 'Oferta enviada al gerente', 'Enviado a Cliente', 'Enviado a Gerente', 'Oferta Enviada'],
+                        in: [
+                            'Oferta enviada al cliente', 'Oferta enviada al gerente',
+                            'Enviado a Cliente', 'Enviado a Gerente',
+                            'Oferta Enviada', 'Enviado a SAP',
+                            'En revisión', 'Pendiente aprobación'
+                        ],
                         mode: 'insensitive'
                     },
                     transitionDate: { gte: start, lte: end }
-                }
+                },
+                orderBy: { transitionDate: 'asc' } // Order by date to pick the first one
             });
 
-            const sentPeticiones = await prisma.ticket.findMany({
+            // Fetch the tickets to distinguish types and check client ownership
+            const sentPeticionesFull = await prisma.ticket.findMany({
                 where: {
-                    issueKey: { in: sentTransitions.map(t => t.issueKey) },
-                    issueType: 'Petición de Evolutivo',
+                    issueKey: { in: allSentTransitions.map(t => t.issueKey) },
+                    issueType: { in: ['Petición de Evolutivo', 'Evolutivo'], mode: 'insensitive' },
                     workPackage: { clientId: { in: clientsListIds } }
                 },
-                select: { issueKey: true, workPackage: { select: { clientId: true } } }
+                select: { issueKey: true, issueType: true, workPackage: { select: { clientId: true } } }
             });
-            const validSentTransitions = sentTransitions.filter(tr => sentPeticiones.some(p => p.issueKey === tr.issueKey));
+
+            // Deduplicate and filter based on user rules:
+            // 1. Only one transition per unique ticket ID (first occurrence in period)
+            // 2. For 'Evolutivo', only count if status is 'Pendiente aprobación'
+            // 3. For 'Petición de Evolutivo', count all defined "sent" statuses
+            const validSentTransitions = [];
+            const processedKeys = new Set();
+
+            for (const tr of allSentTransitions) {
+                if (processedKeys.has(tr.issueKey)) continue;
+
+                const ticket = sentPeticionesFull.find(p => p.issueKey === tr.issueKey);
+                if (!ticket) continue;
+
+                const typeLower = ticket.issueType.toLowerCase();
+                const statusLower = tr.status.toLowerCase();
+
+                if (typeLower === 'evolutivo') {
+                    // Additional restriction for Evolutivos as per user instruction
+                    if (statusLower === 'pendiente aprobación') {
+                        validSentTransitions.push(tr);
+                        processedKeys.add(tr.issueKey);
+                    }
+                } else {
+                    // Petición de Evolutivo (uses the extended list already filtered in the query)
+                    validSentTransitions.push(tr);
+                    processedKeys.add(tr.issueKey);
+                }
+            }
+
+            const sentPeticiones = sentPeticionesFull.filter(p => processedKeys.has(p.issueKey));
 
             // Req 6: Ofertas Aprobadas (EvolutivoProposal Status=Cerrado, Resolution=Aprobada, RelatedTickets!=[])
             const approvedProposals = await prisma.evolutivoProposal.findMany({
