@@ -1740,8 +1740,14 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
             if (changelog && changelog.values) {
                 // Filter for relevant statuses only to save time
                 const relevantStatuses = type === 'TICKET'
-                    ? ['ENTREGADO EN PRO']
-                    : ['Enviado a Gerente', 'Enviado a Cliente', 'CERRADO'];
+                    ? ['ENTREGADO EN PRO', 'Entregado en PRD', 'Entregado en PRO']
+                    : [
+                        'Oferta enviada al cliente', 'Oferta enviada al gerente',
+                        'Enviado a Cliente', 'Enviado a Gerente',
+                        'Oferta Enviada', 'Enviado a SAP',
+                        'En revisión', 'Pendiente aprobación',
+                        'CERRADO', 'Cerrado'
+                    ];
 
                 for (const history of changelog.values) {
                     const statusItems = history.items.filter((item: any) =>
@@ -1751,31 +1757,6 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
                     for (const item of statusItems) {
                         const statusName = item.toString;
                         const transitionDate = new Date(history.created);
-
-                        // Update main record dates
-                        if (type === 'TICKET' && statusName === 'ENTREGADO EN PRO') {
-                            await (prisma as any).ticket.updateMany({
-                                where: { issueKey },
-                                data: { proDeliveryDate: transitionDate }
-                            });
-                        } else if (type === 'PROPOSAL') {
-                            if (statusName === 'Enviado a Gerente') {
-                                await (prisma as any).evolutivoProposal.updateMany({
-                                    where: { issueKey },
-                                    data: { sentToGerenteDate: transitionDate }
-                                });
-                            } else if (statusName === 'Enviado a Cliente') {
-                                await (prisma as any).evolutivoProposal.updateMany({
-                                    where: { issueKey },
-                                    data: { sentToClientDate: transitionDate }
-                                });
-                            } else if (statusName === 'CERRADO' && currentResolution === 'Aprobada') {
-                                await (prisma as any).evolutivoProposal.updateMany({
-                                    where: { issueKey },
-                                    data: { approvedDate: transitionDate }
-                                });
-                            }
-                        }
 
                         // Also save to history table for the report granularity
                         const existing = await (prisma as any).ticketStatusHistory.findFirst({
@@ -1792,6 +1773,32 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
                                     author: history.author?.displayName || 'Unknown'
                                 }
                             });
+                        }
+
+                        // Also update specific date fields if applicable
+                        const statusLower = statusName.toLowerCase();
+                        if (type === 'TICKET' && (statusLower === 'entregado en prd' || statusLower === 'entregado en pro')) {
+                            await (prisma as any).ticket.updateMany({
+                                where: { issueKey },
+                                data: { proDeliveryDate: transitionDate }
+                            });
+                        } else if (type === 'PROPOSAL') {
+                            if (statusLower === 'oferta enviada al gerente' || statusLower === 'enviado a gerente') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { sentToGerenteDate: transitionDate }
+                                });
+                            } else if (statusLower === 'oferta enviada al cliente' || statusLower === 'enviado a cliente') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { sentToClientDate: transitionDate }
+                                });
+                            } else if (statusLower === 'cerrado' && currentResolution === 'Aprobada') {
+                                await (prisma as any).evolutivoProposal.updateMany({
+                                    where: { issueKey },
+                                    data: { approvedDate: transitionDate }
+                                });
+                            }
                         }
                     }
                 }
@@ -1931,10 +1938,13 @@ export async function backfillHistoryData() {
 
         addLog(`📊 Current Progress: Tickets ${syncedTickets}/${totalTickets} (${ticketProgress}%), Proposals ${syncedProposals}/${totalProposals} (${proposalProgress}%)`);
 
-        // Fetch unsynced records
+        // Fetch blocks of tickets and proposals to sync their history
         const unsyncedTickets = await (prisma as any).ticket.findMany({
             select: { issueKey: true },
-            where: { proDeliveryDate: null },
+            where: {
+                // We sync even if they have proDeliveryDate, because they might miss TicketStatusHistory
+                issueType: { in: ['Petición de Evolutivo', 'Evolutivo'], mode: 'insensitive' }
+            },
             take: BATCH_SIZE_TICKETS,
             orderBy: { createdDate: 'desc' }
         });

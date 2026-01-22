@@ -1,0 +1,18 @@
+Debug for 2025
+Relevant clients found: 87
+Total transitions found in range: 5
+Is ENP-608 in transitions? false
+Ticket ENP-608 info: {
+  issueType: 'Petición de Evolutivo',
+  clientName: 'ENTREPINARES',
+  clientId: '1000211'
+}
+Is clientId in clientIds list? true
+Matching tickets found in Ticket table (no type filter): 5
+Matching tickets found in Ticket table (WITH type filter): 4
+Valid transitions after deduplication and filtering: 2
+Filtered because missing ticket: 0
+Filtered because Evolutivo but not 'Pendiente aprobación': 3
+
+Samples of missing tickets keys:
+[]
