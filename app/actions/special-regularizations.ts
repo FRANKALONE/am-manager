@@ -1,5 +1,7 @@
+// Deployment trigger: 2026-01-22 19:33
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import crypto from "crypto";
 
 export type SpecialRegularizationType = "RAPPEL" | "CONSULTANT_LEVEL";
 
@@ -57,19 +59,26 @@ export async function createSpecialRegularization(data: {
     try {
         const configString = JSON.stringify(data.config);
 
+        if (!(prisma as any).specialRegularization) {
+            console.error("Prisma model 'specialRegularization' is missing. Check if client was generated.");
+            return { success: false, error: "Error interno: El modelo de datos no está listo. Contacta con soporte." };
+        }
+
         const reg = await (prisma as any).specialRegularization.create({
             data: {
+                id: crypto.randomUUID(),
                 name: data.name,
                 type: data.type,
-                config: configString
+                config: configString,
+                updatedAt: new Date()
             }
         });
 
         revalidatePath("/admin/special-regularizations");
         return { success: true, data: reg };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating special regularization:", error);
-        return { success: false, error: "Error al crear la regularización especial" };
+        return { success: false, error: `Error al crear la regularización especial: ${error.message || "Error desconocido"}` };
     }
 }
 
