@@ -1911,9 +1911,9 @@ export async function backfillHistoryData() {
     try {
         addLog("🚀 Starting history sync batch...");
 
-        // Process ONE large batch per execution to avoid timeout
-        const BATCH_SIZE_TICKETS = 500;
-        const BATCH_SIZE_PROPOSALS = 250;
+        // Process a large batch to cover most recent tickets in one go
+        const BATCH_SIZE_TICKETS = 1000;
+        const BATCH_SIZE_PROPOSALS = 1000;
 
         // Get total counts
         const totalTickets = await prisma.ticket.count();
@@ -1942,8 +1942,8 @@ export async function backfillHistoryData() {
         const unsyncedTickets = await (prisma as any).ticket.findMany({
             select: { issueKey: true },
             where: {
-                // We sync even if they have proDeliveryDate, because they might miss TicketStatusHistory
-                issueType: { in: ['Petición de Evolutivo', 'Evolutivo'], mode: 'insensitive' }
+                issueType: { in: ['Petición de Evolutivo', 'Evolutivo'], mode: 'insensitive' },
+                year: { gte: 2025 } // Focus on current and next year for the dashboard
             },
             take: BATCH_SIZE_TICKETS,
             orderBy: { createdDate: 'desc' }
@@ -1952,11 +1952,7 @@ export async function backfillHistoryData() {
         const unsyncedProposals = await (prisma as any).evolutivoProposal.findMany({
             select: { issueKey: true },
             where: {
-                AND: [
-                    { sentToGerenteDate: null },
-                    { sentToClientDate: null },
-                    { approvedDate: null }
-                ]
+                createdDate: { gte: new Date('2025-01-01') }
             },
             take: BATCH_SIZE_PROPOSALS,
             orderBy: { createdDate: 'desc' }

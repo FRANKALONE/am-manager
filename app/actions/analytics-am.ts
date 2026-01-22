@@ -95,13 +95,13 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             // Fetch ALL transitions for common "sent" statuses
             const allSentTransitions = await prisma.ticketStatusHistory.findMany({
                 where: {
-                    type: 'TICKET',
+                    // Include both TICKET and PROPOSAL transitions
                     status: {
                         in: [
                             'Oferta enviada al cliente', 'Oferta enviada al gerente',
                             'Enviado a Cliente', 'Enviado a Gerente',
                             'Oferta Enviada', 'Enviado a SAP',
-                            'En revisión', 'Pendiente aprobación'
+                            'En revisión', 'Pendiente aprobación', 'Oferta Generada'
                         ],
                         mode: 'insensitive'
                     },
