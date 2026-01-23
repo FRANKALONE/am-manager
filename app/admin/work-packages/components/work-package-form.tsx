@@ -140,7 +140,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="id">ID de WP</Label>
-                            <Input id="id" name="id" defaultValue={wp.id} required maxLength={20} />
+                            <Input id="id" name="id" defaultValue={wp.id} readOnly className="bg-slate-50 cursor-not-allowed" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre WP</Label>
@@ -150,7 +150,7 @@ export function WorkPackageForm({ wp, contractTypes, billingTypes, renewalTypes,
 
                     <div className="space-y-2">
                         <Label htmlFor="contractType">Tipo de Contrato</Label>
-                        <Select name="contractType" defaultValue={wp.contractType}>
+                        <Select name="contractType" defaultValue={wp.contractType} disabled>
                             <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                             <SelectContent>
                                 {contractTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}
