@@ -346,9 +346,23 @@ export async function authenticate(prevState: any, formData: FormData) {
             });
         }
 
-        // Sync preferences to cookies if set in DB
-        if (user.locale) {
-            cookies().set("NEXT_LOCALE", user.locale, {
+        // Sync preferences: Prioritize the language selected on the login page (via NEXT_LOCALE cookie)
+        const currentLocaleCookie = cookies().get("NEXT_LOCALE")?.value;
+        let finalLocale = user.locale;
+
+        if (currentLocaleCookie && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(currentLocaleCookie)) {
+            finalLocale = currentLocaleCookie;
+            // Update the user's preference in the DB if it changed
+            if (user.locale !== currentLocaleCookie) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { locale: currentLocaleCookie }
+                });
+            }
+        }
+
+        if (finalLocale) {
+            cookies().set("NEXT_LOCALE", finalLocale, {
                 maxAge: 365 * 24 * 60 * 60, // 1 year
                 path: "/",
             });
