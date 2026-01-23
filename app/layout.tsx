@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     description: "Gestión de clientes y contratos AM",
 };
 
+import { getLocale } from "@/lib/get-locale";
 import { Toaster } from "sonner";
 
 export default function RootLayout({
@@ -24,8 +25,10 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const locale = getLocale();
+
     return (
-        <html lang="es">
+        <html lang={locale}>
             <body className={`${anekLatin.variable} ${dmSans.variable} font-sans antialiased text-slate-900`}>
                 {children}
                 <Toaster position="top-right" richColors />

@@ -7,6 +7,14 @@ function getLocale(): Locale {
     if (typeof window === 'undefined') return 'es';
 
     try {
+        // 1. Try cookie (most reliable, set by server and client)
+        const match = document.cookie.match(new RegExp('(^| )NEXT_LOCALE=([^;]+)'));
+        const cookieValue = match ? decodeURIComponent(match[2]) : null;
+        if (cookieValue && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(cookieValue)) {
+            return cookieValue as Locale;
+        }
+
+        // 2. Try localStorage (fallback)
         const saved = localStorage.getItem('NEXT_LOCALE');
         if (saved && ['es', 'en', 'pt', 'it', 'fr', 'hi'].includes(saved)) {
             return saved as Locale;
