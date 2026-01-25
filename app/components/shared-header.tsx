@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Home, Globe } from "lucide-react";
+import { Home, Globe, GraduationCap } from "lucide-react";
 import { getCurrentUser, getAuthSession, hasPermission } from "@/lib/auth";
 import { UserProfileDropdown } from "./user-profile-dropdown";
 import { AdminNotifications } from "@/app/admin/components/admin-notifications";
 import { NotificationPanel } from "@/app/dashboard/components/notification-panel";
 import { getTranslations } from "@/lib/get-translations";
 import { getActiveLandingsForUser } from "@/app/actions/landings";
+import { redirectToAcademy } from "@/app/actions/sso";
 
 interface SharedHeaderProps {
     title: string;
@@ -80,11 +81,24 @@ export async function SharedHeader({ title }: SharedHeaderProps) {
                 )}
 
                 {/* Notifications based on role */}
-                {userRole === "ADMIN" ? (
-                    <AdminNotifications userId={user?.id || ""} />
-                ) : user ? (
-                    <NotificationPanel userId={user.id} />
-                ) : null}
+                <div className="flex items-center gap-2">
+                    <form action={redirectToAcademy}>
+                        <button
+                            type="submit"
+                            className="p-2 text-slate-400 hover:text-malachite transition-colors flex items-center gap-1.5 border rounded-lg hover:border-malachite/30 hover:bg-malachite/5"
+                            title="Acceder a Academy (Trial)"
+                        >
+                            <GraduationCap className="w-5 h-5" />
+                            <span className="text-xs font-medium hidden lg:inline">Academy</span>
+                        </button>
+                    </form>
+
+                    {userRole === "ADMIN" ? (
+                        <AdminNotifications userId={user?.id || ""} />
+                    ) : user ? (
+                        <NotificationPanel userId={user.id} />
+                    ) : null}
+                </div>
 
                 {/* Profile dropdown if user is logged in */}
                 {user && <UserProfileDropdown user={user as any} />}
