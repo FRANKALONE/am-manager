@@ -77,6 +77,7 @@ export default async function EditWorkPackagePage({ params, searchParams }: { pa
                             periods={wp.validityPeriods}
                             scopeUnits={scopeUnits}
                             regularizationTypes={regularizationTypes}
+                            billingTypes={billingTypes}
                             specialRegularizations={specialRegularizations}
                         />
                     </CardContent>

@@ -22,12 +22,14 @@ export function ValidityPeriodsManager({
     periods,
     scopeUnits,
     regularizationTypes,
+    billingTypes,
     specialRegularizations = []
 }: {
     wpId: string,
     periods: any[],
     scopeUnits?: any[],
     regularizationTypes?: any[],
+    billingTypes?: any[],
     specialRegularizations?: any[]
 }) {
     const { t, locale } = useTranslations();
@@ -240,9 +242,15 @@ export function ValidityPeriodsManager({
                             <Select value={newPeriod.billingType || "MENSUAL"} onValueChange={(value) => setNewPeriod({ ...newPeriod, billingType: value })}>
                                 <SelectTrigger id="newBillingType"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
-                                    <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
-                                    <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
+                                    {billingTypes?.map(t => (
+                                        <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>
+                                    )) || (
+                                            <>
+                                                <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
+                                                <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
+                                                <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
+                                            </>
+                                        )}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -473,9 +481,15 @@ export function ValidityPeriodsManager({
                                                     <Select value={data.billingType || "MENSUAL"} onValueChange={(value) => setEditPeriod({ ...editPeriod, billingType: value })}>
                                                         <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
-                                                            <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
-                                                            <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
+                                                            {billingTypes?.map(t => (
+                                                                <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>
+                                                            )) || (
+                                                                    <>
+                                                                        <SelectItem value="MENSUAL">{t('workPackages.validity.billingOptions.monthly')}</SelectItem>
+                                                                        <SelectItem value="TRIMESTRAL">{t('workPackages.validity.billingOptions.quarterly')}</SelectItem>
+                                                                        <SelectItem value="ANUAL">{t('workPackages.validity.billingOptions.annual')}</SelectItem>
+                                                                    </>
+                                                                )}
                                                         </SelectContent>
                                                     </Select>
                                                 ) : (
