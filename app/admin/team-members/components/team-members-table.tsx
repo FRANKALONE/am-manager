@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateTeamMemberLevel } from "@/app/actions/team-members";
 import { useState, useMemo } from "react";
-import { Check, X, Edit2, Search, FilterX } from "lucide-react";
+import { Check, X, Edit2, Search, FilterX, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -20,6 +20,7 @@ type TeamMember = {
 export function TeamMembersTable({ members }: { members: TeamMember[] }) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     // Filter states
     const [search, setSearch] = useState("");
@@ -51,12 +52,25 @@ export function TeamMembersTable({ members }: { members: TeamMember[] }) {
     };
 
     const handleSave = async (id: string) => {
-        const valueToSave = editValue === "NONE" ? null : editValue;
-        const result = await updateTeamMemberLevel(id, valueToSave);
-        if (result.success) {
-            setEditingId(null);
-        } else {
-            alert(result.error);
+        try {
+            console.log("handleSave called for id:", id, "with value:", editValue);
+            setIsSaving(true);
+            const valueToSave = editValue === "NONE" ? null : editValue;
+
+            console.log("Calling updateTeamMemberLevel server action...");
+            const result = await updateTeamMemberLevel(id, valueToSave);
+            console.log("Server action result:", result);
+
+            if (result.success) {
+                setEditingId(null);
+            } else {
+                alert(result.error);
+            }
+        } catch (error) {
+            console.error("Error in handleSave:", error);
+            alert("Error inesperado al guardar");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -161,7 +175,7 @@ export function TeamMembersTable({ members }: { members: TeamMember[] }) {
                                     <TableCell>{member.weeklyCapacity}h</TableCell>
                                     <TableCell>
                                         {editingId === member.id ? (
-                                            <Select value={editValue} onValueChange={setEditValue}>
+                                            <Select value={editValue} onValueChange={setEditValue} disabled={isSaving}>
                                                 <SelectTrigger className="w-[140px] h-8 text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
@@ -185,14 +199,20 @@ export function TeamMembersTable({ members }: { members: TeamMember[] }) {
                                                     size="icon"
                                                     className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                                                     onClick={() => handleSave(member.id)}
+                                                    disabled={isSaving}
                                                 >
-                                                    <Check className="h-4 w-4" />
+                                                    {isSaving ? (
+                                                        <RefreshCw className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Check className="h-4 w-4" />
+                                                    )}
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                                                     onClick={handleCancel}
+                                                    disabled={isSaving}
                                                 >
                                                     <X className="h-4 w-4" />
                                                 </Button>

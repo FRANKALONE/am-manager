@@ -21,16 +21,18 @@ export async function getTeamMembersForManagement() {
 
 export async function updateTeamMemberLevel(id: string, level: string | null) {
     try {
-        await prisma.teamMember.update({
+        console.log(`[ACTION] Updating member ${id} level to:`, level);
+        const updated = await prisma.teamMember.update({
             where: { id },
             data: { level }
         });
+        console.log(`[ACTION] Update successful for ${updated.name}`);
 
         revalidatePath("/admin/team-members");
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating team member level:", error);
-        return { success: false, error: "Error al actualizar el nivel del miembro" };
+        return { success: false, error: `Error al actualizar el nivel del miembro: ${error.message || "Error desconocido"}` };
     }
 }
 

@@ -27,12 +27,12 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         setIsMounted(true);
     }, []);
 
-    // Sync initial value only once
+    // Sync initial value and any subsequent changes from props (e.g. language switching)
     useEffect(() => {
         if (isMounted && editorRef.current && editorRef.current.innerHTML !== value) {
             editorRef.current.innerHTML = value || '';
         }
-    }, [isMounted]);
+    }, [isMounted, value]);
 
     const execCommand = (command: string, value: string | undefined = undefined) => {
         document.execCommand(command, false, value);
