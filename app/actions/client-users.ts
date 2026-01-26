@@ -15,7 +15,7 @@ import { getAuthSession } from '@/lib/auth';
  */
 async function getCurrentUserInfo() {
     const session = await getAuthSession();
-    if (!session || !session.clientId) {
+    if (!session) {
         return null;
     }
 
@@ -81,13 +81,19 @@ export async function getJiraEmployees() {
         const currentUser = await getCurrentUserInfo();
         if (!currentUser) return { success: false, error: 'No autenticado' };
 
-        // Fetch Jira users that are active and NOT customer type
-        // Note: Jira Cloud /rest/api/3/users/search?query= 
-        const jiraUsers = await fetchJira('/users/search?maxResults=1000');
+        // Fetch Jira users. Some Jira instances require a query parameter.
+        // We use a dot or empty query to try and get everyone.
+        const jiraUsers = await fetchJira('/users/search?query=.&maxResults=1000');
 
-        // Filter out app users or specific types if needed, though search usually returns all valid users
+        console.log(`[getJiraEmployees] Found ${jiraUsers?.length || 0} users in Jira`);
+
+        if (!jiraUsers || !Array.isArray(jiraUsers)) {
+            return { success: true, employees: [] };
+        }
+
+        // Filter: We want active users that can be assignees (atlassian or app)
         const employees = jiraUsers
-            .filter((u: any) => u.accountType === 'atlassian' && u.active)
+            .filter((u: any) => u.active && u.accountType !== 'customer')
             .map((u: any) => ({
                 accountId: u.accountId,
                 displayName: u.displayName,
@@ -95,6 +101,8 @@ export async function getJiraEmployees() {
                 avatarUrl: u.avatarUrls?.['32x32']
             }))
             .sort((a: any, b: any) => a.displayName.localeCompare(b.displayName));
+
+        console.log(`[getJiraEmployees] Returning ${employees.length} filtered employees`);
 
         return { success: true, employees };
     } catch (error) {
