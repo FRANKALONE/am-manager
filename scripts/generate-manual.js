@@ -15,13 +15,18 @@ if (!fs.existsSync(publicPath)) {
 function addImageIfExists(filename, x, y, w, h) {
     const imgPath = path.join(assetsPath, filename);
     if (fs.existsSync(imgPath)) {
-        const imgData = fs.readFileSync(imgPath).toString("base64");
-        const ext = filename.split(".").pop().toUpperCase();
+        console.log(`Adding image: ${filename}`);
         try {
-            doc.addImage(imgData, ext, x, y, w, h);
+            const imgData = fs.readFileSync(imgPath);
+            const ext = filename.split(".").pop().toUpperCase();
+            // jsPDF in Node.js works better with Buffers/Uint8Arrays directly
+            doc.addImage(imgData, ext, x, y, w, h, undefined, 'FAST');
+            console.log(`Successfully added: ${filename}`);
         } catch (e) {
             console.error(`Error adding image ${filename}:`, e.message);
         }
+    } else {
+        console.warn(`Image NOT found: ${filename} at ${imgPath}`);
     }
 }
 
