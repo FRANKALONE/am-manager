@@ -186,7 +186,7 @@ export function EvolutivoTimeline({ evolutivo, hitos, isAdmin, portalUrl }: Time
                                     const dueDate = hito.dueDate ? parseISO(hito.dueDate) : null;
                                     const rawStart = hito.startDate; // Assuming your data might have this or use custom logic
                                     const startDateObj = rawStart ? parseISO(rawStart) : dueDate;
-                                    const isBar = rawStart && dueDate && isBefore(startDateObj, dueDate);
+                                    const isBar = !!(rawStart && dueDate && isBefore(startDateObj as Date, dueDate as Date));
 
                                     return (
                                         <div key={hito.issueKey} className="flex hover:bg-slate-50 transition-colors group relative">
