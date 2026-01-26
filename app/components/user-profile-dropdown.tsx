@@ -63,10 +63,10 @@ export function UserProfileDropdown({ user }: UserProfileDropdownProps) {
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href="/help" className="cursor-pointer flex items-center">
+                    <a href="/manual.pdf" download="Manual_Usuario_AM_Manager.pdf" className="cursor-pointer flex items-center w-full">
                         <BookOpen className="mr-2 h-4 w-4" />
                         <span>{t('user.manual')}</span>
-                    </Link>
+                    </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50">
