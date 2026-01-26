@@ -3,6 +3,8 @@ import { getEvolutivos, getHitos } from '@/lib/ama-evolutivos/jira';
 import type { JiraIssue } from '@/lib/ama-evolutivos/types';
 import { getAuthSession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         const session = await getAuthSession();
