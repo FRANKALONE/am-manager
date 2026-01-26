@@ -213,14 +213,37 @@ export default function AMAEvolutivosPage() {
                     />
                 </div>
 
+                {/* 2. Timeline Entry Point (Línea Temporal) */}
+                <div className="w-full">
+                    <Link href="/ama-evolutivos/timeline" className="block group relative bg-gradient-to-r from-slate-800 to-slate-900 rounded-[2rem] p-8 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+                                    <Calendar className="w-8 h-8 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white mb-1">Explorar Líneas Temporales</h2>
+                                    <p className="text-white/70">Visualiza la planificación de hitos en un cronograma interactivo.</p>
+                                </div>
+                            </div>
+                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:translate-x-2 transition-transform">
+                                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+
                 {/* Evolutivos Section */}
-                <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+                <div className="bg-white rounded-[2rem] p-8 border border-gray-200 shadow-sm">
                     <div className="mb-8">
                         <h2 className="text-2xl font-bold text-gray-900">Evolutivos en Curso</h2>
                         <p className="text-gray-600 mt-1">Gestión de desarrollos planificados y alertas</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <CategoryCard
                             title="Planificados"
                             subtitle="Con hitos definidos"
@@ -228,14 +251,6 @@ export default function AMAEvolutivosPage() {
                             icon={<Layers className="w-8 h-8" />}
                             href="/ama-evolutivos/evolutivos/planificados"
                             theme="green"
-                        />
-                        <CategoryCard
-                            title="Timeline"
-                            subtitle="Línea temporal de hitos"
-                            count={evolutivoStats.planned}
-                            icon={<Calendar className="w-8 h-8" />}
-                            href="/evolutivos/timeline"
-                            theme="blue"
                         />
                         <CategoryCard
                             title="No Planificados"

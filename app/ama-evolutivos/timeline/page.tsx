@@ -126,7 +126,7 @@ export default function TimelinePage() {
     });
 
     const hasFilters = selectedStatuses.length > 0 || selectedOrgs.length > 0 || selectedGestors.length > 0 || selectedAssignees.length > 0 || ticketFilter;
-    const finalIssues = hasFilters ? filteredIssues : [];
+    const finalIssues = filteredIssues;
 
     const getVisibleHitos = (issue: any) => {
         if (!issue.children) return [];
