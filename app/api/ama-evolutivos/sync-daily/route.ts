@@ -4,17 +4,24 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getEvolutivos, getWorkloadMetrics } from '@/lib/ama-evolutivos/jira';
+import { getAuthSession } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
-        // Verificar si viene de cron job o manual
+        // 1. Verificar autorización
         const authHeader = request.headers.get('authorization');
         const cronSecret = process.env.CRON_SECRET;
 
-        // Si hay secret configurado, verificar que coincida
-        if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        // Comprobar si es un Cron Job válido
+        const isCronJob = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+        // Comprobar si es un Usuario Administrador logueado
+        const session = await getAuthSession();
+        const isAdmin = session?.userRole === 'ADMIN';
+
+        if (!isCronJob && !isAdmin) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
