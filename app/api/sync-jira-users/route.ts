@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncClientJiraUsers } from '@/app/actions/jira-customers';
+import { getAuthSession } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await getAuthSession();
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { clientId } = await request.json();
 
         if (!clientId) {

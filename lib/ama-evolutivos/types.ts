@@ -12,6 +12,12 @@ export interface JiraIssue {
         name: string;
         avatarUrl?: string;
     };
+    responsable?: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+    };
+    projectName?: string;
     parentKey?: string;
     parent?: {
         key: string;

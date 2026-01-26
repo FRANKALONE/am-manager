@@ -1,12 +1,15 @@
-// app/api/ama-evolutivos/issues/route.ts
-// API para obtener issues y hitos del módulo AMA Evolutivos
-
 import { NextResponse } from 'next/server';
 import { getHitos, getEvolutivos } from '@/lib/ama-evolutivos/jira';
 import type { DashboardData, JiraIssue } from '@/lib/ama-evolutivos/types';
+import { getAuthSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
     try {
+        const session = await getAuthSession();
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const hitos = await getHitos();
         const evolutivos = await getEvolutivos();
 

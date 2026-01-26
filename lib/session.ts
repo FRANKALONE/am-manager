@@ -1,9 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const secret = new TextEncoder().encode(
-    process.env.AUTH_SECRET || "3ad85bf7594874a02a8ffa4c5b0db3faa434998aa8a"
-);
+const secretString = process.env.AUTH_SECRET;
+if (!secretString) {
+    throw new Error("AUTH_SECRET is not defined in environment variables. Critical security failure.");
+}
+
+const secret = new TextEncoder().encode(secretString);
 
 export async function encrypt(payload: any) {
     return await new SignJWT(payload)

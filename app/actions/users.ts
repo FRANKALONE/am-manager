@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { getTranslations } from "@/lib/get-translations";
-import { getVisibilityFilter, getHomeUrl, getCurrentUser, hasPermission, encrypt } from "@/lib/auth";
+import { getVisibilityFilter, getHomeUrl, getCurrentUser, hasPermission, encrypt, getAuthSession } from "@/lib/auth";
 
 export interface UserFilters {
     email?: string;
@@ -468,10 +468,11 @@ export async function authenticate(prevState: any, formData: FormData) {
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {
-    const userId = cookies().get("user_id")?.value;
-    if (!userId) {
+    const session = await getAuthSession();
+    if (!session) {
         return { success: false, error: "No autenticado" };
     }
+    const userId = session.userId;
 
     try {
         const user = await prisma.user.findUnique({
