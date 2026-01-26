@@ -234,7 +234,7 @@ export default function AMAEvolutivosPage() {
                             subtitle="Línea temporal de hitos"
                             count={evolutivoStats.planned}
                             icon={<Calendar className="w-8 h-8" />}
-                            href="/ama-evolutivos/timeline"
+                            href="/evolutivos/timeline"
                             theme="blue"
                         />
                         <CategoryCard
