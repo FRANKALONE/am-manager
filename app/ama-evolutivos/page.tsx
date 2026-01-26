@@ -220,7 +220,7 @@ export default function AMAEvolutivosPage() {
                         <p className="text-gray-600 mt-1">Gestión de desarrollos planificados y alertas</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <CategoryCard
                             title="Planificados"
                             subtitle="Con hitos definidos"
@@ -228,6 +228,14 @@ export default function AMAEvolutivosPage() {
                             icon={<Layers className="w-8 h-8" />}
                             href="/ama-evolutivos/evolutivos/planificados"
                             theme="green"
+                        />
+                        <CategoryCard
+                            title="Timeline"
+                            subtitle="Línea temporal de hitos"
+                            count={evolutivoStats.planned}
+                            icon={<Calendar className="w-8 h-8" />}
+                            href="/ama-evolutivos/timeline"
+                            theme="blue"
                         />
                         <CategoryCard
                             title="No Planificados"

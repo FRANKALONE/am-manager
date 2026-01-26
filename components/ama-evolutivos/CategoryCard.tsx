@@ -11,7 +11,7 @@ interface CategoryCardProps {
     count: number;
     icon: React.ReactNode;
     href: string;
-    theme: 'green' | 'orange';
+    theme: 'green' | 'orange' | 'blue';
 }
 
 const themeClasses = {
@@ -30,6 +30,14 @@ const themeClasses = {
         icon: 'text-orange-600',
         count: 'text-orange-700',
         hover: 'hover:border-orange-200',
+    },
+    blue: {
+        bg: 'bg-blue-50',
+        border: 'border-blue-100',
+        iconBg: 'bg-blue-100',
+        icon: 'text-blue-600',
+        count: 'text-blue-700',
+        hover: 'hover:border-blue-200',
     },
 };
 
