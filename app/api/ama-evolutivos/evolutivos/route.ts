@@ -1,12 +1,15 @@
-// app/api/ama-evolutivos/evolutivos/route.ts
-// API para obtener lista de evolutivos del módulo AMA Evolutivos
-
 import { NextResponse } from 'next/server';
 import { getEvolutivos, getHitos } from '@/lib/ama-evolutivos/jira';
 import type { JiraIssue } from '@/lib/ama-evolutivos/types';
+import { getAuthSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
     try {
+        const session = await getAuthSession();
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const evolutivos = await getEvolutivos();
         const allHitos = await getHitos();
 

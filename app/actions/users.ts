@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { getTranslations } from "@/lib/get-translations";
-import { getVisibilityFilter, getHomeUrl, getCurrentUser, hasPermission } from "@/lib/auth";
+import { getVisibilityFilter, getHomeUrl, getCurrentUser, hasPermission, encrypt } from "@/lib/auth";
 
 export interface UserFilters {
     email?: string;
@@ -355,7 +355,26 @@ export async function authenticate(prevState: any, formData: FormData) {
             return { error: "Credenciales inválidas" };
         }
 
-        // Set session cookie
+        // Create session payload
+        const sessionPayload = {
+            userId: user.id,
+            userRole: user.role,
+            userEmail: user.email,
+            clientId: user.clientId || undefined
+        };
+
+        const sessionToken = await encrypt(sessionPayload);
+
+        // Set JWT session cookie
+        cookies().set("session", sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24, // 1 day
+            path: "/",
+        });
+
+        // Update legacy cookies for transition (keep them for now)
         cookies().set("user_id", user.id, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -416,7 +435,7 @@ export async function authenticate(prevState: any, formData: FormData) {
             });
         }
 
-        // Set permissions cookie
+        // Set permissions cookie (deprecated but keeping for middleware compatibility during migration)
         const { getPermissionsByRoleName } = await import("@/lib/permissions");
         const permissions = await getPermissionsByRoleName(user.role);
         cookies().set("user_permissions", JSON.stringify(permissions), {
@@ -489,6 +508,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
 export async function logout() {
     console.log("[AUTH] Logging out user...");
     const cookieStore = cookies();
+    cookieStore.set("session", "", { path: "/", expires: new Date(0) });
     cookieStore.set("user_id", "", { path: "/", expires: new Date(0) });
     cookieStore.set("user_role", "", { path: "/", expires: new Date(0) });
     cookieStore.set("client_id", "", { path: "/", expires: new Date(0) });

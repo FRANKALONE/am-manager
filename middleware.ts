@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { decrypt } from '@/lib/session';
 
-export function middleware(request: NextRequest) {
-    const userId = request.cookies.get('user_id')?.value;
-    const userRole = request.cookies.get('user_role')?.value;
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    // 1. Get session from JWT
+    const sessionToken = request.cookies.get('session')?.value;
+    const session = sessionToken ? await decrypt(sessionToken) : null;
+
+    // 2. Auth context (Prioritize JWT, fallback to legacy for transition)
+    const userId = session?.userId || request.cookies.get('user_id')?.value;
+    const userRole = session?.userRole || request.cookies.get('user_role')?.value;
 
     const userPermissions = (() => {
         const perms = request.cookies.get('user_permissions')?.value;
@@ -16,8 +23,19 @@ export function middleware(request: NextRequest) {
         }
     })();
 
-    // Public paths
+    // 3. Public paths
     const publicPaths = ['/login', '/', '/login/forgot-password', '/login/reset-password'];
+
+    // 4. API protection
+    if (pathname.startsWith('/api/')) {
+        // Allow public API routes (like login itself if it were an API route, or public hooks)
+        const publicApiPaths: string[] = [];
+
+        if (!userId && !publicApiPaths.some(p => pathname.startsWith(p))) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+    }
+
     if (publicPaths.includes(pathname)) {
         if (userId) {
             // If already logged in, redirect to appropriate home based on permissions
@@ -34,7 +52,7 @@ export function middleware(request: NextRequest) {
 
     // Protected paths check
     if (!userId) {
-        // Redirigir al login si no hay sesin
+        // Redirect to login if no session
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -93,8 +111,6 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.next();
 
     // Content Security Policy
-    // We use a relatively permissive policy for now to avoid breaking existing functionality,
-    // but we can tighten it further as needed.
     const cspHeader = `
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval';
@@ -117,7 +133,7 @@ export function middleware(request: NextRequest) {
     return response;
 }
 
-// Config matching all paths except static files, api, and next internals
+// Config matching all paths except static files and next internals
 export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo-am.*).*)'],
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|logo-am.*).*)'],
 };

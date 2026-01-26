@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { getPermissionsByRoleName } from "./permissions";
+import { encrypt, decrypt } from "./session";
+export { encrypt, decrypt };
 
 export interface AuthSession {
     userId: string;
@@ -20,18 +22,35 @@ export interface VisibilityFilter {
  * Gets the current authenticated session from cookies
  */
 export async function getAuthSession(): Promise<AuthSession | null> {
-    const userId = cookies().get("user_id")?.value;
-    const userRole = cookies().get("user_role")?.value;
-    const clientId = cookies().get("client_id")?.value;
+    const sessionToken = cookies().get("session")?.value;
 
-    if (!userId || !userRole) return null;
+    if (!sessionToken) {
+        // Fallback to legacy cookies for transition (optional, but safer for now)
+        const userId = cookies().get("user_id")?.value;
+        const userRole = cookies().get("user_role")?.value;
+        const clientId = cookies().get("client_id")?.value;
 
-    const permissions = await getPermissionsByRoleName(userRole);
+        if (!userId || !userRole) return null;
+
+        const permissions = await getPermissionsByRoleName(userRole);
+
+        return {
+            userId,
+            userRole,
+            clientId,
+            permissions
+        };
+    }
+
+    const payload = await decrypt(sessionToken);
+    if (!payload) return null;
+
+    const permissions = await getPermissionsByRoleName(payload.userRole as string);
 
     return {
-        userId,
-        userRole,
-        clientId,
+        userId: payload.userId as string,
+        userRole: payload.userRole as string,
+        clientId: payload.clientId as string | undefined,
         permissions
     };
 }
