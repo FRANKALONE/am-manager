@@ -38,7 +38,7 @@ export async function GET(request: Request) {
                 status: evo.fields.status?.name || 'Unknown',
                 issueType: evo.fields.issuetype?.name || 'Unknown',
                 assignee: evo.fields.assignee ? {
-                    accountId: evo.fields.assignee.accountId,
+                    id: evo.fields.assignee.accountId,
                     displayName: evo.fields.assignee.displayName,
                     avatarUrl: evo.fields.assignee.avatarUrls?.['48x48'],
                 } : undefined,

@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getEvolutivos } from '@/lib/ama-evolutivos/jira';
+import { getEvolutivos, getWorkloadMetrics } from '@/lib/ama-evolutivos/jira';
 
 const prisma = new PrismaClient();
 
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // Obtener todos los evolutivos activos
+        // Obtener todos los evolutivos activos (Legacy logic)
         const evolutivos = await getEvolutivos();
 
         // Filtrar solo evolutivos activos (no cerrados)
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalizar a inicio del día
 
-        // Guardar o actualizar la métrica del día
+        // 1. Guardar o actualizar la métrica de evolutivos (Legacy)
         const metric = await prisma.eVOLDailyMetric.upsert({
             where: { date: today },
             update: {
@@ -47,12 +47,32 @@ export async function POST(request: Request) {
             },
         });
 
+        // 2. Nueva lógica: Guardar métrica detallada en AMADailyWorkload
+        const workload = await getWorkloadMetrics();
+
+        const workloadMetric = await prisma.aMADailyWorkload.upsert({
+            where: { date: today },
+            update: {
+                incidenciasCount: workload.incidencias,
+                evolutivosCount: workload.evolutivos,
+                updatedAt: new Date(),
+            },
+            create: {
+                date: today,
+                incidenciasCount: workload.incidencias,
+                evolutivosCount: workload.evolutivos,
+            },
+        });
+
         return NextResponse.json({
             success: true,
             date: today.toISOString(),
-            count,
-            metric,
-            message: `Métrica guardada: ${count} evolutivos activos`,
+            legacyCount: count,
+            workload: {
+                incidencias: workload.incidencias,
+                evolutivos: workload.evolutivos
+            },
+            message: `Métricas guardadas correctamente para el día ${today.toLocaleDateString()}`,
         });
     } catch (error: any) {
         console.error('Error syncing daily metric:', error);

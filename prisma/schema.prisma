@@ -555,6 +555,15 @@ model EVOLDailyMetric {
   updatedAt DateTime @updatedAt
 }
 
+model AMADailyWorkload {
+  id               Int      @id @default(autoincrement())
+  date             DateTime @unique
+  incidenciasCount Int
+  evolutivosCount  Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 model EVOLEvolutivoUser {
   id                 Int       @id @default(autoincrement())
   email              String    @unique

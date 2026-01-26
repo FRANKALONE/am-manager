@@ -165,3 +165,26 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
         return null;
     }
 }
+
+export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolutivos: number }> {
+    try {
+        // 1. Incidencias de correctivo + Consultas (excluyendo Cerrados y Propuesta de Solución)
+        const incidenciasJql = `type IN ("Incidencia de Correctivo", "Consulta") AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
+
+        // 2. Evolutivos abiertos (excluyendo Cerrados y Entregados en PRO/PRD)
+        const evolutivosJql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRD")`;
+
+        const [incidenciasRes, evolutivosRes] = await Promise.all([
+            searchJiraIssues(incidenciasJql, ['id']),
+            searchJiraIssues(evolutivosJql, ['id'])
+        ]);
+
+        return {
+            incidencias: incidenciasRes.length,
+            evolutivos: evolutivosRes.length
+        };
+    } catch (error) {
+        console.error('Error fetching workload metrics:', error);
+        return { incidencias: 0, evolutivos: 0 };
+    }
+}
