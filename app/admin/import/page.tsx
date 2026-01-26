@@ -2,6 +2,7 @@ import { getKillSwitchStatus } from "@/app/actions/parameters";
 import { ImportHistory } from "./components/import-history";
 import { ImportManager } from "./components/import-manager";
 import { BulkSyncManager } from "./components/bulk-sync-manager";
+import { AMASyncWorkloadManager } from "./components/ama-sync-workload-manager";
 import { BulkSyncEvolutivosManager } from "./components/bulk-sync-evolutivos-manager";
 import { BulkSyncProposalsManager } from "./components/bulk-sync-proposals-manager";
 import { BulkSyncJiraCustomersManager } from "./components/bulk-sync-jira-customers-manager";
@@ -38,6 +39,7 @@ export default async function ImportPage() {
 
 
             <BulkSyncManager />
+            <AMASyncWorkloadManager />
 
 
             <BulkSyncEvolutivosManager />

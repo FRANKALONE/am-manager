@@ -64,6 +64,23 @@ export async function POST(request: Request) {
             },
         });
 
+        // 3. Registrar en ImportLog para trazabilidad en Admin
+        await prisma.importLog.create({
+            data: {
+                date: today,
+                type: 'AMA_DAILY_SYNC',
+                status: 'SUCCESS',
+                totalRows: 2, // Incidencias y Evolutivos
+                processedCount: 2,
+                filename: 'Jira Auto Sync',
+                errors: JSON.stringify({
+                    legacyCount: count,
+                    workload: workload,
+                    timestamp: new Date().toISOString()
+                })
+            }
+        });
+
         return NextResponse.json({
             success: true,
             date: today.toISOString(),
@@ -76,6 +93,22 @@ export async function POST(request: Request) {
         });
     } catch (error: any) {
         console.error('Error syncing daily metric:', error);
+
+        // Registrar error en ImportLog
+        try {
+            await prisma.importLog.create({
+                data: {
+                    date: new Date(),
+                    type: 'AMA_DAILY_SYNC',
+                    status: 'ERROR',
+                    filename: 'Jira Auto Sync',
+                    errors: error.message || 'Error desconocido'
+                }
+            });
+        } catch (logError) {
+            console.error('Failed to log sync error:', logError);
+        }
+
         return NextResponse.json(
             { error: error.message || 'Error syncing daily metric' },
             { status: 500 }
