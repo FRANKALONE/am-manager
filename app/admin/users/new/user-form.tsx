@@ -19,9 +19,10 @@ type Props = {
     roles: any[];
     workPackages: any[];
     initialUser?: any; // If provided, we are in EDIT mode
+    jiraEmployees?: any[];
 };
 
-export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
+export function UserForm({ clients, roles, workPackages, initialUser, jiraEmployees = [] }: Props) {
     const { t } = useTranslations();
     const isEdit = !!initialUser;
 
@@ -77,6 +78,7 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
                                     id="role"
                                     name="role"
                                     required
+                                    title={t('users.form.role')}
                                     defaultValue={initialUser?.role}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
@@ -94,6 +96,7 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
                                 <select
                                     id="clientId"
                                     name="clientId"
+                                    title={t('users.form.client')}
                                     defaultValue={initialUser?.clientId || ""}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
@@ -103,6 +106,27 @@ export function UserForm({ clients, roles, workPackages, initialUser }: Props) {
                                     ))}
                                 </select>
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="jiraGestorName">Usuario JIRA Relacionado (Opcional)</Label>
+                            <select
+                                id="jiraGestorName"
+                                name="jiraGestorName"
+                                title="Usuario JIRA Relacionado"
+                                defaultValue={initialUser?.linkedEvolUser?.jiraGestorName || ""}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                <option value="">No vinculado</option>
+                                {jiraEmployees.map(emp => (
+                                    <option key={emp.accountId} value={emp.displayName}>
+                                        {emp.displayName}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-muted-foreground">
+                                Solo para usuarios internos o de Altim. Se usa para vincular su actividad en JIRA.
+                            </p>
                         </div>
 
                         <div className="space-y-2">

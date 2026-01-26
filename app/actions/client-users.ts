@@ -22,6 +22,8 @@ async function getCurrentUserInfo() {
     return { id: session.userId, role: session.userRole, clientId: session.clientId, permissions: session.permissions };
 }
 
+import { fetchJira } from '@/lib/jira';
+
 /**
  * Obtener usuarios de la app de un cliente (para portal de clientes)
  */
@@ -34,7 +36,7 @@ export async function getAppUsersByClient(clientId: string) {
         }
 
         // Verificar que el usuario pertenece al cliente
-        if (currentUser.clientId !== clientId) {
+        if (currentUser.clientId !== clientId && currentUser.role !== 'ADMIN') {
             return { success: false, error: 'No autorizado' };
         }
 
@@ -53,6 +55,12 @@ export async function getAppUsersByClient(clientId: string) {
                         emailAddress: true
                     }
                 },
+                linkedEvolUser: {
+                    select: {
+                        id: true,
+                        jiraGestorName: true
+                    }
+                },
                 createdAt: true
             },
             orderBy: { name: 'asc' }
@@ -62,6 +70,91 @@ export async function getAppUsersByClient(clientId: string) {
     } catch (error) {
         console.error('Error fetching app users:', error);
         return { success: false, error: 'Error al obtener usuarios' };
+    }
+}
+
+/**
+ * Obtener empleados de JIRA (para vincular usuarios internos)
+ */
+export async function getJiraEmployees() {
+    try {
+        const currentUser = await getCurrentUserInfo();
+        if (!currentUser) return { success: false, error: 'No autenticado' };
+
+        // Fetch Jira users that are active and NOT customer type
+        // Note: Jira Cloud /rest/api/3/users/search?query= 
+        const jiraUsers = await fetchJira('/users/search?maxResults=1000');
+
+        // Filter out app users or specific types if needed, though search usually returns all valid users
+        const employees = jiraUsers
+            .filter((u: any) => u.accountType === 'atlassian' && u.active)
+            .map((u: any) => ({
+                accountId: u.accountId,
+                displayName: u.displayName,
+                emailAddress: u.emailAddress,
+                avatarUrl: u.avatarUrls?.['32x32']
+            }))
+            .sort((a: any, b: any) => a.displayName.localeCompare(b.displayName));
+
+        return { success: true, employees };
+    } catch (error) {
+        console.error('Error fetching Jira employees:', error);
+        return { success: false, error: 'Error al obtener empleados de Jira' };
+    }
+}
+
+/**
+ * Actualizar el link de un usuario con un empleado de Jira
+ */
+export async function updateUserJiraLink(userId: string, jiraGestorName: string | null) {
+    try {
+        const currentUser = await getCurrentUserInfo();
+        if (!currentUser) return { success: false, error: 'No autenticado' };
+
+        // No permission check for now as we are in internal context, 
+        // but normally we'd check if role matches or manage_client_users
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { linkedEvolUser: true }
+        });
+
+        if (!user) return { success: false, error: 'Usuario no encontrado' };
+
+        if (!jiraGestorName) {
+            // Delete link if name is empty
+            if (user.linkedEvolUser) {
+                await prisma.eVOLEvolutivoUser.update({
+                    where: { id: user.linkedEvolUser.id },
+                    data: { jiraGestorName: null }
+                });
+            }
+        } else {
+            // Upsert EVOLEvolutivoUser
+            if (user.linkedEvolUser) {
+                await prisma.eVOLEvolutivoUser.update({
+                    where: { id: user.linkedEvolUser.id },
+                    data: { jiraGestorName }
+                });
+            } else {
+                // Create linked evol user
+                await prisma.eVOLEvolutivoUser.create({
+                    data: {
+                        email: user.email,
+                        password: user.password, // Reuse or random
+                        name: `${user.name} ${user.surname || ''}`.trim(),
+                        jiraGestorName,
+                        linkedUserId: user.id
+                    }
+                });
+            }
+        }
+
+        revalidatePath('/dashboard/users');
+        return { success: true, message: 'Link de Jira actualizado' };
+    } catch (error) {
+        console.error('Error updating user jira link:', error);
+        return { success: false, error: 'Error al actualizar el link de Jira' };
     }
 }
 

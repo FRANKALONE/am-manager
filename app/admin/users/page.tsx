@@ -67,6 +67,7 @@ export default async function UsersPage({
                             <TableHead>{t('users.table.email')}</TableHead>
                             <TableHead>{t('users.table.role')}</TableHead>
                             <TableHead>{t('users.table.client')}</TableHead>
+                            <TableHead>Usuario JIRA</TableHead>
                             <TableHead>{t('users.table.access')}</TableHead>
                             <TableHead>{t('users.table.lastLogin')}</TableHead>
                             <TableHead className="text-right">{t('users.table.actions')}</TableHead>
@@ -86,6 +87,15 @@ export default async function UsersPage({
                                 </TableCell>
                                 <TableCell>
                                     {user.client?.name || "-"}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                    {user.linkedEvolUser?.jiraGestorName ? (
+                                        <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-100">
+                                            {user.linkedEvolUser.jiraGestorName}
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground/40 italic">-</span>
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     {(user as any).isPremium ? (

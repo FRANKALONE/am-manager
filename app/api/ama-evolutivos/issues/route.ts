@@ -33,6 +33,19 @@ export async function GET(request: Request) {
             if (g) gestoresMap.set(g.id, g);
         });
 
+        // Crear mapa de evolutivos para acceso rápido
+        const evolutivosMap = new Map();
+        evolutivos.forEach(evo => {
+            const orgs = evo.fields?.customfield_10002 || [];
+            const organization = orgs.length > 0 ? orgs[0].name : null;
+
+            evolutivosMap.set(evo.key, {
+                gestor: extractGestor(evo),
+                organization: organization,
+                summary: evo.fields?.summary
+            });
+        });
+
         // Procesar hitos y clasificarlos
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -40,15 +53,14 @@ export async function GET(request: Request) {
         in7Days.setDate(in7Days.getDate() + 7);
 
         const processedIssues: JiraIssue[] = hitos.map((issue: any) => {
-            // Intentar obtener gestor del hito o del evolutivo padre
-            let gestor = extractGestor(issue);
+            const parentKey = issue.fields.parent?.key;
+            const parentDetails = parentKey ? evolutivosMap.get(parentKey) : null;
 
-            if (!gestor && issue.fields.parent?.key) {
-                const parentEvo = evolutivos.find((evo: any) => evo.key === issue.fields.parent?.key);
-                if (parentEvo) {
-                    gestor = extractGestor(parentEvo);
-                }
-            }
+            // Intentar obtener gestor del hito o del evolutivo padre
+            let gestor = extractGestor(issue) || parentDetails?.gestor;
+
+            // Obtener datos del responsable (assignee)
+            const assignee = issue.fields?.assignee;
 
             return {
                 key: issue.key,
@@ -61,8 +73,18 @@ export async function GET(request: Request) {
                     name: gestor.name,
                     avatarUrl: gestor.avatarUrl,
                 } : undefined,
-                parentKey: issue.fields.parent?.key,
-                pendingHitos: 0, // Se calculará después
+                parentKey: parentKey,
+                parent: parentKey ? {
+                    key: parentKey,
+                    summary: parentDetails?.summary || 'Sin Título'
+                } : undefined,
+                organization: parentDetails?.organization,
+                assignee: assignee ? {
+                    id: assignee.accountId,
+                    displayName: assignee.displayName,
+                    avatarUrl: assignee.avatarUrls?.['48x48']
+                } : undefined,
+                pendingHitos: 0,
             };
         });
 
@@ -100,6 +122,7 @@ export async function GET(request: Request) {
                 upcoming: upcoming.length,
                 others: others.length,
                 unplanned: unplanned.length,
+                activeEvolutivos: evolutivos.length
             },
             issues: {
                 expired,

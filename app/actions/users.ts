@@ -55,6 +55,7 @@ export async function getUsers(filters?: UserFilters) {
         const users = await prisma.user.findMany({
             where,
             include: {
+                linkedEvolUser: true,
                 client: {
                     include: {
                         workPackages: {
@@ -142,7 +143,8 @@ export async function getUserById(id: string) {
         return await prisma.user.findUnique({
             where: { id },
             include: {
-                client: true
+                client: true,
+                linkedEvolUser: true
             }
         });
     } catch (error) {
@@ -166,6 +168,7 @@ export async function createUser(prevState: any, formData: FormData) {
     const role = formData.get("role") as string;
     const clientId = formData.get("clientId") as string;
     const workPackageIds = formData.get("workPackageIds") as string; // JSON string
+    const jiraGestorName = formData.get("jiraGestorName") as string;
 
     const { t } = await getTranslations();
     if (!name) return { error: t('errors.required', { field: t('common.name') }) };
@@ -175,7 +178,7 @@ export async function createUser(prevState: any, formData: FormData) {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        await prisma.user.create({
+        const newUser = await prisma.user.create({
             data: {
                 name,
                 surname: surname || null,
@@ -186,6 +189,18 @@ export async function createUser(prevState: any, formData: FormData) {
                 workPackageIds: workPackageIds || null
             }
         });
+
+        if (jiraGestorName) {
+            await prisma.eVOLEvolutivoUser.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    name: `${name} ${surname || ''}`.trim(),
+                    jiraGestorName,
+                    linkedUserId: newUser.id
+                }
+            });
+        }
     } catch (error: any) {
         console.error(error);
         const { t } = await getTranslations();
@@ -210,6 +225,7 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
     const role = formData.get("role") as string;
     const clientId = formData.get("clientId") as string;
     const workPackageIds = formData.get("workPackageIds") as string;
+    const jiraGestorName = formData.get("jiraGestorName") as string;
 
     const { t } = await getTranslations();
     if (!name) return { error: t('errors.required', { field: t('common.name') }) };
@@ -217,7 +233,7 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
     if (!role) return { error: t('errors.required', { field: t('user.role') }) };
 
     try {
-        await prisma.user.update({
+        const user = await prisma.user.update({
             where: { id },
             data: {
                 name,
@@ -226,8 +242,33 @@ export async function updateUser(id: string, prevState: any, formData: FormData)
                 role,
                 clientId: clientId || null,
                 workPackageIds: workPackageIds || null
-            }
+            },
+            include: { linkedEvolUser: true }
         });
+
+        if (jiraGestorName) {
+            if (user.linkedEvolUser) {
+                await prisma.eVOLEvolutivoUser.update({
+                    where: { id: user.linkedEvolUser.id },
+                    data: { jiraGestorName, name: `${name} ${surname || ''}`.trim(), email }
+                });
+            } else {
+                await prisma.eVOLEvolutivoUser.create({
+                    data: {
+                        email,
+                        password: user.password,
+                        name: `${name} ${surname || ''}`.trim(),
+                        jiraGestorName,
+                        linkedUserId: user.id
+                    }
+                });
+            }
+        } else if (user.linkedEvolUser) {
+            await prisma.eVOLEvolutivoUser.update({
+                where: { id: user.linkedEvolUser.id },
+                data: { jiraGestorName: null }
+            });
+        }
     } catch (error: any) {
         console.error(error);
         const { t } = await getTranslations();

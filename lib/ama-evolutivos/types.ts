@@ -13,6 +13,16 @@ export interface JiraIssue {
         avatarUrl?: string;
     };
     parentKey?: string;
+    parent?: {
+        key: string;
+        summary: string;
+    };
+    organization?: string;
+    assignee?: {
+        id: string;
+        displayName: string;
+        avatarUrl?: string;
+    };
     pendingHitos?: number;
     timeoriginalestimate?: number;
     timespent?: number;
