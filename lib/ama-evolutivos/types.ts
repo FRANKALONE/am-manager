@@ -34,6 +34,9 @@ export interface JiraIssue {
     timespent?: number;
     created?: string;
     updated?: string;
+    plannedEndDate?: string;
+    resolutionDate?: string;
+    deviationDays?: number;
 }
 
 export interface JiraUser {

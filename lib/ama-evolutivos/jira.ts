@@ -107,6 +107,8 @@ export async function getHitos(evolutivoKey?: string): Promise<any[]> {
             'parent',
             'project',
             'customfield_10254', // Gestor del ticket
+            'customfield_10015', // Fecha fin planificada (asumiendo este ID basado en patrones comunes)
+            'resolutiondate',
             'created',
             'updated',
         ]);
@@ -186,5 +188,32 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
     } catch (error) {
         console.error('Error fetching workload metrics:', error);
         return { incidencias: 0, evolutivos: 0 };
+    }
+}
+
+export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
+    // Buscar hitos cerrados en los últimos X meses
+    const jql = `type = "${HITO_TYPE}" AND projectType = "service_desk" AND status IN ("Cerrado", "Done") AND resolution >= "-${monthsBack}m" ORDER BY resolution DESC`;
+
+    try {
+        const issues = await searchJiraIssues(jql, [
+            'summary',
+            'status',
+            'duedate',
+            'assignee',
+            'parent',
+            'project',
+            'customfield_10254', // Gestor del ticket
+            'customfield_10015', // Fecha fin planificada
+            'resolutiondate',
+            'created',
+            'updated',
+            'customfield_10002', // Organization (del padre si no está aquí)
+        ]);
+
+        return issues;
+    } catch (error) {
+        console.error('Error fetching closed hitos:', error);
+        return [];
     }
 }
