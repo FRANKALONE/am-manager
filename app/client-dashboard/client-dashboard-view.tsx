@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DashboardView } from "@/app/dashboard/components/dashboard-view";
-import { BookOpen, BarChart3, Calendar, ArrowRight, Users, Sparkles } from "lucide-react";
+import { BookOpen, BarChart3, Calendar, ArrowRight, Users, Sparkles, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date-utils";
 import { notifyProposalRequestAction } from "@/app/actions/proposals";
