@@ -146,7 +146,7 @@ export function ClientDashboard({ user, workPackages, clients, permissions }: Pr
                                 <>
                                     <div className="space-y-3">
                                         <Label htmlFor="wpSelect" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <BookOpen className="w-4 h-4 text-malachite" />
+                                            <Briefcase className="w-4 h-4 text-malachite" />
                                             1. Selecciona Work Package (Contrato)
                                         </Label>
                                         <select

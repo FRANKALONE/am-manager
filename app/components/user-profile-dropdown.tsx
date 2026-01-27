@@ -62,11 +62,14 @@ export function UserProfileDropdown({ user }: UserProfileDropdownProps) {
                         <span>{t('user.preferences')}</span>
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <a href="/manual.pdf" download="Manual_Usuario_AM_Manager.pdf" className="cursor-pointer flex items-center w-full">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        <span>{t('user.manual')}</span>
-                    </a>
+                <DropdownMenuItem
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
+                    }}
+                    className="cursor-pointer flex items-center"
+                >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    <span>Iniciar Guía</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50">

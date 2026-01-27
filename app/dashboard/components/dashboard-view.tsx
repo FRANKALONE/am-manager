@@ -308,7 +308,7 @@ export function DashboardView({
             {metrics && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
+                        <Card id="dashboard-main-card">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">{t('dashboard.contracted')}</CardTitle>
                                 <PieChart className="h-4 w-4 text-muted-foreground" />
@@ -531,7 +531,7 @@ export function DashboardView({
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="rounded-md border">
+                                    <div id="monthly-detail-table" className="rounded-md border">
                                         <table className="w-full text-sm">
                                             <thead className="bg-muted/50">
                                                 <tr className="border-b">

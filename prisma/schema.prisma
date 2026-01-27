@@ -111,6 +111,7 @@ model User {
   timezone              String               @default("Europe/Madrid")
   dateFormat            String               @default("DD/MM/YYYY")
   mustChangePassword    Boolean              @default(false)
+  hasCompletedTour      Boolean              @default(false)
   linkedEvolUser        EVOLEvolutivoUser?
   linkedJiraCustomer    JiraCustomerUser?
   requestedJiraRequests JiraUserRequest[]    @relation("RequestedJiraRequests")

@@ -107,7 +107,7 @@ export default async function AdminHomePage() {
 
             <SharedHeader title={t('common.home')} />
 
-            <div className="relative max-w-7xl mx-auto py-20 px-8 z-10">
+            <div id="admin-home-container" className="relative max-w-7xl mx-auto py-20 px-8 z-10">
                 <div className="mb-20 text-center animate-in fade-in slide-in-from-top-10 duration-1000">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-dark-green/10 border border-dark-green/20 text-dark-green text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-sm">
                         <Sparkles className="w-3 h-3" />

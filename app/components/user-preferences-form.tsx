@@ -133,6 +133,21 @@ export function UserPreferencesForm({ userId, currentLocale, currentTimezone, cu
                 <Button onClick={handleSave} disabled={saving} className="w-full">
                     {saving ? t('preferences.saving') : t('preferences.saveButton')}
                 </Button>
+
+                <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-4">
+                        ¿Necesitas ayuda con el funcionamiento de la plataforma? Puedes volver a realizar la guía de bienvenida.
+                    </p>
+                    <Button
+                        variant="outline"
+                        className="w-full border-malachite text-jade hover:bg-malachite/5"
+                        onClick={() => {
+                            window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
+                        }}
+                    >
+                        Iniciar Guía de Uso
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );

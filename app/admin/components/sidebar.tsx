@@ -116,14 +116,8 @@ export async function AdminSidebar() {
                     <SidebarLink href="/admin/maintenance" label={t('sidebar.maintenance')}>
                         <Database className="h-4 w-4" />
                     </SidebarLink>
-
-                    <div className="pt-2">
-                        <SidebarLink href="/help" label={t('sidebar.documentation')}>
-                            <BookOpen className="h-4 w-4" />
-                        </SidebarLink>
-                    </div>
                 </div>
             </nav>
-        </aside>
+        </aside >
     );
 }

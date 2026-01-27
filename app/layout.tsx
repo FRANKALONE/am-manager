@@ -19,18 +19,27 @@ export const metadata: Metadata = {
 
 import { getLocale } from "@/lib/get-locale";
 import { Toaster } from "sonner";
+import { getCurrentUser } from "@/lib/auth";
+import { OnboardingTour } from "./components/tour/onboarding-tour";
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     const locale = getLocale();
+    const user = (await getCurrentUser()) as any;
 
     return (
         <html lang={locale}>
             <body className={`${anekLatin.variable} ${dmSans.variable} font-sans antialiased text-slate-900`}>
                 {children}
+                {user && (
+                    <OnboardingTour
+                        userId={user.id}
+                        hasCompletedTour={user.hasCompletedTour}
+                    />
+                )}
                 <Toaster position="top-right" richColors />
             </body>
         </html>
