@@ -7,7 +7,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { StatCard } from '@/components/ama-evolutivos/StatCard';
 import { CategoryCard } from '@/components/ama-evolutivos/CategoryCard';
-import { DeviationIndicator } from '@/components/ama-evolutivos/DeviationIndicator';
 import type { DashboardData, JiraIssue } from '@/lib/ama-evolutivos/types';
 
 export default function AMAEvolutivosPage() {
@@ -304,11 +303,6 @@ export default function AMAEvolutivosPage() {
                         </div>
                     </div>
                 </Link>
-
-                {/* Deviation Control Section */}
-                <div className="pt-8">
-                    <DeviationIndicator />
-                </div>
             </div>
         </div>
     );

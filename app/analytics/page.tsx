@@ -38,6 +38,15 @@ export default async function AnalyticsPage() {
             color: "text-amber-500",
             bg: "bg-amber-50 dark:bg-amber-900/20",
             permission: "view_analytics_am_dashboard"
+        },
+        {
+            title: "Desvío de Vencimiento de Tareas Evolutivas",
+            description: "Control y seguimiento de desviaciones entre fechas planificadas y reales de hitos AMA.",
+            href: "/analytics/ama-desviaciones",
+            icon: BarChart3,
+            color: "text-purple-500",
+            bg: "bg-purple-50 dark:bg-purple-900/20",
+            permission: "view_analytics_ama_deviations"
         }
     ];
 
