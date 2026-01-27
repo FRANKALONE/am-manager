@@ -30,7 +30,9 @@ export function DeviationIndicator() {
         client: '',
         manager: '',
         evolutivo: '',
-        period: 'month' // 'month' or 'year'
+        period: 'month', // 'month' or 'year'
+        startMonth: '',
+        endMonth: ''
     });
 
     useEffect(() => {
@@ -55,6 +57,8 @@ export function DeviationIndicator() {
             if (filters.client && item.client !== filters.client) return false;
             if (filters.manager && item.manager !== filters.manager) return false;
             if (filters.evolutivo && item.evolutivo !== filters.evolutivo) return false;
+            if (filters.startMonth && item.monthYear < filters.startMonth) return false;
+            if (filters.endMonth && item.monthYear > filters.endMonth) return false;
             return true;
         });
     }, [data, filters]);
@@ -86,13 +90,24 @@ export function DeviationIndicator() {
             }));
     }, [filteredData, filters.period]);
 
+    const uniqueMonths = useMemo(() => Array.from(new Set(data.map(i => i.monthYear))).sort(), [data]);
     const uniqueClients = useMemo(() => Array.from(new Set(data.map(i => i.client))).sort(), [data]);
     const uniqueManagers = useMemo(() => Array.from(new Set(data.map(i => i.manager))).sort(), [data]);
     const uniqueEvolutivos = useMemo(() => {
         const evos = new Map();
         data.forEach(i => evos.set(i.evolutivo, i.evolutivoSummary));
-        return Array.from(evos.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        return Array.from(evos.entries()).sort((a, b: any) => a[0].localeCompare(b[0]));
     }, [data]);
+
+    useEffect(() => {
+        if (uniqueMonths.length > 0 && !filters.startMonth) {
+            setFilters(prev => ({
+                ...prev,
+                startMonth: uniqueMonths[0],
+                endMonth: uniqueMonths[uniqueMonths.length - 1]
+            }));
+        }
+    }, [uniqueMonths, filters.startMonth]);
 
     if (loading) return (
         <div className="h-64 flex items-center justify-center bg-white rounded-[2rem] border border-gray-100 shadow-sm">
@@ -142,15 +157,37 @@ export function DeviationIndicator() {
 
                     <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
                         <Calendar className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase">Desde</div>
+                        <select
+                            className="bg-transparent text-sm font-medium outline-none cursor-pointer"
+                            value={filters.startMonth}
+                            onChange={(e) => setFilters(prev => ({ ...prev, startMonth: e.target.value }))}
+                            title="Mes de inicio"
+                        >
+                            {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                        <div className="w-px h-4 bg-gray-300 mx-1" />
+                        <div className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase">Hasta</div>
+                        <select
+                            className="bg-transparent text-sm font-medium outline-none cursor-pointer"
+                            value={filters.endMonth}
+                            onChange={(e) => setFilters(prev => ({ ...prev, endMonth: e.target.value }))}
+                            title="Mes de fin"
+                        >
+                            {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+                        <TrendingUp className="w-4 h-4 text-gray-400" />
                         <select
                             className="bg-transparent text-sm font-medium outline-none cursor-pointer"
                             value={filters.period}
                             onChange={(e) => setFilters(prev => ({ ...prev, period: e.target.value }))}
-                            title="Periodo de tiempo"
-                            aria-label="Periodo de tiempo"
+                            title="Agrupación"
                         >
-                            <option value="month">Por Mes</option>
-                            <option value="year">Por Año</option>
+                            <option value="month">Vista Mensual</option>
+                            <option value="year">Vista Anual</option>
                         </select>
                     </div>
                 </div>
