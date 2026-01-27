@@ -1,4 +1,4 @@
-import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe, Send, History, Layout, Brain, TrendingUp } from "lucide-react";
+import { Users, Briefcase, Settings, FileInput, UserCog, ArrowLeftRight, Shield, Clock, BookOpen, Activity, Database, Calendar, Bell, LayoutDashboard, UserPlus, Mail, Globe, Send, History, Layout, Brain, TrendingUp, Package } from "lucide-react";
 import { SidebarLink } from "./sidebar-link";
 import { getAuthSession } from "@/lib/auth";
 import { getTranslations } from "@/lib/get-translations";
@@ -33,6 +33,12 @@ export async function AdminSidebar() {
                 {perms.manage_wps && (
                     <SidebarLink href="/admin/work-packages" label={t('sidebar.workPackages')}>
                         <Briefcase className="h-4 w-4" />
+                    </SidebarLink>
+                )}
+
+                {perms.manage_clients && (
+                    <SidebarLink href="/admin/products" label={t('sidebar.altimProducts')}>
+                        <Package className="h-4 w-4" />
                     </SidebarLink>
                 )}
 

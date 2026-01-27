@@ -38,6 +38,7 @@ model Client {
   jiraUserRequests   JiraUserRequest[]
   users              User[]
   workPackages       WorkPackage[]
+  clientProducts     ClientProduct[]
 }
 
 model WorkPackage {
@@ -579,4 +580,21 @@ model EVOLEvolutivoUser {
   updatedAt          DateTime  @updatedAt
   linkedUserId       String?   @unique
   linkedUser         User?     @relation(fields: [linkedUserId], references: [id])
+}
+
+model ClientProduct {
+  id              String   @id @default(cuid())
+  clientId        String
+  productType     String   // SII, DIS, Ticket BAI, EPNR, PORTALK
+  status          String   @default("ACTIVE")
+  startDate       DateTime // Fecha de inicio de validez
+  endDate         DateTime? // Fecha de fin de validez
+  notes           String?
+  customAttributes String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([productType])
 }

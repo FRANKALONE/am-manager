@@ -997,6 +997,7 @@
         "users": "Usuarios",
         "clients": "Clientes",
         "workPackages": "Work Packages",
+        "altimProducts": "Productos Altim",
         "parameters": "Parámetros",
         "importExport": "Importar / Exportar",
         "maintenance": "Mantenimiento",
@@ -1075,6 +1076,38 @@
             "B": "Bolsa de Horas",
             "BD": "BAJO DEMANDA",
             "E": "Eventos"
+        }
+    },
+    "altimProducts": {
+        "title": "Productos Altim",
+        "subtitle": "Gestión de contratos de productos de Altim por cliente.",
+        "newButton": "Nuevo Producto",
+        "table": {
+            "client": "Cliente",
+            "product": "Producto",
+            "status": "Estado",
+            "startDate": "Inicio Validez",
+            "endDate": "Fin Validez",
+            "actions": "Acciones"
+        },
+        "form": {
+            "title": "Nuevo Contrato de Producto",
+            "editTitle": "Editar Contrato de Producto",
+            "client": "Cliente",
+            "productType": "Tipo de Producto",
+            "status": "Estado",
+            "startDate": "Fecha de Inicio de Validez",
+            "endDate": "Fecha de Fin de Validez",
+            "notes": "Notas",
+            "placeholderClient": "Selecciona cliente...",
+            "placeholderProduct": "Selecciona producto..."
+        },
+        "types": {
+            "SII": "SII",
+            "DIS": "DIS",
+            "TICKET_BAI": "Ticket BAI",
+            "EPNR": "EPNR",
+            "PORTALK": "PORTALK"
         }
     }
 }
