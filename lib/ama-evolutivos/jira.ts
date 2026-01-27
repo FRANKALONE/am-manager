@@ -63,7 +63,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
 export async function getEvolutivos(): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
-    const jql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done") ORDER BY created DESC`;
+    const jql = `type = "${EVOLUTIVO_TYPE}" ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -193,7 +193,7 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     // Buscar hitos cerrados en los últimos X meses
-    const jql = `type = "${HITO_TYPE}" AND status IN ("Cerrado", "Done") AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
+    const jql = `type = "${HITO_TYPE}" AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
