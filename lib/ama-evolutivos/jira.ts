@@ -15,19 +15,17 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
     const baseUrl = JIRA_DOMAIN.replace(/\/$/, '');
     const url = `${baseUrl}/rest/api/3/search/jql`;
     const allIssues: any[] = [];
-    let nextPageToken: string | undefined = undefined;
+    let startAt = 0;
+    const maxResults = 100;
 
     try {
         while (true) {
             const body: any = {
                 jql,
-                maxResults: 100,
+                startAt,
+                maxResults,
                 fields,
             };
-
-            if (nextPageToken) {
-                body.nextPageToken = nextPageToken;
-            }
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -47,11 +45,11 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             const issues = data.issues || [];
             allIssues.push(...issues);
 
-            nextPageToken = data.nextPageToken;
-
-            if (!nextPageToken || issues.length === 0) {
+            if (issues.length < maxResults || allIssues.length >= (data.total || 0)) {
                 break;
             }
+
+            startAt += maxResults;
         }
 
         return allIssues;
