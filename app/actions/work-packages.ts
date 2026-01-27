@@ -41,31 +41,21 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
         }
 
         if (filters?.clientId) {
-            // If we already have a visibility filter, we must intersect it.
-            // Prisma's AND will handle this correctly.
             where.clientId = filters.clientId;
         }
         if (filters?.contractType) {
             where.contractType = filters.contractType;
-        }
-        if (filters?.isPremium !== undefined) {
-            where.validityPeriods = {
-                ...where.validityPeriods,
-                some: {
-                    ...(where.validityPeriods?.some || {}),
-                    isPremium: filters.isPremium
-                }
-            };
         }
         if (filters?.renewalType) {
             where.renewalType = filters.renewalType;
         }
 
         const status = filters?.status || "active";
+        const now = getNow();
+        const startOfToday = getStartOfToday();
 
+        // 1. Determine base validity period condition (some, none or all)
         if (status === "active") {
-            const now = getNow();
-            const startOfToday = getStartOfToday();
             where.validityPeriods = {
                 some: {
                     startDate: { lte: now },
@@ -73,8 +63,6 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
                 }
             };
         } else if (status === "inactive") {
-            const now = getNow();
-            const startOfToday = getStartOfToday();
             where.validityPeriods = {
                 none: {
                     startDate: { lte: now },
@@ -83,19 +71,31 @@ export async function getWorkPackages(filters?: WorkPackageFilters) {
             };
         }
 
+        // 2. Merge isPremium into the existing 'some' clause if applicable
+        if (filters?.isPremium !== undefined) {
+            // We only filter by isPremium within the 'some' context (active or specific search)
+            // If status is 'inactive' (none), isPremium doesn't make much sense in the same clause,
+            // so we add it to a 'some' condition or create it.
+            if (where.validityPeriods?.some) {
+                where.validityPeriods.some.isPremium = filters.isPremium;
+            } else if (!where.validityPeriods?.none) {
+                where.validityPeriods = {
+                    some: { isPremium: filters.isPremium }
+                };
+            }
+        }
+
+        // 3. Merge Month/Year into the 'some' clause
         if (filters?.month !== undefined && filters?.year !== undefined) {
             const startOfMonth = new Date(filters.year, filters.month, 1);
             const endOfMonth = new Date(filters.year, filters.month + 1, 0, 23, 59, 59);
 
             if (where.validityPeriods?.some) {
-                where.validityPeriods.some = {
-                    ...where.validityPeriods.some,
-                    endDate: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
-                    }
+                where.validityPeriods.some.endDate = {
+                    gte: startOfMonth,
+                    lte: endOfMonth
                 };
-            } else {
+            } else if (!where.validityPeriods?.none) {
                 where.validityPeriods = {
                     some: {
                         endDate: {
