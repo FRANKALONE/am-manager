@@ -18,6 +18,8 @@ export async function GET(request: Request) {
             getEvolutivos()
         ]);
 
+        console.log(`[Deviation API] Found ${closedHitos.length} closed hitos and ${evolutivos.length} evolutivos`);
+
         // Mapeo de evolutivos para obtener organización y gestor
         const evolutivosMap = new Map();
         evolutivos.forEach(evo => {
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
         });
 
         const dataPoints: any[] = [];
+        let missingDatesCount = 0;
 
         closedHitos.forEach(hito => {
             const resolutionDateStr = hito.fields.resolutiondate;
@@ -60,8 +63,32 @@ export async function GET(request: Request) {
                     evolutivo: parentKey || 'Sin Evolutivo',
                     evolutivoSummary: parentInfo?.summary || 'Sin Título'
                 });
+            } else {
+                missingDatesCount++;
             }
         });
+
+        if (dataPoints.length === 0) {
+            return NextResponse.json({
+                debug: {
+                    closedHitosCount: closedHitos.length,
+                    evolutivosCount: evolutivos.length,
+                    missingDatesCount,
+                    typesSearched: {
+                        hito: process.env.AMA_HITO_TYPE || 'Hitos Evolutivos',
+                        evolutivo: process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo'
+                    },
+                    sampleHito: closedHitos.length > 0 ? {
+                        key: closedHitos[0].key,
+                        fieldsAvailable: Object.keys(closedHitos[0].fields),
+                        resolutionDate: closedHitos[0].fields.resolutiondate,
+                        plannedDate: closedHitos[0].fields.customfield_10015,
+                        dueDate: closedHitos[0].fields.duedate
+                    } : null
+                },
+                data: []
+            });
+        }
 
         return NextResponse.json(dataPoints);
     } catch (error: any) {

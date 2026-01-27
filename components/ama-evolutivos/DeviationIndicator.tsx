@@ -41,7 +41,12 @@ export function DeviationIndicator() {
                 const res = await fetch('/api/ama-evolutivos/deviation');
                 if (res.ok) {
                     const json = await res.json();
-                    setData(json);
+                    if (Array.isArray(json)) {
+                        setData(json);
+                    } else if (json.data && Array.isArray(json.data)) {
+                        setData(json.data);
+                        console.log('Debug info from API:', json.debug);
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching deviation data:', err);
