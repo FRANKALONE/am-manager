@@ -59,6 +59,7 @@ const PERMISSIONS: Permission[] = [
     { key: "view_analytics_contracts", label: "Analytics: Validez de Contratos", section: "Analítica" },
     { key: "view_analytics_wp_consumption", label: "Analytics: Consumo Acumulado WP", section: "Analítica" },
     { key: "view_analytics_am_dashboard", label: "Analytics: Cuadro de Mando de AM", section: "Analítica" },
+    { key: "view_analytics_ama_deviations", label: "Analytics: Desvío de Vencimiento", section: "Analítica" },
 ];
 
 type Props = {

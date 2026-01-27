@@ -193,7 +193,7 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     // Buscar hitos cerrados en los últimos X meses
-    const jql = `type = "${HITO_TYPE}" AND projectType = "service_desk" AND status IN ("Cerrado", "Done") AND resolution >= "-${monthsBack}m" ORDER BY resolution DESC`;
+    const jql = `type = "${HITO_TYPE}" AND status IN ("Cerrado", "Done") AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
