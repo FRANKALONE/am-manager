@@ -42,7 +42,7 @@ export function ProductDialog({ product, clients, trigger }: ProductDialogProps)
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <form action={async (formData) => {
-                    const result = await formAction(formData);
+                    const result = await formAction(formData) as any;
                     if (!result?.error) {
                         setOpen(false);
                     }
