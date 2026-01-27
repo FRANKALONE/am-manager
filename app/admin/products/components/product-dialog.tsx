@@ -28,12 +28,15 @@ interface ProductDialogProps {
 export function ProductDialog({ product, clients, trigger }: ProductDialogProps) {
     const { t } = useTranslations();
     const [open, setOpen] = useState(false);
+    const [selectedProductType, setSelectedProductType] = useState(product?.productType || "");
 
     const action = product
         ? updateClientProduct.bind(null, product.id)
         : createClientProduct;
 
     const [state, formAction] = useFormState(action, null);
+
+    const customData = product?.customAttributes ? JSON.parse(product.customAttributes) : {};
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -56,7 +59,7 @@ export function ProductDialog({ product, clients, trigger }: ProductDialogProps)
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4 py-4">
+                    <div className="grid gap-4 py-4 overflow-y-auto max-h-[70vh]">
                         {!product && (
                             <div className="grid gap-2">
                                 <Label htmlFor="clientId">{t('altimProducts.form.client')}</Label>
@@ -82,6 +85,7 @@ export function ProductDialog({ product, clients, trigger }: ProductDialogProps)
                                 name="productType"
                                 title={t('altimProducts.form.productType')}
                                 defaultValue={product?.productType}
+                                onChange={(e) => setSelectedProductType(e.target.value)}
                                 required
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
@@ -93,6 +97,65 @@ export function ProductDialog({ product, clients, trigger }: ProductDialogProps)
                                 <option value="PORTALK">PORTALK</option>
                             </select>
                         </div>
+
+                        {selectedProductType === "SII" && (
+                            <div className="grid gap-4 p-4 bg-muted/50 rounded-lg border">
+                                <h4 className="text-sm font-semibold">{t('altimProducts.types.SII')} - {t('altimProducts.parameters')}</h4>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="custom_middleware">{t('altimProducts.sii.middleware')}</Label>
+                                    <select
+                                        id="custom_middleware"
+                                        name="custom_middleware"
+                                        title={t('altimProducts.sii.middleware')}
+                                        defaultValue={customData.middleware}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    >
+                                        <option value="PI_ALTIM">{t('altimProducts.sii.middlewareOptions.PI_ALTIM')}</option>
+                                        <option value="PROPIO">{t('altimProducts.sii.middlewareOptions.PROPIO')}</option>
+                                        <option value="HCI_SAP">{t('altimProducts.sii.middlewareOptions.HCI_SAP')}</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="custom_amount">{t('altimProducts.sii.amount')}</Label>
+                                        <Input
+                                            id="custom_amount"
+                                            name="custom_amount"
+                                            type="number"
+                                            step="0.01"
+                                            defaultValue={customData.amount}
+                                            placeholder="0.00 €"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="custom_societies">{t('altimProducts.sii.societies')}</Label>
+                                        <Input
+                                            id="custom_societies"
+                                            name="custom_societies"
+                                            type="number"
+                                            defaultValue={customData.societies}
+                                            placeholder="1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="custom_billingType">{t('altimProducts.sii.billingType')}</Label>
+                                    <select
+                                        id="custom_billingType"
+                                        name="custom_billingType"
+                                        title={t('altimProducts.sii.billingType')}
+                                        defaultValue={customData.billingType}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    >
+                                        <option value="MONTHLY">{t('altimProducts.sii.billingTypeOptions.MONTHLY')}</option>
+                                        <option value="ANNUAL">{t('altimProducts.sii.billingTypeOptions.ANNUAL')}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
@@ -125,9 +188,9 @@ export function ProductDialog({ product, clients, trigger }: ProductDialogProps)
                                 defaultValue={product?.status || 'ACTIVE'}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
-                                <option value="ACTIVE text-green-600">ACTIVE</option>
-                                <option value="INACTIVE text-red-600">INACTIVE</option>
-                                <option value="PENDING text-amber-600">PENDING</option>
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                                <option value="PENDING">PENDING</option>
                             </select>
                         </div>
 

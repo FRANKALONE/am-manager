@@ -63,6 +63,13 @@ export async function createClientProduct(prevState: any, formData: FormData) {
         return { error: t('errors.required', { field: "Campos obligatorios" }) };
     }
 
+    const customAttributes: any = {};
+    formData.forEach((value, key) => {
+        if (key.startsWith("custom_")) {
+            customAttributes[key.replace("custom_", "")] = value;
+        }
+    });
+
     try {
         await prisma.clientProduct.create({
             data: {
@@ -72,6 +79,7 @@ export async function createClientProduct(prevState: any, formData: FormData) {
                 startDate: new Date(startDateStr),
                 endDate: endDateStr ? new Date(endDateStr) : null,
                 notes: notes || null,
+                customAttributes: Object.keys(customAttributes).length > 0 ? JSON.stringify(customAttributes) : null,
             },
         });
     } catch (error) {
@@ -97,6 +105,13 @@ export async function updateClientProduct(id: string, prevState: any, formData: 
         return { error: "No autorizado" };
     }
 
+    const customAttributes: any = {};
+    formData.forEach((value, key) => {
+        if (key.startsWith("custom_")) {
+            customAttributes[key.replace("custom_", "")] = value;
+        }
+    });
+
     try {
         await prisma.clientProduct.update({
             where: { id },
@@ -106,6 +121,7 @@ export async function updateClientProduct(id: string, prevState: any, formData: 
                 startDate: new Date(startDateStr),
                 endDate: endDateStr ? new Date(endDateStr) : null,
                 notes: notes || null,
+                customAttributes: Object.keys(customAttributes).length > 0 ? JSON.stringify(customAttributes) : null,
             },
         });
     } catch (error) {

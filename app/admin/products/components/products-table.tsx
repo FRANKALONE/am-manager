@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Search, X } from "lucide-react";
 import { useTranslations } from "@/lib/use-translations";
-import { formatDate } from "@/lib/date-utils";
+import { formatShortDate } from "@/lib/date-utils";
 import { ProductDialog } from "./product-dialog";
 
 interface ProductsTableProps {
@@ -124,17 +124,29 @@ export function ProductsTable({ products, clients, deleteAction }: ProductsTable
                                 </TableCell>
                                 <TableCell>
                                     <Badge
-                                        variant={p.status === 'ACTIVE' ? 'outline' : 'secondary'}
-                                        className={p.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                                        variant={p.status.split(' ')[0] === 'ACTIVE' ? 'outline' : 'secondary'}
+                                        className={p.status.split(' ')[0] === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : ''}
                                     >
-                                        {p.status}
+                                        {p.status.split(' ')[0]}
                                     </Badge>
+                                    {p.productType === 'SII' && p.customAttributes && (
+                                        <div className="mt-1 text-[10px] text-slate-400">
+                                            {(() => {
+                                                try {
+                                                    const attr = JSON.parse(p.customAttributes);
+                                                    return `${attr.middleware || ''} | ${attr.societies || '0'} soc. | ${attr.amount || '0'} €`;
+                                                } catch (e) {
+                                                    return null;
+                                                }
+                                            })()}
+                                        </div>
+                                    )}
                                 </TableCell>
                                 <TableCell className="text-sm text-slate-600">
-                                    {formatDate(p.startDate)}
+                                    {formatShortDate(p.startDate)}
                                 </TableCell>
                                 <TableCell className="text-sm text-slate-600">
-                                    {p.endDate ? formatDate(p.endDate) : "-"}
+                                    {p.endDate ? formatShortDate(p.endDate) : "-"}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
