@@ -2,17 +2,20 @@
 // Cliente JIRA específico para el módulo AMA Evolutivos
 // Busca en TODOS los proyectos de tipo Service Desk
 
-const JIRA_DOMAIN = (process.env.JIRA_URL || process.env.JIRA_DOMAIN || '').replace(/\/$/, '');
-const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
+const JIRA_DOMAIN = (process.env.JIRA_URL || process.env.JIRA_DOMAIN || process.env.NEXT_PUBLIC_JIRA_DOMAIN || '').replace(/\/$/, '');
+const JIRA_EMAIL = process.env.JIRA_EMAIL || process.env.JIRA_USER_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
 
 // Definimos listas de posibles nombres para mayor robustez
 const EVOLUTIVO_TYPES = ["Evolutivo", "Petición de Evolutivo", "Evolutivos"];
 const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
 
-const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
+function getAuthHeader() {
+    return `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
+}
 
 export async function searchJiraIssues(jql: string, fields: string[] = ['*all']): Promise<any[]> {
+    const authHeader = getAuthHeader();
     // Asegurarse de que el dominio no termine en / y tenga protocolo
     let domain = JIRA_DOMAIN.replace(/\/$/, '');
     if (!domain.startsWith('http')) {
@@ -139,7 +142,7 @@ export async function getJiraUsers(): Promise<any[]> {
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': authHeader,
+                'Authorization': getAuthHeader(),
                 'Content-Type': 'application/json',
             },
         });
@@ -163,7 +166,7 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': authHeader,
+                'Authorization': getAuthHeader(),
                 'Content-Type': 'application/json',
             },
         });
