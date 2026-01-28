@@ -30,8 +30,8 @@ export async function GET() {
         });
         const types = await typesRes.json();
 
-        // 2. Fetch last 50 issues of any type to see what we have
-        const issues = await searchJiraIssues('order by created desc', ['issuetype', 'status', 'resolutiondate', 'resolved', 'project']);
+        // 2. Fetch last 50 issues of any type to see what we have (Adding restriction to avoid "Unlimited JQL" error)
+        const issues = await searchJiraIssues('created >= "-30d" order by created desc', ['issuetype', 'status', 'resolutiondate', 'resolved', 'project']);
 
         // 3. Count issues by type in that sample
         const typeCounts: Record<string, number> = {};
