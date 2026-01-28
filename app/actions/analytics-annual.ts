@@ -2,7 +2,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getAuthSession } from '@/lib/session';
+import { getSession } from '@/lib/session';
 
 export interface AnnualReportData {
     // Executive Summary
@@ -71,7 +71,7 @@ export interface AnnualReportData {
 }
 
 export async function getAnnualReport(year: number, clientId?: string): Promise<AnnualReportData> {
-    const session = await getAuthSession();
+    const session = await getSession();
     if (!session) throw new Error('Unauthorized');
 
     const start = new Date(`${year}-01-01T00:00:00Z`);

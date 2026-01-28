@@ -1,6 +1,6 @@
 // app/analytics/annual-report/page.tsx
 import { getAnnualReport } from '@/app/actions/analytics-annual';
-import { getAuthSession } from '@/lib/session';
+import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import AnnualReportView from './components/annual-report-view';
 
@@ -9,7 +9,7 @@ export default async function AnnualReportPage({
 }: {
     searchParams: { year?: string; client?: string };
 }) {
-    const session = await getAuthSession();
+    const session = await getSession();
     if (!session) redirect('/login');
 
     const year = searchParams.year ? parseInt(searchParams.year) : new Date().getFullYear();
