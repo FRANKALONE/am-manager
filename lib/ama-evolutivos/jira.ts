@@ -212,7 +212,8 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
     const days = monthsBack * 30; // Aproximación segura
-    const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${days}d" ORDER BY resolved DESC`;
+    // Solo traemos hitos que tengan fecha para poder calcular el desvío
+    const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${days}d" AND (duedate is not EMPTY OR cf[10015] is not EMPTY) ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -229,7 +230,7 @@ export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
             'updated',
             'resolved', // Agregamos 'resolved' explícitamente
             'customfield_10002', // Organization
-        ], 500); // Limitamos a 500 para mayor rapidez
+        ], 2000); // Subimos a 2000 para llegar a años anteriores
 
         return issues;
     } catch (error) {
