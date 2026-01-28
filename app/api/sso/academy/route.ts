@@ -28,7 +28,7 @@ export async function GET() {
         .sign(secretKey);
 
     // URL de destino
-    const academyUrl = `https://altim-video-academy-cmrj.vercel.app/sso?token=${token}`;
+    const academyUrl = `https://academy.altim.es/sso?token=${token}`;
 
     // Redirección
     return redirect(academyUrl);
