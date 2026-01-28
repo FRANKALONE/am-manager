@@ -24,14 +24,16 @@ export async function GET() {
             JIRA_EMAIL_VALUE: JIRA_EMAIL
         };
 
-        // 1. Fetch available issue types
+        /* Temporalmente comentamos los tipos para evitar carga extra
         const typesRes = await fetch(`${JIRA_DOMAIN}/rest/api/3/issuetype`, {
             headers: { 'Authorization': authHeader }
         });
         const types = await typesRes.json();
+        */
+        const types = 'Fetch temporary disabled';
 
-        // 2. Fetch last 50 issues of any type to see what we have (Using projectType to satisfy Jira performance rules)
-        const issues = await searchJiraIssues('projectType = "service_desk" order by created desc', ['issuetype', 'status', 'resolutiondate', 'resolved', 'project']);
+        // 2. Fetch last 50 issues of any type to see what we have (Adding limit of 50 to avoid 429)
+        const issues = await searchJiraIssues('projectType = "service_desk" order by created desc', ['issuetype', 'status', 'resolutiondate', 'resolved', 'project'], 50);
 
         // 3. Count issues by type in that sample
         const typeCounts: Record<string, number> = {};

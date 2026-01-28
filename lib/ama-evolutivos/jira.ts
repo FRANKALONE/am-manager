@@ -14,7 +14,7 @@ function getAuthHeader() {
     return `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
 }
 
-export async function searchJiraIssues(jql: string, fields: string[] = ['*all']): Promise<any[]> {
+export async function searchJiraIssues(jql: string, fields: string[] = ['*all'], maxIssues?: number): Promise<any[]> {
     const authHeader = getAuthHeader();
     // Asegurarse de que el dominio no termine en / y tenga protocolo
     let domain = JIRA_DOMAIN.replace(/\/$/, '');
@@ -31,7 +31,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             const body: any = {
                 jql,
                 fields,
-                maxResults,
+                maxResults: maxIssues && maxIssues < maxResults ? maxIssues : maxResults,
             };
 
             if (nextPageToken) {
@@ -39,8 +39,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             }
 
             console.log(`[Jira Search] URL: ${url}`);
-            console.log(`[Jira Search] Body: ${JSON.stringify(body)}`);
-
+            // Omite logging del body completo si es muy grande, pero aquí es pequeño
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -61,6 +60,10 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             allIssues.push(...issues);
 
             console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}`);
+
+            if (maxIssues && allIssues.length >= maxIssues) {
+                break;
+            }
 
             nextPageToken = data.nextPageToken;
             if (!nextPageToken) {
