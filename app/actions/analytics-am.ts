@@ -91,39 +91,34 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 select: { issueKey: true, createdDate: true, workPackage: { select: { clientId: true } } }
             });
 
-            // Req 5: Ofertas Enviadas (Petición de Evolutivo -> Status "Oferta enviada...")
-            // Fetch ALL transitions for common "sent" statuses
+            // Req 5: Ofertas Enviadas (SOLO Petición de Evolutivo -> Status "Oferta enviada...")
+            // User clarification: Only count "Petición de Evolutivo" with specific status transitions
             const allSentTransitions = await prisma.ticketStatusHistory.findMany({
                 where: {
-                    // Include both TICKET and PROPOSAL transitions
                     status: {
                         in: [
-                            'Oferta enviada al cliente', 'Oferta enviada al gerente',
-                            'Enviado a Cliente', 'Enviado a Gerente',
-                            'Oferta Enviada', 'Enviado a SAP',
-                            'En revisión', 'Pendiente aprobación', 'Oferta Generada'
+                            'Oferta Generada',
+                            'Oferta enviada al cliente',
+                            'Oferta enviada al gerente'
                         ],
                         mode: 'insensitive'
                     },
                     transitionDate: { gte: start, lte: end }
                 },
-                orderBy: { transitionDate: 'asc' } // Order by date to pick the first one
+                orderBy: { transitionDate: 'asc' }
             });
 
-            // Fetch the tickets to distinguish types and check client ownership
+            // ONLY fetch "Petición de Evolutivo" tickets (NOT Evolutivos)
             const sentPeticionesFull = await prisma.ticket.findMany({
                 where: {
                     issueKey: { in: allSentTransitions.map(t => t.issueKey) },
-                    issueType: { in: ['Petición de Evolutivo', 'Evolutivo'], mode: 'insensitive' },
+                    issueType: { equals: 'Petición de Evolutivo', mode: 'insensitive' },
                     workPackage: { clientId: { in: clientsListIds } }
                 },
                 select: { issueKey: true, issueType: true, workPackage: { select: { clientId: true } } }
             });
 
-            // Deduplicate and filter based on user rules:
-            // 1. Only one transition per unique ticket ID (first occurrence in period)
-            // 2. For 'Evolutivo', only count if status is 'Pendiente aprobación'
-            // 3. For 'Petición de Evolutivo', count all defined "sent" statuses
+            // Deduplicate: Only one transition per unique ticket ID (first occurrence in period)
             const validSentTransitions = [];
             const processedKeys = new Set();
 
@@ -133,38 +128,24 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 const ticket = sentPeticionesFull.find(p => p.issueKey === tr.issueKey);
                 if (!ticket) continue;
 
-                const typeLower = ticket.issueType.toLowerCase();
-                const statusLower = tr.status.toLowerCase();
-
-                if (typeLower === 'evolutivo') {
-                    // Additional restriction for Evolutivos as per user instruction
-                    if (statusLower === 'pendiente aprobación') {
-                        validSentTransitions.push(tr);
-                        processedKeys.add(tr.issueKey);
-                    }
-                } else {
-                    // Petición de Evolutivo (uses the extended list already filtered in the query)
-                    validSentTransitions.push(tr);
-                    processedKeys.add(tr.issueKey);
-                }
+                validSentTransitions.push(tr);
+                processedKeys.add(tr.issueKey);
             }
 
             const sentPeticiones = sentPeticionesFull.filter(p => processedKeys.has(p.issueKey));
 
-            // Req 6: Ofertas Aprobadas (EvolutivoProposal Status=Cerrado, Resolution=Aprobada, RelatedTickets!=[])
-            const approvedProposals = await prisma.evolutivoProposal.findMany({
+            // Req 6: Ofertas Aprobadas (Petición de Evolutivo con Status=Cerrado y Resolution=Aprobada)
+            // User clarification: Use Ticket table, not EvolutivoProposal
+            const approvedPeticiones = await prisma.ticket.findMany({
                 where: {
-                    clientId: { in: clientsListIds },
+                    workPackage: { clientId: { in: clientsListIds } },
+                    issueType: { equals: 'Petición de Evolutivo', mode: 'insensitive' },
                     status: { equals: 'Cerrado', mode: 'insensitive' },
                     resolution: { equals: 'Aprobada', mode: 'insensitive' },
-                    NOT: {
-                        OR: [
-                            { relatedTickets: { equals: '[]' } },
-                            { relatedTickets: { equals: '' } }
-                        ]
-                    },
-                    approvedDate: { gte: start, lte: end } // Using approvedDate for logic
-                }
+                    // Use createdDate as proxy since we don't have approvedDate on Ticket
+                    createdDate: { gte: start, lte: end }
+                },
+                select: { issueKey: true, createdDate: true, workPackage: { select: { clientId: true } } }
             });
 
             return {
@@ -174,7 +155,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 totalJornadas: totalEstimacionJornadas,
                 solicitadas: peticionesEvolutivo,
                 enviadas: validSentTransitions,
-                aprobadas: approvedProposals,
+                aprobadas: approvedPeticiones,
                 sentPeticiones: sentPeticiones
             };
         };
@@ -191,7 +172,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
                 entregados: current.entregados.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
                 requested: current.solicitadas.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
                 sent: current.enviadas.filter(t => new Date(t.transitionDate).getUTCMonth() + 1 === m).length,
-                aprobadas: current.aprobadas.filter(t => t.approvedDate && new Date(t.approvedDate).getUTCMonth() + 1 === m).length
+                aprobadas: current.aprobadas.filter(t => t.createdDate && new Date(t.createdDate).getUTCMonth() + 1 === m).length
             };
         });
 
@@ -200,7 +181,7 @@ export async function getAmManagementReport(year: number, clientId?: string) {
             const cCreados = current.creados.filter(t => t.workPackage.clientId === c.id);
             const cSolicitadas = current.solicitadas.filter(t => t.workPackage.clientId === c.id).length;
             const cEnviadas = current.enviadas.filter(t => current.sentPeticiones.some((p: any) => p.issueKey === t.issueKey && p.workPackage.clientId === c.id)).length;
-            const cAprobadas = current.aprobadas.filter(p => p.clientId === c.id).length;
+            const cAprobadas = current.aprobadas.filter(p => p.workPackage.clientId === c.id).length;
             const volumne = cCreados.reduce((sum, t) => sum + (t.originalEstimate || 0), 0) / 8; // Req 9: Volumen en jornadas
 
             return {
