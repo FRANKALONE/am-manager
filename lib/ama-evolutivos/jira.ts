@@ -27,6 +27,9 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
                 fields,
             };
 
+            console.log(`[Jira Search] URL: ${url}`);
+            console.log(`[Jira Search] JQL: ${jql}`);
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -45,7 +48,8 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             const issues = data.issues || [];
             allIssues.push(...issues);
 
-            if (issues.length < maxResults || allIssues.length >= (data.total || 0)) {
+            const total = typeof data.total === 'number' ? data.total : allIssues.length;
+            if (issues.length < maxResults || allIssues.length >= total) {
                 break;
             }
 
@@ -61,7 +65,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
 export async function getEvolutivos(): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
-    const jql = `type = "${EVOLUTIVO_TYPE}" ORDER BY created DESC`;
+    const jql = `issuetype = "${EVOLUTIVO_TYPE}" ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -88,7 +92,7 @@ export async function getEvolutivos(): Promise<any[]> {
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
     // Buscar en TODOS los proyectos de tipo Service Desk
-    let jql = `type = "${HITO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done")`;
+    let jql = `issuetype = "${HITO_TYPE}" AND status NOT IN ("Cerrado", "Done")`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
@@ -105,7 +109,7 @@ export async function getHitos(evolutivoKey?: string): Promise<any[]> {
             'parent',
             'project',
             'customfield_10254', // Gestor del ticket
-            'customfield_10015', // Fecha fin planificada (asumiendo este ID basado en patrones comunes)
+            'customfield_10015', // Fecha fin planificada
             'resolutiondate',
             'created',
             'updated',
@@ -169,10 +173,10 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
 export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolutivos: number }> {
     try {
         // 1. Incidencias de correctivo + Consultas (excluyendo Cerrados y Propuesta de Solución)
-        const incidenciasJql = `type IN ("Incidencia de Correctivo", "Consulta") AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
+        const incidenciasJql = `issuetype IN ("Incidencia de Correctivo", "Consulta") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
 
         // 2. Evolutivos abiertos (excluyendo Cerrados y Entregados en PRO/PRD)
-        const evolutivosJql = `type = "${EVOLUTIVO_TYPE}" AND projectType = "service_desk" AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRD")`;
+        const evolutivosJql = `issuetype = "${EVOLUTIVO_TYPE}" AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
 
         const [incidenciasRes, evolutivosRes] = await Promise.all([
             searchJiraIssues(incidenciasJql, ['id']),
@@ -191,7 +195,7 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     // Buscar hitos cerrados en los últimos X meses
-    const jql = `type = "${HITO_TYPE}" AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
+    const jql = `issuetype = "${HITO_TYPE}" AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -206,7 +210,7 @@ export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
             'resolutiondate',
             'created',
             'updated',
-            'customfield_10002', // Organization (del padre si no está aquí)
+            'customfield_10002', // Organization
         ]);
 
         return issues;

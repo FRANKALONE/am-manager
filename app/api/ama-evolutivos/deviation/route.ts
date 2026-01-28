@@ -78,6 +78,10 @@ export async function GET(request: Request) {
                         hito: process.env.AMA_HITO_TYPE || 'Hitos Evolutivos',
                         evolutivo: process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo'
                     },
+                    jqls: {
+                        hitos: `issuetype = "${process.env.AMA_HITO_TYPE || 'Hitos Evolutivos'}" AND statusCategory = done AND resolved >= "-24m"`,
+                        evolutivos: `issuetype = "${process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo'}"`
+                    },
                     sampleHito: closedHitos.length > 0 ? {
                         key: closedHitos[0].key,
                         fieldsAvailable: Object.keys(closedHitos[0].fields),
