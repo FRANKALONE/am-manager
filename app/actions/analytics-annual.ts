@@ -113,7 +113,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             workPackage: { clientId: { in: clientsListIds } },
             createdDate: { gte: start, lte: end },
             NOT: {
-                issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
+                issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
             }
         },
         select: {
@@ -275,7 +275,9 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     // Backlog
     const backlogTickets = allIncidents.filter(t =>
-        !['cerrado', 'resuelto', 'done', 'finalizado', 'finished'].includes(t.status.toLowerCase())
+        !['cerrado', 'resuelto', 'done', 'finalizado', 'finished'].includes(t.status.toLowerCase()) &&
+        t.issueType?.toLowerCase() !== 'hito evolutivo' &&
+        t.issueType?.toLowerCase() !== 'hitos evolutivos'
     );
     const backlogCount = backlogTickets.length;
 

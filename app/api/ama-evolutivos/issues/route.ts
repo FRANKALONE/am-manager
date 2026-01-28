@@ -100,14 +100,18 @@ export async function GET(request: Request) {
         const others: JiraIssue[] = [];
         const unplanned: JiraIssue[] = [];
 
-        processedIssues.forEach((issue) => {
-            if (!issue.dueDate) {
+        processedIssues.forEach((issue: any) => {
+            const dueDate = issue.dueDate;
+            const plannedDate = hitos.find((h: any) => h.key === issue.key)?.fields?.customfield_10015;
+            const effectiveDateStr = dueDate || plannedDate;
+
+            if (!effectiveDateStr) {
                 unplanned.push(issue);
                 return;
             }
 
-            const dueDate = new Date(issue.dueDate);
-            const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            const effectiveDate = new Date(effectiveDateStr);
+            const dueDateOnly = new Date(effectiveDate.getFullYear(), effectiveDate.getMonth(), effectiveDate.getDate());
 
             if (dueDateOnly < today) {
                 expired.push(issue);

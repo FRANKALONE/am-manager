@@ -110,7 +110,7 @@ export async function getEvolutivos(): Promise<any[]> {
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
     const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
-    let jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done")`;
+    let jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done") AND (duedate is not EMPTY OR cf[10015] is not EMPTY)`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
