@@ -30,6 +30,9 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
     const formatPercent = (num: number) => `${num.toFixed(1)}%`;
     const formatHours = (hours: number) => `${hours.toFixed(1)}h`;
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+    const [showBacklogDetail, setShowBacklogDetail] = useState(false);
+    const [selectedBacklogType, setSelectedBacklogType] = useState<string | null>(null);
+    const [showClientsDetail, setShowClientsDetail] = useState(false);
 
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const chartData = report.monthly.map(m => ({
@@ -105,7 +108,13 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     { title: "SLA Primera Respuesta", value: formatPercent(report.slaFirstResponseCompliance), sub: `${formatNumber(report.slaMetrics.firstResponse.compliant)} tickets ok`, icon: Clock, color: "text-orange-600", bg: "bg-orange-50" },
                     { title: "Clientes Totales", value: formatNumber(report.clients.total), sub: `+${report.clients.newClients.length} nuevos este año`, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
                 ].map((kpi, i) => (
-                    <Card key={i} className="rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900">
+                    <Card
+                        key={i}
+                        className={`rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 cursor-pointer`}
+                        onClick={() => {
+                            if (kpi.title === "Clientes Totales") setShowClientsDetail(true);
+                        }}
+                    >
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -128,7 +137,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-50 dark:border-slate-800 mb-4">
                         <div>
                             <CardTitle className="text-lg font-bold">Evolución Mensual</CardTitle>
-                            <CardDescription>Comparativa entre Incidencias y Evolutivos</CardDescription>
+                            <CardDescription>Tickets creados mensualmente (Incidencias y Evolutivos)</CardDescription>
                         </div>
                         <div className="flex gap-4">
                             <div className="flex items-center gap-2">
@@ -370,7 +379,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                         </div>
                         <Button
                             className="w-full mt-2 rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200"
-                            onClick={() => router.push('/dashboard')}
+                            onClick={() => setShowBacklogDetail(true)}
                         >
                             Ver Detalles
                             <ChevronRight className="w-4 h-4 ml-1" />
@@ -378,6 +387,86 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Backlog Detail Modal */}
+            {showBacklogDetail && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl animate-in zoom-in duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                            <div>
+                                <CardTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Pendientes en Backlog</CardTitle>
+                                <CardDescription>Desglose por tipo y cliente</CardDescription>
+                            </div>
+                            <Button variant="ghost" className="rounded-full" onClick={() => { setShowBacklogDetail(false); setSelectedBacklogType(null); }}>
+                                <XCircle className="w-6 h-6 text-slate-400" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            {!selectedBacklogType ? (
+                                <div className="space-y-4">
+                                    <p className="text-sm font-bold text-slate-500 mb-2">Selecciona un tipo para ver el detalle por cliente:</p>
+                                    {report.correctiveMetrics.backlogDetails.map(detail => (
+                                        <div
+                                            key={detail.type}
+                                            className="p-4 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-100 cursor-pointer transition-colors flex justify-between items-center group"
+                                            onClick={() => setSelectedBacklogType(detail.type)}
+                                        >
+                                            <span className="font-black text-slate-700 group-hover:text-indigo-600">{detail.type}</span>
+                                            <span className="bg-white px-3 py-1 rounded-full text-sm font-black text-indigo-600 shadow-sm">{detail.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Button variant="ghost" size="sm" onClick={() => setSelectedBacklogType(null)} className="font-bold text-indigo-600 p-0 hover:bg-transparent">
+                                            ← Volver a tipos
+                                        </Button>
+                                    </div>
+                                    <h4 className="font-black text-lg text-indigo-600 uppercase mb-4">{selectedBacklogType}</h4>
+                                    <div className="space-y-2">
+                                        {report.correctiveMetrics.backlogDetails.find(d => d.type === selectedBacklogType)?.byClient.map(c => (
+                                            <div key={c.id} className="flex justify-between items-center p-3 border-b border-slate-50">
+                                                <span className="text-sm font-bold text-slate-600">{c.name}</span>
+                                                <span className="font-black text-slate-800">{c.count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Clients Detail Modal */}
+            {showClientsDetail && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl animate-in zoom-in duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                            <div>
+                                <CardTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Cartera de Clientes</CardTitle>
+                                <CardDescription>Listado completo y nuevas adquisiciones {year}</CardDescription>
+                            </div>
+                            <Button variant="ghost" className="rounded-full" onClick={() => setShowClientsDetail(false)}>
+                                <XCircle className="w-6 h-6 text-slate-400" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {report.clients.clientList.map(client => (
+                                    <div key={client.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <span className="text-sm font-bold text-slate-700">{client.name}</span>
+                                        {client.isNew && (
+                                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Nuevo</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

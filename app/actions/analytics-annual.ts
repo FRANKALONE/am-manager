@@ -45,6 +45,11 @@ export interface AnnualReportData {
     clients: {
         total: number;
         newClients: Array<{ id: string; name: string; firstTicketDate: Date }>;
+        clientList: Array<{
+            id: string;
+            name: string;
+            isNew: boolean;
+        }>;
     };
 
     // Corrective Metrics
@@ -52,6 +57,15 @@ export interface AnnualReportData {
         mttr: number; // Mean Time To Repair (hours)
         reopenRate: number; // percentage
         backlog: number; // pending tickets
+        backlogDetails: Array<{
+            type: string;
+            count: number;
+            byClient: Array<{
+                id: string;
+                name: string;
+                count: number;
+            }>;
+        }>;
     };
 
     // Satisfaction
@@ -260,9 +274,38 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     const reopenRateValue = totalIncidents > 0 ? (reopenedSet.size / totalIncidents) * 100 : 0;
 
     // Backlog
-    const backlogCount = allIncidents.filter(t =>
+    const backlogTickets = allIncidents.filter(t =>
         !['cerrado', 'resuelto', 'done', 'finalizado', 'finished'].includes(t.status.toLowerCase())
-    ).length;
+    );
+    const backlogCount = backlogTickets.length;
+
+    // Group backlog by type then client
+    const backlogByType: Record<string, Record<string, { name: string, count: number }>> = {};
+    backlogTickets.forEach(t => {
+        const type = t.issueType || 'Otros';
+        const clientName = t.workPackage.clientName;
+        const clientId = t.workPackage.clientId;
+
+        if (!backlogByType[type]) backlogByType[type] = {};
+        if (!backlogByType[type][clientId]) backlogByType[type][clientId] = { name: clientName, count: 0 };
+        backlogByType[type][clientId].count++;
+    });
+
+    const backlogDetails = Object.entries(backlogByType).map(([type, clients]) => ({
+        type,
+        count: Object.values(clients).reduce((acc, c) => acc + c.count, 0),
+        byClient: Object.entries(clients).map(([id, data]) => ({
+            id,
+            name: data.name,
+            count: data.count
+        })).sort((a, b) => b.count - a.count)
+    })).sort((a, b) => b.count - a.count);
+
+    const clientList = allClientsFull.map(c => ({
+        id: c.id,
+        name: c.name,
+        isNew: newClientsArray.some(nc => nc.id === c.id)
+    })).sort((a, b) => a.name.localeCompare(b.name));
 
     // === SATISFACTION ===
     const satData = {
@@ -376,12 +419,14 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         slaMetrics,
         clients: {
             total: allClientsFull.length,
-            newClients: newClientsArray
+            newClients: newClientsArray,
+            clientList
         },
         correctiveMetrics: {
             mttr: mttrValue,
             reopenRate: reopenRateValue,
-            backlog: backlogCount
+            backlog: backlogCount,
+            backlogDetails
         },
         satisfaction: satData,
         monthly: monthlyData
