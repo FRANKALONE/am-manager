@@ -12,10 +12,17 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 1. Obtener solo hitos cerrados (por defecto últimos 24 meses)
-        const closedHitos = await getClosedHitos(24);
+        // 1. Obtener hitos cerrados de los últimos 3 años (secuencialmente para asegurar volumen)
+        const currentYear = new Date().getFullYear();
+        const results = await Promise.all([
+            getClosedHitos(currentYear),
+            getClosedHitos(currentYear - 1),
+            getClosedHitos(currentYear - 2)
+        ]);
 
-        console.log(`[Deviation API] Found ${closedHitos.length} closed hitos`);
+        const closedHitos = results.flat();
+
+        console.log(`[Deviation API] Collected ${closedHitos.length} hitos across ${currentYear - 2}-${currentYear}`);
 
         // 2. Extraer claves de evolutivos padre únicos para no traerlos todos
         const parentKeys = Array.from(new Set(
