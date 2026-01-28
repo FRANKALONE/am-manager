@@ -5,8 +5,10 @@
 const JIRA_DOMAIN = (process.env.JIRA_URL || process.env.JIRA_DOMAIN || '').replace(/\/$/, '');
 const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
-const EVOLUTIVO_TYPE = process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo';
-const HITO_TYPE = process.env.AMA_HITO_TYPE || 'Hitos Evolutivos';
+
+// Definimos listas de posibles nombres para mayor robustez
+const EVOLUTIVO_TYPES = ["Evolutivo", "Petición de Evolutivo", "Evolutivos"];
+const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
 
 const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
 
@@ -64,8 +66,8 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 }
 
 export async function getEvolutivos(): Promise<any[]> {
-    // Buscar en TODOS los proyectos de tipo Service Desk, no solo en uno específico
-    const jql = `issuetype = "${EVOLUTIVO_TYPE}" ORDER BY created DESC`;
+    const typesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
+    const jql = `issuetype IN (${typesStr}) ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -91,8 +93,8 @@ export async function getEvolutivos(): Promise<any[]> {
 }
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
-    // Buscar en TODOS los proyectos de tipo Service Desk
-    let jql = `issuetype = "${HITO_TYPE}" AND status NOT IN ("Cerrado", "Done")`;
+    const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
+    let jql = `issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done")`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
@@ -172,11 +174,9 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
 
 export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolutivos: number }> {
     try {
-        // 1. Incidencias de correctivo + Consultas (excluyendo Cerrados y Propuesta de Solución)
+        const evoTypesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
         const incidenciasJql = `issuetype IN ("Incidencia de Correctivo", "Consulta") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
-
-        // 2. Evolutivos abiertos (excluyendo Cerrados y Entregados en PRO/PRD)
-        const evolutivosJql = `issuetype = "${EVOLUTIVO_TYPE}" AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
+        const evolutivosJql = `issuetype IN (${evoTypesStr}) AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
 
         const [incidenciasRes, evolutivosRes] = await Promise.all([
             searchJiraIssues(incidenciasJql, ['id']),
@@ -194,8 +194,8 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 }
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
-    // Buscar hitos cerrados en los últimos X meses
-    const jql = `issuetype = "${HITO_TYPE}" AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
+    const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
+    const jql = `issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [

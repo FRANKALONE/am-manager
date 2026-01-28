@@ -74,13 +74,9 @@ export async function GET(request: Request) {
                     closedHitosCount: closedHitos.length,
                     evolutivosCount: evolutivos.length,
                     missingDatesCount,
-                    typesSearched: {
-                        hito: process.env.AMA_HITO_TYPE || 'Hitos Evolutivos',
-                        evolutivo: process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo'
-                    },
                     jqls: {
-                        hitos: `issuetype = "${process.env.AMA_HITO_TYPE || 'Hitos Evolutivos'}" AND statusCategory = done AND resolved >= "-24m"`,
-                        evolutivos: `issuetype = "${process.env.AMA_EVOLUTIVO_TYPE || 'Evolutivo'}"`
+                        hitos: `issuetype IN ("Hitos Evolutivos", "Hito Evolutivo", "Hito") AND statusCategory = done AND resolved >= "-24m"`,
+                        evolutivos: `issuetype IN ("Evolutivo", "Petición de Evolutivo", "Evolutivos")`
                     },
                     sampleHito: closedHitos.length > 0 ? {
                         key: closedHitos[0].key,

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { searchJiraIssues } from '@/lib/ama-evolutivos/jira';
 import { getAuthSession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 const JIRA_DOMAIN = (process.env.JIRA_URL || process.env.JIRA_DOMAIN || '').replace(/\/$/, '');
 const JIRA_EMAIL = process.env.JIRA_USER_EMAIL || process.env.JIRA_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
