@@ -21,7 +21,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
     if (!domain.startsWith('http')) {
         domain = `https://${domain}`;
     }
-    const url = `${domain}/rest/api/3/search/jql`;
+    const url = `${domain}/rest/api/3/search`;
     const allIssues: any[] = [];
     let startAt = 0;
     const maxResults = 100;
