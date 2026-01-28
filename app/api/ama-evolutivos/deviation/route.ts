@@ -12,17 +12,27 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 1. Obtener hitos cerrados de los últimos 3 años (secuencialmente para asegurar volumen)
-        const currentYear = new Date().getFullYear();
-        const results = await Promise.all([
-            getClosedHitos(currentYear),
-            getClosedHitos(currentYear - 1),
-            getClosedHitos(currentYear - 2)
-        ]);
+        // 1. Obtener hitos cerrados en tramos trimestrales para no saturar JIRA y asegurar histórico
+        const quarters = [
+            { start: '2026-01-01', end: '2026-03-31' },
+            { start: '2025-10-01', end: '2025-12-31' },
+            { start: '2025-07-01', end: '2025-09-30' },
+            { start: '2025-04-01', end: '2025-06-30' },
+            { start: '2025-01-01', end: '2025-03-31' },
+            { start: '2024-10-01', end: '2024-12-31' },
+            { start: '2024-07-01', end: '2024-09-30' },
+            { start: '2024-04-01', end: '2024-06-30' },
+            { start: '2024-01-01', end: '2024-03-31' },
+        ];
 
-        const closedHitos = results.flat();
+        let closedHitos: any[] = [];
+        for (const q of quarters) {
+            const h = await getClosedHitos(q.start, q.end);
+            closedHitos.push(...h);
+            console.log(`[Deviation API] Collected ${h.length} hitos for ${q.start} to ${q.end}`);
+        }
 
-        console.log(`[Deviation API] Collected ${closedHitos.length} hitos across ${currentYear - 2}-${currentYear}`);
+        console.log(`[Deviation API] Total collected: ${closedHitos.length}`);
 
         // 2. Extraer claves de evolutivos padre únicos para no traerlos todos
         const parentKeys = Array.from(new Set(
