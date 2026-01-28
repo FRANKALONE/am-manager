@@ -41,6 +41,12 @@ export function DeviationIndicator() {
         endMonth: '',
         showOnlyReplanned: false
     });
+    const [tableSearch, setTableSearch] = useState({
+        client: '',
+        manager: '',
+        hitoKey: '',
+        evolutivo: ''
+    });
     const [showDetailTable, setShowDetailTable] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -77,6 +83,16 @@ export function DeviationIndicator() {
             return true;
         });
     }, [data, filters]);
+
+    const tableFilteredData = useMemo(() => {
+        return filteredData.filter(item => {
+            if (tableSearch.client && !item.client.toLowerCase().includes(tableSearch.client.toLowerCase())) return false;
+            if (tableSearch.manager && !item.manager.toLowerCase().includes(tableSearch.manager.toLowerCase())) return false;
+            if (tableSearch.hitoKey && !item.key.toLowerCase().includes(tableSearch.hitoKey.toLowerCase())) return false;
+            if (tableSearch.evolutivo && !item.evolutivo.toLowerCase().includes(tableSearch.evolutivo.toLowerCase())) return false;
+            return true;
+        });
+    }, [filteredData, tableSearch]);
 
     const chartData = useMemo(() => {
         const groups: Record<string, { totalDays: number; count: number; delayedCount: number; absTotalDays: number }> = {};
@@ -167,7 +183,7 @@ export function DeviationIndicator() {
     };
 
     const sortedDetailData = useMemo(() => {
-        let sortableData = [...filteredData];
+        let sortableData = [...tableFilteredData];
         if (sortConfig !== null) {
             sortableData.sort((a: any, b: any) => {
                 const aVal = a[sortConfig.key];
@@ -180,7 +196,7 @@ export function DeviationIndicator() {
             });
         }
         return sortableData;
-    }, [filteredData, sortConfig]);
+    }, [tableFilteredData, sortConfig]);
 
     const exportToCSV = () => {
         const headers = ['Clave', 'Resumen', 'Evolutivo', 'Cliente', 'Gestor', 'Fecha Planificada', 'Fecha Replanificada', 'Fecha Cierre', 'Desv. Plan', 'Desv. Replan', 'Impacto Replan'];
@@ -557,107 +573,153 @@ export function DeviationIndicator() {
                             </label>
                         </div>
 
-                        {/* Tabla Detallada */}
-                        <div className="overflow-x-auto border border-gray-200 rounded-xl">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        {[
-                                            { key: 'key', label: 'Clave' },
-                                            { key: 'summary', label: 'Resumen' },
-                                            { key: 'evolutivo', label: 'Evolutivo' },
-                                            { key: 'client', label: 'Cliente' },
-                                            { key: 'manager', label: 'Gestor' },
-                                            { key: 'plannedDate', label: 'Fecha Planificada' },
-                                            { key: 'replannedDate', label: 'Fecha Replan' },
-                                            { key: 'resolutionDate', label: 'Fecha Cierre' },
-                                            { key: 'deviationFromPlan', label: 'Desv. Plan' },
-                                            { key: 'deviationFromReplan', label: 'Desv. Replan' },
-                                            { key: 'replanImpact', label: 'Impacto Replan' }
-                                        ].map(({ key, label }) => (
-                                            <th
-                                                key={key}
-                                                onClick={() => handleSort(key)}
-                                                className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-1">
-                                                    {label}
-                                                    {sortConfig?.key === key && (
-                                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                                                    )}
-                                                </div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {sortedDetailData.map((item) => (
-                                        <tr key={item.key} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                                <a
-                                                    href={`https://altim.atlassian.net/browse/${item.key}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                                >
-                                                    {item.key}
-                                                </a>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title={item.summary}>
-                                                {item.summary}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {item.evolutivo}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {item.client}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {item.manager}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {format(parseISO(item.plannedDate), 'dd/MM/yyyy', { locale: es })}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {item.replannedDate ? format(parseISO(item.replannedDate), 'dd/MM/yyyy', { locale: es }) : '-'}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                                {format(parseISO(item.resolutionDate), 'dd/MM/yyyy', { locale: es })}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromPlan)} ${getDeviationColor(item.deviationFromPlan)}`}>
-                                                    {item.deviationFromPlan > 0 ? '+' : ''}{item.deviationFromPlan}d
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                {item.deviationFromReplan !== null ? (
-                                                    <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromReplan)} ${getDeviationColor(item.deviationFromReplan)}`}>
-                                                        {item.deviationFromReplan > 0 ? '+' : ''}{item.deviationFromReplan}d
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                {item.replanImpact !== null ? (
-                                                    <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.replanImpact)} ${getDeviationColor(item.replanImpact)}`}>
-                                                        {item.replanImpact > 0 ? '+' : ''}{item.replanImpact}d
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400">-</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        {/* Búsqueda en Tabla */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Buscar Cliente</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: ACOLAD"
+                                    value={tableSearch.client}
+                                    onChange={(e) => setTableSearch(prev => ({ ...prev, client: e.target.value }))}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Buscar Gestor</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: Juan"
+                                    value={tableSearch.manager}
+                                    onChange={(e) => setTableSearch(prev => ({ ...prev, manager: e.target.value }))}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Buscar Hito (ID)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: MER-160"
+                                    value={tableSearch.hitoKey}
+                                    onChange={(e) => setTableSearch(prev => ({ ...prev, hitoKey: e.target.value }))}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Buscar Evolutivo (ID)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: ACO-13"
+                                    value={tableSearch.evolutivo}
+                                    onChange={(e) => setTableSearch(prev => ({ ...prev, evolutivo: e.target.value }))}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
                         </div>
 
-                        {sortedDetailData.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
-                                No hay hitos que coincidan con los filtros seleccionados
+                        {/* Tabla Detallada con Scroll Interno */}
+                        <div className="border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            {[
+                                                { key: 'key', label: 'Clave' },
+                                                { key: 'summary', label: 'Resumen' },
+                                                { key: 'evolutivo', label: 'Evolutivo' },
+                                                { key: 'client', label: 'Cliente' },
+                                                { key: 'manager', label: 'Gestor' },
+                                                { key: 'plannedDate', label: 'Fecha Planificada' },
+                                                { key: 'replannedDate', label: 'Fecha Replan' },
+                                                { key: 'resolutionDate', label: 'Fecha Cierre' },
+                                                { key: 'deviationFromPlan', label: 'Desv. Plan' },
+                                                { key: 'deviationFromReplan', label: 'Desv. Replan' },
+                                                { key: 'replanImpact', label: 'Impacto Replan' }
+                                            ].map(({ key, label }) => (
+                                                <th
+                                                    key={key}
+                                                    onClick={() => handleSort(key)}
+                                                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-1">
+                                                        {label}
+                                                        {sortConfig?.key === key && (
+                                                            sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                                        )}
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {sortedDetailData.map((item) => (
+                                            <tr key={item.key} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                                    <a
+                                                        href={`https://altim.atlassian.net/browse/${item.key}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                    >
+                                                        {item.key}
+                                                    </a>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title={item.summary}>
+                                                    {item.summary}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {item.evolutivo}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {item.client}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {item.manager}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {format(parseISO(item.plannedDate), 'dd/MM/yyyy', { locale: es })}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {item.replannedDate ? format(parseISO(item.replannedDate), 'dd/MM/yyyy', { locale: es }) : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                    {format(parseISO(item.resolutionDate), 'dd/MM/yyyy', { locale: es })}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                    <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromPlan)} ${getDeviationColor(item.deviationFromPlan)}`}>
+                                                        {item.deviationFromPlan > 0 ? '+' : ''}{item.deviationFromPlan}d
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                    {item.deviationFromReplan !== null ? (
+                                                        <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromReplan)} ${getDeviationColor(item.deviationFromReplan)}`}>
+                                                            {item.deviationFromReplan > 0 ? '+' : ''}{item.deviationFromReplan}d
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                    {item.replanImpact !== null ? (
+                                                        <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.replanImpact)} ${getDeviationColor(item.replanImpact)}`}>
+                                                            {item.replanImpact > 0 ? '+' : ''}{item.replanImpact}d
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                        )}
+
+                            {sortedDetailData.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    No hay hitos que coincidan con los filtros seleccionados
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
