@@ -22,23 +22,22 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
     try {
         while (true) {
-            const body: any = {
+            const params = new URLSearchParams({
                 jql,
-                startAt,
-                maxResults,
-                fields,
-            };
+                startAt: startAt.toString(),
+                maxResults: maxResults.toString(),
+                fields: fields.join(','),
+            });
 
-            console.log(`[Jira Search] URL: ${url}`);
-            console.log(`[Jira Search] JQL: ${jql}`);
+            const urlWithParams = `${url}?${params.toString()}`;
+            console.log(`[Jira Search] URL: ${urlWithParams}`);
 
-            const response = await fetch(url, {
-                method: 'POST',
+            const response = await fetch(urlWithParams, {
+                method: 'GET',
                 headers: {
                     'Authorization': authHeader,
-                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
-                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
