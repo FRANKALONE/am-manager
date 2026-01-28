@@ -14,6 +14,16 @@ export async function GET() {
         const session = await getAuthSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+        const envStatus = {
+            JIRA_URL: !!process.env.JIRA_URL,
+            JIRA_DOMAIN: !!process.env.JIRA_DOMAIN,
+            JIRA_USER_EMAIL: !!process.env.JIRA_USER_EMAIL,
+            JIRA_EMAIL: !!process.env.JIRA_EMAIL,
+            JIRA_API_TOKEN: !!process.env.JIRA_API_TOKEN,
+            JIRA_URL_VALUE: JIRA_DOMAIN,
+            JIRA_EMAIL_VALUE: JIRA_EMAIL
+        };
+
         // 1. Fetch available issue types
         const typesRes = await fetch(`${JIRA_DOMAIN}/rest/api/3/issuetype`, {
             headers: { 'Authorization': authHeader }
@@ -31,8 +41,10 @@ export async function GET() {
         });
 
         return NextResponse.json({
+            envStatus,
             types: Array.isArray(types) ? types.map((t: any) => ({ id: t.id, name: t.name })) : 'Failed to fetch types',
             sampleTypeStats: typeCounts,
+            totalFoundInSample: issues.length,
             lastIssues: issues.slice(0, 20).map((i: any) => ({
                 key: i.key,
                 project: i.fields.project?.key,
@@ -43,6 +55,9 @@ export async function GET() {
             }))
         });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message });
+        return NextResponse.json({
+            error: error.message,
+            stack: error.stack
+        });
     }
 }

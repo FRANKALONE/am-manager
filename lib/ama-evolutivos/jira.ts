@@ -15,7 +15,7 @@ const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toStr
 export async function searchJiraIssues(jql: string, fields: string[] = ['*all']): Promise<any[]> {
     // Asegurarse de que el dominio no termine en /
     const baseUrl = JIRA_DOMAIN.replace(/\/$/, '');
-    const url = `${baseUrl}/rest/api/3/search/jql`;
+    const url = `${baseUrl}/rest/api/3/search`;
     const allIssues: any[] = [];
     let startAt = 0;
     const maxResults = 100;
@@ -51,6 +51,8 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             allIssues.push(...issues);
 
             const total = typeof data.total === 'number' ? data.total : allIssues.length;
+            console.log(`[Jira Search] Page issues: ${issues.length}, Total in Jira: ${total}, Accumulated: ${allIssues.length}`);
+
             if (issues.length < maxResults || allIssues.length >= total) {
                 break;
             }
@@ -58,6 +60,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             startAt += maxResults;
         }
 
+        console.log(`[Jira Search] Final issues count: ${allIssues.length}`);
         return allIssues;
     } catch (error) {
         console.error('Error searching JIRA issues:', error);
