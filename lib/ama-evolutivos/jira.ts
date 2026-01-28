@@ -211,6 +211,7 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
+    // Traemos los últimos 500 para evitar timeouts, ordenados por resolución
     const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
@@ -226,8 +227,9 @@ export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
             'resolutiondate',
             'created',
             'updated',
+            'resolved', // Agregamos 'resolved' explícitamente
             'customfield_10002', // Organization
-        ]);
+        ], 500); // Limitamos a 500 para mayor rapidez
 
         return issues;
     } catch (error) {

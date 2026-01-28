@@ -44,12 +44,12 @@ export async function GET(request: Request) {
         });
 
         const dataPoints: any[] = [];
-        let missingDatesCount = 0;
         const skippedReasons = { noResolution: 0, noPlanned: 0 };
         const yearStats: Record<number, number> = {};
 
         closedHitos.forEach(hito => {
-            const resolutionDateStr = hito.fields.resolutiondate;
+            // Soporte para ambos nombres de campo de fecha de cierre
+            const resolutionDateStr = hito.fields.resolved || hito.fields.resolutiondate;
             // Priorizamos customfield_10015 (Fecha fin planificada) sobre duedate
             const plannedDateStr = hito.fields.customfield_10015 || hito.fields.duedate;
 
@@ -93,28 +93,27 @@ export async function GET(request: Request) {
             });
         });
 
-        console.log(`[Deviation API] Processed ${dataPoints.length} hitos. OK. Skipped: ${JSON.stringify(skippedReasons)}`);
-        console.log(`[Deviation API] Year stats:`, yearStats);
+        const debugInfo = {
+            closedHitosCount: closedHitos.length,
+            evolutivosCount: evolutivos.length,
+            processedCount: dataPoints.length,
+            skipped: skippedReasons,
+            yearStats,
+            sampleHito: closedHitos.length > 0 ? {
+                key: closedHitos[0].key,
+                resolved: closedHitos[0].fields.resolved,
+                resolutionDate: closedHitos[0].fields.resolutiondate,
+                plannedDate: closedHitos[0].fields.customfield_10015,
+                dueDate: closedHitos[0].fields.duedate
+            } : null
+        };
+
+        console.log(`[Deviation API] Result: ${dataPoints.length} points. Debug:`, JSON.stringify(debugInfo));
 
         if (dataPoints.length === 0) {
             return NextResponse.json({
-                debug: {
-                    closedHitosCount: closedHitos.length,
-                    evolutivosCount: evolutivos.length,
-                    missingDatesCount,
-                    jqls: {
-                        hitos: `issuetype IN ("Hitos Evolutivos", "Hito Evolutivo", "Hito") AND statusCategory = done AND resolved >= "-24m"`,
-                        evolutivos: `issuetype IN ("Evolutivo", "Petición de Evolutivo", "Evolutivos")`
-                    },
-                    sampleHito: closedHitos.length > 0 ? {
-                        key: closedHitos[0].key,
-                        fieldsAvailable: Object.keys(closedHitos[0].fields),
-                        resolutionDate: closedHitos[0].fields.resolutiondate,
-                        plannedDate: closedHitos[0].fields.customfield_10015,
-                        dueDate: closedHitos[0].fields.duedate
-                    } : null
-                },
-                data: []
+                data: [],
+                debug: debugInfo
             });
         }
 
