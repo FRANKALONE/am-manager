@@ -23,7 +23,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
     }
     const url = `${domain}/rest/api/3/search/jql`;
     const allIssues: any[] = [];
-    let nextPageToken: string | undefined = undefined;
+    let startAt = 0;
     const maxResults = 100;
 
     try {
@@ -31,14 +31,11 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
             const body: any = {
                 jql,
                 fields,
+                startAt,
                 maxResults: maxIssues && maxIssues < maxResults ? maxIssues : maxResults,
             };
 
-            if (nextPageToken) {
-                body.nextPageToken = nextPageToken;
-            }
-
-            console.log(`[Jira Search] URL: ${url}`);
+            console.log(`[Jira Search] URL: ${url}, startAt: ${startAt}`);
             // Omite logging del body completo si es muy grande, pero aquí es pequeño
             const response = await fetch(url, {
                 method: 'POST',
@@ -59,14 +56,14 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
             const issues = data.issues || [];
             allIssues.push(...issues);
 
-            console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}`);
+            console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}, Total in JIRA: ${data.total}`);
 
             if (maxIssues && allIssues.length >= maxIssues) {
                 break;
             }
 
-            nextPageToken = data.nextPageToken;
-            if (!nextPageToken) {
+            startAt += issues.length;
+            if (issues.length === 0 || startAt >= data.total) {
                 break;
             }
         }

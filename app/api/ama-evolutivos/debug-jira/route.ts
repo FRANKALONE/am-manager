@@ -32,19 +32,19 @@ export async function GET() {
         */
         const types = 'Fetch temporary disabled';
 
-        // 2. Fetch last 100 CLOSED Hitos specifically (Using projectType)
+        // 2. Fetch specific years to see why 2025 is missing
         const hitosStr = (HITO_TYPES as string[]).map(t => `"${t}"`).join(', ');
-        const closedHitosJql = `projectType = "service_desk" AND issuetype IN (${hitosStr}) AND statusCategory = done order by resolved desc`;
-        const issues = await searchJiraIssues(closedHitosJql, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project', 'customfield_10015', 'duedate'], 100);
 
-        // 3. Count issues by type and year in that sample
-        const typeCounts: Record<string, number> = {};
+        // Deep dive 2025
+        const jql2025 = `projectType = "service_desk" AND issuetype IN (${hitosStr}) AND statusCategory = done AND resolved >= "2025-01-01" AND resolved <= "2025-12-31" order by resolved desc`;
+        const issues2025 = await searchJiraIssues(jql2025, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project', 'customfield_10015', 'duedate'], 100);
+
+        // General sample (to compare)
+        const jqlGeneral = `projectType = "service_desk" AND issuetype IN (${hitosStr}) AND statusCategory = done order by resolved desc`;
+        const issuesGeneral = await searchJiraIssues(jqlGeneral, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project'], 50);
+
         const yearCounts: Record<number, number> = {};
-
-        issues.forEach((i: any) => {
-            const type = i.fields.issuetype?.name || 'Unknown';
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
-
+        issuesGeneral.forEach((i: any) => {
             const resDate = i.fields.resolutiondate || i.fields.resolved;
             if (resDate) {
                 const year = new Date(resDate).getFullYear();
@@ -54,21 +54,20 @@ export async function GET() {
 
         return NextResponse.json({
             envStatus,
-            diagnostics: "Focused on CLOSED Hitos",
-            targetJQL: closedHitosJql,
-            sampleSize: issues.length,
-            sampleTypes: typeCounts,
-            yearDistribution: yearCounts,
-            lastClosedHitos: issues.slice(0, 20).map((i: any) => ({
-                key: i.key,
-                project: i.fields.project?.key,
-                type: i.fields.issuetype?.name,
-                status: i.fields.status?.name,
-                statusCategory: i.fields.status?.statusCategory?.key,
-                resolved: i.fields.resolved,
-                resolutionDate: i.fields.resolutiondate,
-                plannedDate: i.fields.customfield_10015 || i.fields.duedate || 'MISSING'
-            }))
+            diagnostics: "FOCUSED ON 2025 DEEP DIVE",
+            yearDistributionInGeneralSample: yearCounts,
+            results2025: {
+                jql: jql2025,
+                countFound: issues2025.length,
+                samples: issues2025.slice(0, 50).map((i: any) => ({
+                    key: i.key,
+                    project: i.fields.project?.key,
+                    status: i.fields.status?.name,
+                    resolved: i.fields.resolved || i.fields.resolutiondate,
+                    plannedDate: i.fields.customfield_10015 || 'MISSING',
+                    dueDate: i.fields.duedate || 'MISSING'
+                }))
+            }
         });
     } catch (error: any) {
         return NextResponse.json({
