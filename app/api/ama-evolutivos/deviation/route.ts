@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClosedHitos, getEvolutivos } from '@/lib/ama-evolutivos/jira';
+import { getClosedHitos, getIssuesByKeys } from '@/lib/ama-evolutivos/jira';
 import { getAuthSession } from '@/lib/auth';
 import { differenceInDays, parseISO, format } from 'date-fns';
 
@@ -12,13 +12,26 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Obtener hitos cerrados (por defecto últimos 24 meses)
-        const [closedHitos, evolutivos] = await Promise.all([
-            getClosedHitos(24),
-            getEvolutivos()
+        // 1. Obtener solo hitos cerrados (por defecto últimos 24 meses)
+        const closedHitos = await getClosedHitos(24);
+
+        console.log(`[Deviation API] Found ${closedHitos.length} closed hitos`);
+
+        // 2. Extraer claves de evolutivos padre únicos para no traerlos todos
+        const parentKeys = Array.from(new Set(
+            closedHitos
+                .map(h => h.fields.parent?.key)
+                .filter(Boolean)
+        )) as string[];
+
+        // 3. Traer SOLO los evolutivos necesarios
+        const evolutivos = await getIssuesByKeys(parentKeys, [
+            'summary',
+            'customfield_10254', // Gestor del ticket
+            'customfield_10002', // Organization
         ]);
 
-        console.log(`[Deviation API] Found ${closedHitos.length} closed hitos and ${evolutivos.length} evolutivos`);
+        console.log(`[Deviation API] Fetched ${evolutivos.length} relevant parent evolutivos`);
 
         // Mapeo de evolutivos para obtener organización y gestor
         const evolutivosMap = new Map();

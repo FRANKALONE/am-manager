@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchJiraIssues } from '@/lib/ama-evolutivos/jira';
+import { searchJiraIssues, HITO_TYPES } from '@/lib/ama-evolutivos/jira';
 import { getAuthSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +32,10 @@ export async function GET() {
         */
         const types = 'Fetch temporary disabled';
 
-        // 2. Fetch last 50 issues of any type to see what we have (Adding limit of 50 to avoid 429)
-        const issues = await searchJiraIssues('projectType = "service_desk" order by created desc', ['issuetype', 'status', 'resolutiondate', 'resolved', 'project'], 50);
+        // 2. Fetch last 20 CLOSED Hitos specifically (Using projectType)
+        const hitosStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
+        const closedHitosJql = `projectType = "service_desk" AND issuetype IN (${hitosStr}) AND statusCategory = done order by resolved desc`;
+        const issues = await searchJiraIssues(closedHitosJql, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project', 'customfield_10015', 'duedate'], 20);
 
         // 3. Count issues by type in that sample
         const typeCounts: Record<string, number> = {};
@@ -44,16 +46,19 @@ export async function GET() {
 
         return NextResponse.json({
             envStatus,
-            types: Array.isArray(types) ? types.map((t: any) => ({ id: t.id, name: t.name })) : 'Failed to fetch types',
-            sampleTypeStats: typeCounts,
-            totalFoundInSample: issues.length,
-            lastIssues: issues.slice(0, 20).map((i: any) => ({
+            diagnostics: "Focused on CLOSED Hitos",
+            targetJQL: closedHitosJql,
+            sampleSize: issues.length,
+            sampleTypes: typeCounts,
+            lastClosedHitos: issues.map((i: any) => ({
                 key: i.key,
                 project: i.fields.project?.key,
                 type: i.fields.issuetype?.name,
                 status: i.fields.status?.name,
+                statusCategory: i.fields.status?.statusCategory?.key,
                 resolved: i.fields.resolved,
-                resolutionDate: i.fields.resolutiondate
+                resolutionDate: i.fields.resolutiondate,
+                plannedDate: i.fields.customfield_10015 || i.fields.duedate || 'MISSING'
             }))
         });
     } catch (error: any) {

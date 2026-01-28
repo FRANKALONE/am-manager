@@ -7,8 +7,8 @@ const JIRA_EMAIL = process.env.JIRA_EMAIL || process.env.JIRA_USER_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
 
 // Definimos listas de posibles nombres para mayor robustez
-const EVOLUTIVO_TYPES = ["Evolutivo", "Petición de Evolutivo", "Evolutivos"];
-const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
+export const EVOLUTIVO_TYPES = ["Evolutivo", "Petición de Evolutivo", "Evolutivos"];
+export const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
 
 function getAuthHeader() {
     return `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
@@ -232,4 +232,25 @@ export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
         console.error('Error fetching closed hitos:', error);
         return [];
     }
+}
+
+export async function getIssuesByKeys(keys: string[], fields: string[] = ['*all']): Promise<any[]> {
+    if (keys.length === 0) return [];
+
+    // Chunk keys to avoid too long JQL (max ~50-100 keys per request)
+    const chunkSize = 50;
+    const allResults: any[] = [];
+
+    for (let i = 0; i < keys.length; i += chunkSize) {
+        const chunk = keys.slice(i, i + chunkSize);
+        const jql = `key IN (${chunk.map(k => `"${k}"`).join(',')})`;
+        try {
+            const issues = await searchJiraIssues(jql, fields);
+            allResults.push(...issues);
+        } catch (error) {
+            console.error(`Error fetching issues by keys chunk ${i}:`, error);
+        }
+    }
+
+    return allResults;
 }
