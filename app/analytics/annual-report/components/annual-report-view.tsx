@@ -29,6 +29,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
     const formatNumber = (num: number) => Math.round(num).toLocaleString('es-ES');
     const formatPercent = (num: number) => `${num.toFixed(1)}%`;
     const formatHours = (hours: number) => `${hours.toFixed(1)}h`;
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const chartData = report.monthly.map(m => ({
@@ -159,13 +160,68 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                 />
-                                <Area type="monotone" dataKey="evolutivos" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorEv)" />
-                                <Area type="monotone" dataKey="incidents" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorInc)" />
+                                <Area
+                                    type="monotone"
+                                    dataKey="evolutivos"
+                                    stroke="#6366f1"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorEv)"
+                                    activeDot={{ r: 6, strokeWidth: 0, onClick: (e: any, payload: any) => setSelectedMonth(payload.payload.month) }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="incidents"
+                                    stroke="#f43f5e"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorInc)"
+                                    activeDot={{ r: 6, strokeWidth: 0, onClick: (e: any, payload: any) => setSelectedMonth(payload.payload.month) }}
+                                />
                             </AreaChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Monthly Details Modal/Section (New) */}
+            {selectedMonth !== null && (
+                <Card className="rounded-2xl border-none shadow-md bg-white dark:bg-slate-900 border-l-4 border-l-indigo-500 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-50 dark:border-slate-800 mb-4">
+                        <div>
+                            <CardTitle className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+                                Detalle de {months[selectedMonth - 1]} {year}
+                            </CardTitle>
+                            <CardDescription>Resumen operativo del mes seleccionado</CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedMonth(null)} className="rounded-full">
+                            <XCircle className="w-5 h-5 text-slate-400" />
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="pt-2 pb-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Incidencias</p>
+                                <p className="text-3xl font-black text-rose-500">{report.monthly[selectedMonth - 1].incidents}</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Evolutivos</p>
+                                <p className="text-3xl font-black text-indigo-500">{report.monthly[selectedMonth - 1].evolutivos}</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Cumplimiento SLA</p>
+                                <p className="text-3xl font-black text-emerald-500">{formatPercent(report.monthly[selectedMonth - 1].slaCompliance)}</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Satisfacción</p>
+                                <p className="text-3xl font-black text-amber-500">
+                                    {report.monthly[selectedMonth - 1].satisfaction ?? 'N/A'}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Quality & SLA Details */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -183,7 +239,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                 <span className="text-lg font-black text-indigo-600">{formatPercent(report.slaResolutionCompliance)}</span>
                             </div>
                             <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${report.slaResolutionCompliance}%` }}></div>
+                                <div
+                                    className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                                    style={{ width: `${report.slaResolutionCompliance}%` }}
+                                ></div>
                             </div>
                         </div>
 
@@ -193,7 +252,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                 <span className="text-lg font-black text-emerald-600">{formatPercent(report.slaFirstResponseCompliance)}</span>
                             </div>
                             <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${report.slaFirstResponseCompliance}%` }}></div>
+                                <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                    style={{ width: `${report.slaFirstResponseCompliance}%` }}
+                                ></div>
                             </div>
                         </div>
 
@@ -228,6 +290,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                     outerRadius={100}
                                     paddingAngle={5}
                                     dataKey="count"
+                                    nameKey="type"
                                 >
                                     {report.incidentsByType.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -276,7 +339,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
 
                         <div className="mt-8 pt-6 border-t border-indigo-500/30 flex items-center gap-4">
                             <div className="flex-1 h-2 bg-indigo-900/30 rounded-full overflow-hidden">
-                                <div className="h-full bg-white rounded-full" style={{ width: `${report.evolutivos.ratioAceptacion}%` }}></div>
+                                <div
+                                    className="h-full bg-white rounded-full"
+                                    style={{ width: `${report.evolutivos.ratioAceptacion}%` }}
+                                ></div>
                             </div>
                             <span className="text-sm font-bold text-indigo-100">Ratio Éxito Comercial</span>
                         </div>
@@ -302,7 +368,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                             </div>
                             <p className="text-center text-sm font-bold text-slate-400">Tickets en curso a cierre de periodo</p>
                         </div>
-                        <Button className="w-full mt-2 rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200">
+                        <Button
+                            className="w-full mt-2 rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200"
+                            onClick={() => router.push('/dashboard')}
+                        >
                             Ver Detalles
                             <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
