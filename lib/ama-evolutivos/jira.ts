@@ -78,7 +78,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
 
 export async function getEvolutivos(): Promise<any[]> {
     const typesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
-    const jql = `issuetype IN (${typesStr}) ORDER BY created DESC`;
+    const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -105,7 +105,7 @@ export async function getEvolutivos(): Promise<any[]> {
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
     const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
-    let jql = `issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done")`;
+    let jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done")`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
@@ -186,8 +186,8 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
 export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolutivos: number }> {
     try {
         const evoTypesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
-        const incidenciasJql = `issuetype IN ("Incidencia de Correctivo", "Consulta") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
-        const evolutivosJql = `issuetype IN (${evoTypesStr}) AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
+        const incidenciasJql = `projectType = "service_desk" AND issuetype IN ("Incidencia de Correctivo", "Consulta") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
+        const evolutivosJql = `projectType = "service_desk" AND issuetype IN (${evoTypesStr}) AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
 
         const [incidenciasRes, evolutivosRes] = await Promise.all([
             searchJiraIssues(incidenciasJql, ['id']),
@@ -206,7 +206,7 @@ export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolu
 
 export async function getClosedHitos(monthsBack: number = 24): Promise<any[]> {
     const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
-    const jql = `issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
+    const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-${monthsBack}m" ORDER BY resolved DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
