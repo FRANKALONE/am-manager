@@ -5,7 +5,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     LineChart, Line, Legend, Cell
 } from 'recharts';
-import { Filter, Calendar, Users, Building2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Filter, Calendar, Users, Building2, TrendingUp, AlertTriangle, ChevronDown, ChevronUp, Download, Table } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -14,7 +14,12 @@ interface DeviationData {
     summary: string;
     resolutionDate: string;
     plannedDate: string;
+    replannedDate?: string;
     deviationDays: number;
+    deviationFromPlan: number;
+    deviationFromReplan: number | null;
+    replanImpact: number | null;
+    wasReplanned: boolean;
     monthYear: string;
     year: number;
     client: string;
@@ -33,8 +38,11 @@ export function DeviationIndicator() {
         evolutivo: '',
         period: 'month', // 'month' or 'year'
         startMonth: '',
-        endMonth: ''
+        endMonth: '',
+        showOnlyReplanned: false
     });
+    const [showDetailTable, setShowDetailTable] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     useEffect(() => {
         async function fetchData() {
@@ -65,6 +73,7 @@ export function DeviationIndicator() {
             if (filters.evolutivo && item.evolutivo !== filters.evolutivo) return false;
             if (filters.startMonth && item.monthYear < filters.startMonth) return false;
             if (filters.endMonth && item.monthYear > filters.endMonth) return false;
+            if (filters.showOnlyReplanned && !item.wasReplanned) return false;
             return true;
         });
     }, [data, filters]);
@@ -133,6 +142,85 @@ export function DeviationIndicator() {
             }));
         }
     }, [uniqueMonths, filters.startMonth]);
+
+    // Funciones auxiliares
+    const getDeviationColor = (days: number | null) => {
+        if (days === null) return 'text-gray-400';
+        if (days <= 0) return 'text-green-600';
+        if (days <= 5) return 'text-yellow-600';
+        return 'text-red-600';
+    };
+
+    const getDeviationBgColor = (days: number | null) => {
+        if (days === null) return 'bg-gray-50';
+        if (days <= 0) return 'bg-green-50';
+        if (days <= 5) return 'bg-yellow-50';
+        return 'bg-red-50';
+    };
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedDetailData = useMemo(() => {
+        let sortableData = [...filteredData];
+        if (sortConfig !== null) {
+            sortableData.sort((a: any, b: any) => {
+                const aVal = a[sortConfig.key];
+                const bVal = b[sortConfig.key];
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableData;
+    }, [filteredData, sortConfig]);
+
+    const exportToCSV = () => {
+        const headers = ['Clave', 'Resumen', 'Evolutivo', 'Cliente', 'Gestor', 'Fecha Planificada', 'Fecha Replanificada', 'Fecha Cierre', 'Desv. Plan', 'Desv. Replan', 'Impacto Replan'];
+        const rows = sortedDetailData.map(item => [
+            item.key,
+            item.summary,
+            item.evolutivo,
+            item.client,
+            item.manager,
+            item.plannedDate,
+            item.replannedDate || 'N/A',
+            item.resolutionDate,
+            item.deviationFromPlan,
+            item.deviationFromReplan !== null ? item.deviationFromReplan : 'N/A',
+            item.replanImpact !== null ? item.replanImpact : 'N/A'
+        ]);
+        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `desviacion-hitos-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+        link.click();
+    };
+
+    // Métricas de replanificación
+    const replannedHitos = filteredData.filter(item => item.wasReplanned);
+    const replannedCount = replannedHitos.length;
+    const replannedPercentage = filteredData.length > 0 ? ((replannedCount / filteredData.length) * 100).toFixed(1) : '0';
+
+    const replanEffectiveness = replannedHitos.length > 0
+        ? ((replannedHitos.filter(item => item.deviationFromReplan !== null && item.deviationFromReplan <= 0).length / replannedHitos.length) * 100).toFixed(1)
+        : '0';
+
+    const avgReplanImpact = replannedHitos.length > 0
+        ? (replannedHitos.reduce((sum, item) => sum + (item.replanImpact || 0), 0) / replannedHitos.length).toFixed(1)
+        : '0';
+
+    const avgDeviation = filteredData.length > 0
+        ? (filteredData.reduce((sum, item) => sum + item.deviationDays, 0) / filteredData.length).toFixed(1)
+        : '0';
 
     if (loading) return (
         <div className="h-64 flex items-center justify-center bg-white rounded-[2rem] border border-gray-100 shadow-sm">
@@ -405,6 +493,173 @@ export function DeviationIndicator() {
                         </select>
                     </div>
                 </div>
+            </div>
+
+            {/* Sección de Detalle de Hitos */}
+            <div className="mt-8 border-t border-gray-200 pt-8">
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => setShowDetailTable(!showDetailTable)}
+                        className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                    >
+                        <Table className="w-5 h-5" />
+                        Detalle de Hitos
+                        {showDetailTable ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
+                    {showDetailTable && (
+                        <button
+                            onClick={exportToCSV}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                            <Download className="w-4 h-4" />
+                            Exportar CSV
+                        </button>
+                    )}
+                </div>
+
+                {showDetailTable && (
+                    <div className="space-y-6">
+                        {/* Métricas de Replanificación */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
+                                <div className="text-purple-600 text-sm font-medium mb-1">Hitos Replanificados</div>
+                                <div className="text-2xl font-bold text-purple-900">{replannedCount}</div>
+                                <div className="text-xs text-purple-600 mt-1">{replannedPercentage}% del total</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
+                                <div className="text-green-600 text-sm font-medium mb-1">Efectividad Replan</div>
+                                <div className="text-2xl font-bold text-green-900">{replanEffectiveness}%</div>
+                                <div className="text-xs text-green-600 mt-1">Cumplieron nueva fecha</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border border-orange-200">
+                                <div className="text-orange-600 text-sm font-medium mb-1">Impacto Promedio</div>
+                                <div className="text-2xl font-bold text-orange-900">{avgReplanImpact} días</div>
+                                <div className="text-xs text-orange-600 mt-1">Días movidos en replan</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
+                                <div className="text-blue-600 text-sm font-medium mb-1">Desviación Media</div>
+                                <div className="text-2xl font-bold text-blue-900">{avgDeviation} días</div>
+                                <div className="text-xs text-blue-600 mt-1">Del plan original</div>
+                            </div>
+                        </div>
+
+                        {/* Filtro de Replanificados */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="showOnlyReplanned"
+                                checked={filters.showOnlyReplanned}
+                                onChange={(e) => setFilters(prev => ({ ...prev, showOnlyReplanned: e.target.checked }))}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="showOnlyReplanned" className="text-sm font-medium text-gray-700 cursor-pointer">
+                                Mostrar solo hitos replanificados
+                            </label>
+                        </div>
+
+                        {/* Tabla Detallada */}
+                        <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        {[
+                                            { key: 'key', label: 'Clave' },
+                                            { key: 'summary', label: 'Resumen' },
+                                            { key: 'evolutivo', label: 'Evolutivo' },
+                                            { key: 'client', label: 'Cliente' },
+                                            { key: 'manager', label: 'Gestor' },
+                                            { key: 'plannedDate', label: 'Fecha Planificada' },
+                                            { key: 'replannedDate', label: 'Fecha Replan' },
+                                            { key: 'resolutionDate', label: 'Fecha Cierre' },
+                                            { key: 'deviationFromPlan', label: 'Desv. Plan' },
+                                            { key: 'deviationFromReplan', label: 'Desv. Replan' },
+                                            { key: 'replanImpact', label: 'Impacto Replan' }
+                                        ].map(({ key, label }) => (
+                                            <th
+                                                key={key}
+                                                onClick={() => handleSort(key)}
+                                                className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    {label}
+                                                    {sortConfig?.key === key && (
+                                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                                    )}
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {sortedDetailData.map((item) => (
+                                        <tr key={item.key} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                                <a
+                                                    href={`https://altim.atlassian.net/browse/${item.key}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    {item.key}
+                                                </a>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title={item.summary}>
+                                                {item.summary}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {item.evolutivo}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {item.client}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {item.manager}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {format(parseISO(item.plannedDate), 'dd/MM/yyyy', { locale: es })}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {item.replannedDate ? format(parseISO(item.replannedDate), 'dd/MM/yyyy', { locale: es }) : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                {format(parseISO(item.resolutionDate), 'dd/MM/yyyy', { locale: es })}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromPlan)} ${getDeviationColor(item.deviationFromPlan)}`}>
+                                                    {item.deviationFromPlan > 0 ? '+' : ''}{item.deviationFromPlan}d
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                {item.deviationFromReplan !== null ? (
+                                                    <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.deviationFromReplan)} ${getDeviationColor(item.deviationFromReplan)}`}>
+                                                        {item.deviationFromReplan > 0 ? '+' : ''}{item.deviationFromReplan}d
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                {item.replanImpact !== null ? (
+                                                    <span className={`px-2 py-1 rounded font-medium ${getDeviationBgColor(item.replanImpact)} ${getDeviationColor(item.replanImpact)}`}>
+                                                        {item.replanImpact > 0 ? '+' : ''}{item.replanImpact}d
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {sortedDetailData.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                No hay hitos que coincidan con los filtros seleccionados
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

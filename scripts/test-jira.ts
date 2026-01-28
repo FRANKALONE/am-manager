@@ -1,13 +1,13 @@
-// scripts/test-jira.ts
-import { getClosedHitos, searchJiraIssues, HITO_TYPES } from '../lib/ama-evolutivos/jira';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env
-dotenv.config({ path: path.join(process.cwd(), '.env.local') });
-dotenv.config({ path: path.join(process.cwd(), '.env') });
-
 async function test() {
+    // Load .env BEFORE imports that use process.env
+    dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+    dotenv.config({ path: path.join(process.cwd(), '.env') });
+
+    const { getClosedHitos, searchJiraIssues, HITO_TYPES } = await import('../lib/ama-evolutivos/jira');
+
     console.log('--- JIRA DIAGNOSTIC ---');
     console.log('Domain:', process.env.JIRA_DOMAIN || process.env.JIRA_URL);
     console.log('Email:', process.env.JIRA_EMAIL);

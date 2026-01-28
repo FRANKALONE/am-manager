@@ -64,11 +64,15 @@ export async function GET(request: Request) {
         const skippedReasons = { noResolution: 0, noPlanned: 0 };
         const yearStats: Record<number, number> = {};
 
+        const replanningStats = { total: 0, metDeadline: 0, missedDeadline: 0 };
+
         closedHitos.forEach(hito => {
             // Soporte para ambos nombres de campo de fecha de cierre
             const resolutionDateStr = hito.fields.resolved || hito.fields.resolutiondate;
             // Priorizamos customfield_10015 (Fecha fin planificada) sobre duedate
             const plannedDateStr = hito.fields.customfield_10015 || hito.fields.duedate;
+            // Fecha de replanificación
+            const replannedDateStr = hito.fields.customfield_10125;
 
             if (!resolutionDateStr) {
                 skippedReasons.noResolution++;
@@ -81,13 +85,29 @@ export async function GET(request: Request) {
 
             const resolutionDate = parseISO(resolutionDateStr);
             const plannedDate = parseISO(plannedDateStr);
+            const replannedDate = replannedDateStr ? parseISO(replannedDateStr) : null;
             const year = resolutionDate.getFullYear();
 
             // Stats
             yearStats[year] = (yearStats[year] || 0) + 1;
 
-            // Desviación en días (Positivo = Retraso, Negativo = Adelanto)
-            const deviationDays = differenceInDays(resolutionDate, plannedDate);
+            // Calcular desviaciones
+            const deviationFromPlan = differenceInDays(resolutionDate, plannedDate);
+            const deviationFromReplan = replannedDate ? differenceInDays(resolutionDate, replannedDate) : null;
+            const replanImpact = replannedDate ? differenceInDays(replannedDate, plannedDate) : null;
+            const wasReplanned = !!replannedDate;
+
+            // Estadísticas de replanificación
+            if (wasReplanned) {
+                replanningStats.total++;
+                if (deviationFromReplan !== null) {
+                    if (deviationFromReplan <= 0) {
+                        replanningStats.metDeadline++;
+                    } else {
+                        replanningStats.missedDeadline++;
+                    }
+                }
+            }
 
             const parentKey = hito.fields.parent?.key;
             const parentInfo = parentKey ? evolutivosMap.get(parentKey) : null;
@@ -99,7 +119,12 @@ export async function GET(request: Request) {
                 summary: hito.fields.summary,
                 resolutionDate: resolutionDateStr,
                 plannedDate: plannedDateStr,
-                deviationDays,
+                replannedDate: replannedDateStr,
+                deviationDays: deviationFromPlan, // Mantener compatibilidad
+                deviationFromPlan,
+                deviationFromReplan,
+                replanImpact,
+                wasReplanned,
                 monthYear,
                 year,
                 client: parentInfo?.organization || 'Desconocido',
@@ -116,11 +141,19 @@ export async function GET(request: Request) {
             processedCount: dataPoints.length,
             skipped: skippedReasons,
             yearStats,
+            replanning: {
+                total: replanningStats.total,
+                percentage: dataPoints.length > 0 ? ((replanningStats.total / dataPoints.length) * 100).toFixed(1) : '0',
+                metDeadline: replanningStats.metDeadline,
+                missedDeadline: replanningStats.missedDeadline,
+                effectiveness: replanningStats.total > 0 ? ((replanningStats.metDeadline / replanningStats.total) * 100).toFixed(1) : '0'
+            },
             sampleHito: closedHitos.length > 0 ? {
                 key: closedHitos[0].key,
                 resolved: closedHitos[0].fields.resolved,
                 resolutionDate: closedHitos[0].fields.resolutiondate,
                 plannedDate: closedHitos[0].fields.customfield_10015,
+                replannedDate: closedHitos[0].fields.customfield_10125,
                 dueDate: closedHitos[0].fields.duedate
             } : null
         };

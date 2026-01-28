@@ -233,6 +233,7 @@ export async function getClosedHitos(startDate?: string, endDate?: string): Prom
             'project',
             'customfield_10254', // Gestor del ticket
             'customfield_10015', // Fecha fin planificada
+            'customfield_10125', // Fecha FIN de replanificación
             'resolutiondate',
             'created',
             'updated',
