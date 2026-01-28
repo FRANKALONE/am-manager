@@ -28,23 +28,28 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
 
     try {
         while (true) {
-            const body: any = {
+            const params = new URLSearchParams({
                 jql,
-                fields,
-                startAt,
-                maxResults: maxIssues && maxIssues < maxResults ? maxIssues : maxResults,
-            };
+                startAt: startAt.toString(),
+                maxResults: (maxIssues && maxIssues < maxResults ? maxIssues : maxResults).toString(),
+            });
 
-            console.log(`[Jira Search] URL: ${url}, startAt: ${startAt}`);
-            // Omite logging del body completo si es muy grande, pero aquí es pequeño
-            const response = await fetch(url, {
-                method: 'POST',
+            // Añadir campos uno a uno si es necesario o como una cadena separada por comas
+            if (fields && fields.length > 0) {
+                params.append('fields', fields.join(','));
+            }
+
+            const searchUrl = `${url}?${params.toString()}`;
+
+            console.log(`[Jira Search] URL: ${searchUrl}`);
+
+            const response = await fetch(searchUrl, {
+                method: 'GET',
                 headers: {
                     'Authorization': authHeader,
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -63,7 +68,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
             }
 
             startAt += issues.length;
-            if (issues.length === 0 || startAt >= data.total) {
+            if (issues.length === 0 || startAt >= (data.total || 0)) {
                 break;
             }
         }
