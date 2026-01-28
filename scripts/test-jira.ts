@@ -13,8 +13,8 @@ async function test() {
     console.log('Email:', process.env.JIRA_EMAIL);
 
     try {
-        console.log('\n1. Testing getClosedHitos(24)...');
-        const count = await getClosedHitos(24);
+        console.log('\n1. Testing getClosedHitos()...');
+        const count = await getClosedHitos();
         console.log(`Success! Found ${count.length} closed hitos.`);
         if (count.length > 0) {
             console.log('Sample Hito:', count[0].key, count[0].fields.summary);
@@ -22,7 +22,7 @@ async function test() {
 
         console.log('\n2. Testing raw JQL search (Service Desk)...');
         const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
-        const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-24m"`;
+        const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND statusCategory = done AND resolved >= "-30d"`;
         console.log('JQL:', jql);
         const res = await searchJiraIssues(jql, ['id'], 5);
         console.log(`Found ${res.length} matches.`);
