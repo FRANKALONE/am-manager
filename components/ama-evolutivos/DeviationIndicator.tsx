@@ -16,6 +16,7 @@ interface DeviationData {
     plannedDate: string;
     deviationDays: number;
     monthYear: string;
+    year: number;
     client: string;
     manager: string;
     responsible: string;
@@ -95,7 +96,20 @@ export function DeviationIndicator() {
             }));
     }, [filteredData, filters.period]);
 
-    const uniqueMonths = useMemo(() => Array.from(new Set(data.map(i => i.monthYear))).sort(), [data]);
+    // Generar últimos 24 meses como opciones si no hay datos suficientes
+    const uniqueMonths = useMemo(() => {
+        const months = new Set(data.map(i => i.monthYear));
+
+        // Añadir meses actuales y pasados para asegurar que 2025/2026 están siempre
+        const now = new Date();
+        for (let i = 0; i < 24; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.add(format(d, 'yyyy-MM'));
+        }
+
+        return Array.from(months).sort();
+    }, [data]);
+
     const uniqueClients = useMemo(() => Array.from(new Set(data.map(i => i.client))).sort(), [data]);
     const uniqueManagers = useMemo(() => Array.from(new Set(data.map(i => i.manager))).sort(), [data]);
     const uniqueEvolutivos = useMemo(() => {
@@ -106,10 +120,16 @@ export function DeviationIndicator() {
 
     useEffect(() => {
         if (uniqueMonths.length > 0 && !filters.startMonth) {
+            // Por defecto últimos 6 meses cargados
+            const end = uniqueMonths[uniqueMonths.length - 1];
+            // Buscar un mes de inicio razonable (hace 6 meses)
+            const sixMonthsAgo = format(new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), 'yyyy-MM');
+            const start = uniqueMonths.find(m => m >= sixMonthsAgo) || uniqueMonths[0];
+
             setFilters(prev => ({
                 ...prev,
-                startMonth: uniqueMonths[0],
-                endMonth: uniqueMonths[uniqueMonths.length - 1]
+                startMonth: start,
+                endMonth: end
             }));
         }
     }, [uniqueMonths, filters.startMonth]);
@@ -304,7 +324,7 @@ export function DeviationIndicator() {
                                 });
                                 return Object.entries(counts)
                                     .sort((a, b) => b[1] - a[1])
-                                    .slice(0, 3)
+                                    .slice(0, 5)
                                     .map(([name, count], idx) => (
                                         <div key={name} className="flex justify-between items-center text-sm">
                                             <span className="text-slate-600 truncate mr-2">{idx + 1}. {name}</span>
@@ -329,7 +349,7 @@ export function DeviationIndicator() {
                                 });
                                 return Object.entries(counts)
                                     .sort((a, b) => b[1] - a[1])
-                                    .slice(0, 3)
+                                    .slice(0, 5)
                                     .map(([name, count], idx) => (
                                         <div key={name} className="flex justify-between items-center text-sm">
                                             <span className="text-slate-600 truncate mr-2">{idx + 1}. {name}</span>
@@ -354,7 +374,7 @@ export function DeviationIndicator() {
                                 });
                                 return Object.entries(counts)
                                     .sort((a, b) => b[1] - a[1])
-                                    .slice(0, 3)
+                                    .slice(0, 5)
                                     .map(([name, count], idx) => (
                                         <div key={name} className="flex justify-between items-center text-sm">
                                             <span className="text-slate-600 truncate mr-2">{idx + 1}. {name}</span>

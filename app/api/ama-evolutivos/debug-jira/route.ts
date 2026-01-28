@@ -32,16 +32,24 @@ export async function GET() {
         */
         const types = 'Fetch temporary disabled';
 
-        // 2. Fetch last 20 CLOSED Hitos specifically (Using projectType)
-        const hitosStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
+        // 2. Fetch last 100 CLOSED Hitos specifically (Using projectType)
+        const hitosStr = (HITO_TYPES as string[]).map(t => `"${t}"`).join(', ');
         const closedHitosJql = `projectType = "service_desk" AND issuetype IN (${hitosStr}) AND statusCategory = done order by resolved desc`;
-        const issues = await searchJiraIssues(closedHitosJql, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project', 'customfield_10015', 'duedate'], 20);
+        const issues = await searchJiraIssues(closedHitosJql, ['issuetype', 'status', 'resolutiondate', 'resolved', 'project', 'customfield_10015', 'duedate'], 100);
 
-        // 3. Count issues by type in that sample
+        // 3. Count issues by type and year in that sample
         const typeCounts: Record<string, number> = {};
+        const yearCounts: Record<number, number> = {};
+
         issues.forEach((i: any) => {
             const type = i.fields.issuetype?.name || 'Unknown';
             typeCounts[type] = (typeCounts[type] || 0) + 1;
+
+            const resDate = i.fields.resolutiondate || i.fields.resolved;
+            if (resDate) {
+                const year = new Date(resDate).getFullYear();
+                yearCounts[year] = (yearCounts[year] || 0) + 1;
+            }
         });
 
         return NextResponse.json({
@@ -50,7 +58,8 @@ export async function GET() {
             targetJQL: closedHitosJql,
             sampleSize: issues.length,
             sampleTypes: typeCounts,
-            lastClosedHitos: issues.map((i: any) => ({
+            yearDistribution: yearCounts,
+            lastClosedHitos: issues.slice(0, 20).map((i: any) => ({
                 key: i.key,
                 project: i.fields.project?.key,
                 type: i.fields.issuetype?.name,

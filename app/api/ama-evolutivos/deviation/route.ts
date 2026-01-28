@@ -45,41 +45,56 @@ export async function GET(request: Request) {
 
         const dataPoints: any[] = [];
         let missingDatesCount = 0;
+        const skippedReasons = { noResolution: 0, noPlanned: 0 };
+        const yearStats: Record<number, number> = {};
 
         closedHitos.forEach(hito => {
             const resolutionDateStr = hito.fields.resolutiondate;
             // Priorizamos customfield_10015 (Fecha fin planificada) sobre duedate
             const plannedDateStr = hito.fields.customfield_10015 || hito.fields.duedate;
 
-            if (resolutionDateStr && plannedDateStr) {
-                const resolutionDate = parseISO(resolutionDateStr);
-                const plannedDate = parseISO(plannedDateStr);
-
-                // Desviación en días (Positivo = Retraso, Negativo = Adelanto)
-                const deviationDays = differenceInDays(resolutionDate, plannedDate);
-
-                const parentKey = hito.fields.parent?.key;
-                const parentInfo = parentKey ? evolutivosMap.get(parentKey) : null;
-
-                const monthYear = format(resolutionDate, 'yyyy-MM');
-
-                dataPoints.push({
-                    key: hito.key,
-                    summary: hito.fields.summary,
-                    resolutionDate: resolutionDateStr,
-                    plannedDate: plannedDateStr,
-                    deviationDays,
-                    monthYear,
-                    client: parentInfo?.organization || 'Desconocido',
-                    manager: hito.fields.customfield_10254?.displayName || parentInfo?.gestor || 'Sin Asignar',
-                    responsible: hito.fields.assignee?.displayName || 'Sin Asignar',
-                    evolutivo: parentKey || 'Sin Evolutivo',
-                    evolutivoSummary: parentInfo?.summary || 'Sin Título'
-                });
-            } else {
-                missingDatesCount++;
+            if (!resolutionDateStr) {
+                skippedReasons.noResolution++;
+                return;
             }
+            if (!plannedDateStr) {
+                skippedReasons.noPlanned++;
+                return;
+            }
+
+            const resolutionDate = parseISO(resolutionDateStr);
+            const plannedDate = parseISO(plannedDateStr);
+            const year = resolutionDate.getFullYear();
+
+            // Stats
+            yearStats[year] = (yearStats[year] || 0) + 1;
+
+            // Desviación en días (Positivo = Retraso, Negativo = Adelanto)
+            const deviationDays = differenceInDays(resolutionDate, plannedDate);
+
+            const parentKey = hito.fields.parent?.key;
+            const parentInfo = parentKey ? evolutivosMap.get(parentKey) : null;
+
+            const monthYear = format(resolutionDate, 'yyyy-MM');
+
+            dataPoints.push({
+                key: hito.key,
+                summary: hito.fields.summary,
+                resolutionDate: resolutionDateStr,
+                plannedDate: plannedDateStr,
+                deviationDays,
+                monthYear,
+                year,
+                client: parentInfo?.organization || 'Desconocido',
+                manager: hito.fields.customfield_10254?.displayName || parentInfo?.gestor || 'Sin Asignar',
+                responsible: hito.fields.assignee?.displayName || 'Sin Asignar',
+                evolutivo: parentKey || 'Sin Evolutivo',
+                evolutivoSummary: parentInfo?.summary || 'Sin Título'
+            });
         });
+
+        console.log(`[Deviation API] Processed ${dataPoints.length} hitos. OK. Skipped: ${JSON.stringify(skippedReasons)}`);
+        console.log(`[Deviation API] Year stats:`, yearStats);
 
         if (dataPoints.length === 0) {
             return NextResponse.json({
