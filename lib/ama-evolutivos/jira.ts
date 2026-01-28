@@ -13,31 +13,39 @@ const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
 const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
 
 export async function searchJiraIssues(jql: string, fields: string[] = ['*all']): Promise<any[]> {
-    // Asegurarse de que el dominio no termine en /
-    const baseUrl = JIRA_DOMAIN.replace(/\/$/, '');
-    const url = `${baseUrl}/rest/api/3/search`;
+    // Asegurarse de que el dominio no termine en / y tenga protocolo
+    let domain = JIRA_DOMAIN.replace(/\/$/, '');
+    if (!domain.startsWith('http')) {
+        domain = `https://${domain}`;
+    }
+    const url = `${domain}/rest/api/3/search/jql`;
     const allIssues: any[] = [];
-    let startAt = 0;
+    let nextPageToken: string | undefined = undefined;
     const maxResults = 100;
 
     try {
         while (true) {
-            const params = new URLSearchParams({
+            const body: any = {
                 jql,
-                startAt: startAt.toString(),
-                maxResults: maxResults.toString(),
-                fields: fields.join(','),
-            });
+                fields,
+                maxResults,
+            };
 
-            const urlWithParams = `${url}?${params.toString()}`;
-            console.log(`[Jira Search] URL: ${urlWithParams}`);
+            if (nextPageToken) {
+                body.nextPageToken = nextPageToken;
+            }
 
-            const response = await fetch(urlWithParams, {
-                method: 'GET',
+            console.log(`[Jira Search] URL: ${url}`);
+            console.log(`[Jira Search] Body: ${JSON.stringify(body)}`);
+
+            const response = await fetch(url, {
+                method: 'POST',
                 headers: {
                     'Authorization': authHeader,
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -49,14 +57,12 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'])
             const issues = data.issues || [];
             allIssues.push(...issues);
 
-            const total = typeof data.total === 'number' ? data.total : allIssues.length;
-            console.log(`[Jira Search] Page issues: ${issues.length}, Total in Jira: ${total}, Accumulated: ${allIssues.length}`);
+            console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}`);
 
-            if (issues.length < maxResults || allIssues.length >= total) {
+            nextPageToken = data.nextPageToken;
+            if (!nextPageToken) {
                 break;
             }
-
-            startAt += maxResults;
         }
 
         console.log(`[Jira Search] Final issues count: ${allIssues.length}`);
