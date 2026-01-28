@@ -418,7 +418,7 @@ export function DashboardView({
                                 {t('dashboard.consumptionByTicket')}
                             </button>
                         )}
-                        {permissions.view_service_intelligence && (
+                        {(isAdmin || metrics?.isPremium) && permissions.view_service_intelligence && (
                             <button
                                 onClick={() => setActiveView('intelligence')}
                                 className={`px-4 py-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeView === 'intelligence'

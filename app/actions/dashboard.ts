@@ -438,6 +438,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
                 lastSyncedAt: wp.lastSyncedAt,
                 isEventos: true,
                 contractType: wp.contractType,
+                isPremium: selectedPeriod.isPremium || false,
                 avgTicketsPerMonth
             };
         }
@@ -751,6 +752,7 @@ export async function getDashboardMetrics(wpId: string, validityPeriodId?: numbe
             selectedPeriodId: selectedPeriod.id,
             lastSyncedAt: wp.lastSyncedAt,
             contractType: wp.contractType,
+            isPremium: selectedPeriod.isPremium || false,
             isEventos: false,
             avgTicketsPerMonth: 0
         };

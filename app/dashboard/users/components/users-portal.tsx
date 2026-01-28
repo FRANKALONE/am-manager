@@ -10,6 +10,7 @@ import { JiraUsersPanel } from './jira-users-panel';
 import { CreateFromJiraDialog } from './create-from-jira-dialog';
 import { LinkDialog } from './link-dialog';
 import { NewUserDialog } from './new-user-dialog';
+import { EditUserDialog } from './edit-user-dialog';
 import { JiraRequestDialog } from './jira-request-dialog';
 import { useEffect, useState as useReactState } from 'react'; // Renaming just in case, though not needed here
 
@@ -32,6 +33,8 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole, curre
     const [selectedAppUserId, setSelectedAppUserId] = useState<string | null>(null);
     const [selectedJiraUserId, setSelectedJiraUserId] = useState<string | null>(null);
     const [linkMode, setLinkMode] = useState<'jira-to-app' | 'app-to-jira'>('jira-to-app');
+    const [editUserOpen, setEditUserOpen] = useState(false);
+    const [selectedAppUser, setSelectedAppUser] = useState<any>(null);
 
     const handleCreateFromJira = (jiraUserId: string) => {
         const user = jiraUsers.find(u => u.id === jiraUserId);
@@ -68,6 +71,11 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole, curre
             setSelectedJiraUser(user);
             setJiraRequestOpen(true);
         }
+    };
+
+    const handleEditUser = (user: any) => {
+        setSelectedAppUser(user);
+        setEditUserOpen(true);
     };
 
     return (
@@ -128,6 +136,7 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole, curre
                                     clientId={clientId}
                                     isClientRole={isClientRole}
                                     onLinkClick={handleLinkFromApp}
+                                    onEditClick={handleEditUser}
                                 />
                             </CardContent>
                         </Card>
@@ -189,6 +198,14 @@ export function UsersPortal({ appUsers, jiraUsers, clientId, isClientRole, curre
                 type={jiraRequestType}
                 jiraUserId={selectedJiraUser?.id}
                 jiraUserName={selectedJiraUser?.displayName}
+            />
+
+            <EditUserDialog
+                open={editUserOpen}
+                onOpenChange={setEditUserOpen}
+                clientId={clientId}
+                user={selectedAppUser || { id: '', name: '', surname: '', email: '' }}
+                jiraUsers={jiraUsers}
             />
         </>
     );

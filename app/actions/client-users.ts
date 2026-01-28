@@ -303,6 +303,105 @@ export async function createAppUserForClient(
 }
 
 /**
+ * Actualizar usuario App para cliente
+ */
+export async function updateAppUserForClient(
+    clientId: string,
+    userId: string,
+    userData: {
+        name: string;
+        surname: string;
+        email: string;
+        password?: string;
+        jiraUserId?: string;
+    }
+) {
+    try {
+        const currentUser = await getCurrentUserInfo();
+
+        if (!currentUser) {
+            return { success: false, error: 'No autenticado' };
+        }
+
+        // Verificar permisos: CLIENTE puede actualizar usuarios de su propia empresa
+        if (currentUser.role !== 'CLIENTE' && !currentUser.permissions.manage_client_users && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No tienes permiso para actualizar usuarios de empresa' };
+        }
+
+        // Verificar que pertenece al cliente
+        if (currentUser.clientId !== clientId && currentUser.role !== 'ADMIN') {
+            return { success: false, error: 'No autorizado' };
+        }
+
+        // Verificar que el usuario a actualizar pertenece al cliente
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!existingUser || existingUser.clientId !== clientId) {
+            return { success: false, error: 'Usuario no encontrado' };
+        }
+
+        // Verificar email único
+        if (userData.email !== existingUser.email) {
+            const emailExists = await prisma.user.findUnique({
+                where: { email: userData.email }
+            });
+
+            if (emailExists) {
+                return { success: false, error: 'El email ya está en uso' };
+            }
+        }
+
+        // Preparar datos de actualización
+        const updateData: any = {
+            name: userData.name,
+            surname: userData.surname,
+            email: userData.email
+        };
+
+        // Solo actualizar contraseña si se proporciona
+        if (userData.password) {
+            const bcrypt = await import('bcryptjs');
+            updateData.password = await bcrypt.hash(userData.password, 10);
+        }
+
+        // Actualizar usuario
+        await prisma.user.update({
+            where: { id: userId },
+            data: updateData
+        });
+
+        // Manejar vinculación con JIRA
+        if (userData.jiraUserId) {
+            // Desvincular cualquier vinculación anterior
+            await prisma.jiraCustomerUser.updateMany({
+                where: { linkedUserId: userId },
+                data: { linkedUserId: null }
+            });
+
+            // Vincular con el nuevo usuario JIRA
+            await prisma.jiraCustomerUser.update({
+                where: { id: userData.jiraUserId },
+                data: { linkedUserId: userId }
+            });
+        } else {
+            // Si no se proporciona jiraUserId, desvincular
+            await prisma.jiraCustomerUser.updateMany({
+                where: { linkedUserId: userId },
+                data: { linkedUserId: null }
+            });
+        }
+
+        revalidatePath('/dashboard/users');
+        return { success: true, message: 'Usuario actualizado correctamente' };
+    } catch (error) {
+        console.error('Error updating app user:', error);
+        return { success: false, error: 'Error al actualizar usuario' };
+    }
+}
+
+/**
  * Crear usuario App desde usuario JIRA (para clientes)
  */
 export async function createAppUserFromJiraForClient(

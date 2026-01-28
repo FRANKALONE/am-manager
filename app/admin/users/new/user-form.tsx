@@ -20,15 +20,21 @@ type Props = {
     workPackages: any[];
     initialUser?: any; // If provided, we are in EDIT mode
     jiraEmployees?: any[];
+    currentUserRole?: string;
 };
 
-export function UserForm({ clients, roles, workPackages, initialUser, jiraEmployees = [] }: Props) {
+export function UserForm({ clients, roles, workPackages, initialUser, jiraEmployees = [], currentUserRole }: Props) {
     const { t } = useTranslations();
     const isEdit = !!initialUser;
 
     // Bind the updateUser action with the user ID if editing
     const updateWithId = isEdit ? updateUser.bind(null, initialUser.id) : createUser;
     const [state, formAction] = useFormState(updateWithId as any, initialState);
+
+    // Filter roles: CLIENTE users can only assign CLIENTE role
+    const availableRoles = currentUserRole === 'CLIENTE'
+        ? roles.filter(r => r.name === 'CLIENTE')
+        : roles;
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -83,7 +89,7 @@ export function UserForm({ clients, roles, workPackages, initialUser, jiraEmploy
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                     <option value="">{t('users.form.select')}</option>
-                                    {roles.map(r => (
+                                    {availableRoles.map(r => (
                                         <option key={r.id} value={r.name}>
                                             {t(`users.roles.${r.name}`, { defaultValue: r.name })}
                                         </option>

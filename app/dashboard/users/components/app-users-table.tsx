@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Link as LinkIcon } from 'lucide-react';
+import { Trash2, Link as LinkIcon, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAppUserForClient } from '@/app/actions/client-users';
 import { useRouter } from 'next/navigation';
@@ -27,9 +27,10 @@ interface AppUsersTableProps {
     clientId: string;
     isClientRole: boolean;
     onLinkClick: (userId: string) => void;
+    onEditClick: (user: AppUser) => void;
 }
 
-export function AppUsersTable({ users, clientId, isClientRole, onLinkClick }: AppUsersTableProps) {
+export function AppUsersTable({ users, clientId, isClientRole, onLinkClick, onEditClick }: AppUsersTableProps) {
     const router = useRouter();
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -114,6 +115,13 @@ export function AppUsersTable({ users, clientId, isClientRole, onLinkClick }: Ap
                                                     Vincular
                                                 </Button>
                                             )}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onEditClick(user)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
                                             <Button
                                                 variant="destructive"
                                                 size="sm"
