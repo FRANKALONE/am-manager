@@ -60,6 +60,7 @@ const PERMISSIONS: Permission[] = [
     { key: "view_analytics_wp_consumption", label: "Analytics: Consumo Acumulado WP", section: "Analítica" },
     { key: "view_analytics_am_dashboard", label: "Analytics: Cuadro de Mando de AM", section: "Analítica" },
     { key: "view_analytics_ama_deviations", label: "Analytics: Desvío de Vencimiento", section: "Analítica" },
+    { key: "view_analytics_annual_report", label: "Analytics: Informe Anual de Operaciones", section: "Analítica" },
 ];
 
 type Props = {

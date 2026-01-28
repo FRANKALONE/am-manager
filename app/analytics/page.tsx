@@ -47,6 +47,15 @@ export default async function AnalyticsPage() {
             color: "text-purple-500",
             bg: "bg-purple-50 dark:bg-purple-900/20",
             permission: "view_analytics_ama_deviations"
+        },
+        {
+            title: "Informe Anual de Operaciones",
+            description: "Visión global del año: volumen de incidencias, cumplimiento de SLA, análisis de clientes y calidad de servicio.",
+            href: "/analytics/annual-report",
+            icon: BarChart3,
+            color: "text-rose-500",
+            bg: "bg-rose-50 dark:bg-rose-900/20",
+            permission: "view_analytics_annual_report"
         }
     ];
 

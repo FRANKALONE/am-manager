@@ -109,6 +109,10 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             component: true,
             status: true,
             resolution: true,
+            slaResolution: true,
+            slaResponse: true,
+            slaResolutionTime: true,
+            slaResponseTime: true,
             workPackage: { select: { clientId: true, clientName: true } }
         }
     });
@@ -146,100 +150,72 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     // === SLA COMPLIANCE ===
 
-    // Note: We don't have actual SLA fields populated, so we'll calculate based on resolution time
-    // This is a simplified version - you may need to adjust based on actual SLA definitions
+    // Use SLA fields from Ticket model
+    const firstResponseValid = allIncidents.filter(t => t.slaResponse).length;
+    const firstResponseCompliant = allIncidents.filter(t =>
+        t.slaResponse?.toLowerCase().trim() === 'cumplido'
+    ).length;
 
-    const resolvedIncidents = allIncidents.filter(t =>
-        t.status.toLowerCase() === 'cerrado' ||
-        t.status.toLowerCase() === 'resuelto' ||
-        t.status.toLowerCase() === 'done'
-    );
+    const resolutionValid = allIncidents.filter(t => t.slaResolution).length;
+    const resolutionCompliant = allIncidents.filter(t =>
+        t.slaResolution?.toLowerCase().trim() === 'cumplido'
+    ).length;
 
-    // Get resolution times from history
-    const incidentKeys = allIncidents.map(t => t.issueKey);
-    const statusHistory = await prisma.ticketStatusHistory.findMany({
-        where: {
-            issueKey: { in: incidentKeys },
-            transitionDate: { gte: start, lte: end }
-        },
-        orderBy: { transitionDate: 'asc' }
-    });
+    // Calculate avg times
+    const parseTime = (timeStr: string | null) => {
+        if (!timeStr) return 0;
+        const val = parseFloat(timeStr);
+        return isNaN(val) ? 0 : val;
+    };
 
-    // Calculate first response time (first status change after creation)
-    const firstResponseTimes: Record<string, number> = {};
-    const resolutionTimes: Record<string, number> = {};
+    const avgResponseTime = firstResponseValid > 0
+        ? allIncidents.reduce((sum, t) => sum + parseTime(t.slaResponseTime), 0) / firstResponseValid
+        : 0;
 
-    for (const incident of allIncidents) {
-        const history = statusHistory.filter(h => h.issueKey === incident.issueKey);
-
-        // First response: first transition
-        if (history.length > 0) {
-            const firstTransition = history[0];
-            const responseTime = (firstTransition.transitionDate.getTime() - incident.createdDate.getTime()) / (1000 * 60 * 60); // hours
-            firstResponseTimes[incident.issueKey] = responseTime;
-        }
-
-        // Resolution: last transition to closed status
-        const closedTransition = history.find(h =>
-            h.status.toLowerCase() === 'cerrado' ||
-            h.status.toLowerCase() === 'resuelto' ||
-            h.status.toLowerCase() === 'done'
-        );
-        if (closedTransition) {
-            const resTime = (closedTransition.transitionDate.getTime() - incident.createdDate.getTime()) / (1000 * 60 * 60); // hours
-            resolutionTimes[incident.issueKey] = resTime;
-        }
-    }
-
-    // SLA thresholds (simplified - you may want to get these from WorkPackage)
-    const SLA_FIRST_RESPONSE_HOURS = 24; // 24 hours
-    const SLA_RESOLUTION_HOURS = 72; // 72 hours
-
-    const firstResponseCompliant = Object.values(firstResponseTimes).filter(t => t <= SLA_FIRST_RESPONSE_HOURS).length;
-    const resolutionCompliant = Object.values(resolutionTimes).filter(t => t <= SLA_RESOLUTION_HOURS).length;
+    const avgResolutionTime = resolutionValid > 0
+        ? allIncidents.reduce((sum, t) => sum + parseTime(t.slaResolutionTime), 0) / resolutionValid
+        : 0;
 
     const slaMetrics = {
         firstResponse: {
-            total: Object.keys(firstResponseTimes).length,
+            total: firstResponseValid,
             compliant: firstResponseCompliant,
-            avgTime: Object.values(firstResponseTimes).reduce((sum, t) => sum + t, 0) / Object.keys(firstResponseTimes).length || 0
+            avgTime: avgResponseTime
         },
         resolution: {
-            total: Object.keys(resolutionTimes).length,
+            total: resolutionValid,
             compliant: resolutionCompliant,
-            avgTime: Object.values(resolutionTimes).reduce((sum, t) => sum + t, 0) / Object.keys(resolutionTimes).length || 0
+            avgTime: avgResolutionTime
         }
     };
 
-    const slaFirstResponseCompliance = slaMetrics.firstResponse.total > 0
-        ? (slaMetrics.firstResponse.compliant / slaMetrics.firstResponse.total) * 100
+    const slaFirstResponseCompliance = firstResponseValid > 0
+        ? (firstResponseCompliant / firstResponseValid) * 100
         : 0;
-    const slaResolutionCompliance = slaMetrics.resolution.total > 0
-        ? (slaMetrics.resolution.compliant / slaMetrics.resolution.total) * 100
+    const slaResolutionCompliance = resolutionValid > 0
+        ? (resolutionCompliant / resolutionValid) * 100
         : 0;
 
     // === CLIENT ANALYSIS ===
 
-    const allClients = await prisma.client.findMany({
+    const allClientsFull = await prisma.client.findMany({
         where: { id: { in: clientsListIds }, isDemo: false },
         select: { id: true, name: true, createdAt: true }
     });
 
-    // Find new clients (first ticket in the year)
-    const newClients: Array<{ id: string; name: string; firstTicketDate: Date }> = [];
-
-    for (const client of allClients) {
-        const firstTicket = await prisma.ticket.findFirst({
+    const newClientsArray: Array<{ id: string; name: string; firstTicketDate: Date }> = [];
+    for (const client of allClientsFull) {
+        const firstTicketEver = await prisma.ticket.findFirst({
             where: { workPackage: { clientId: client.id } },
             orderBy: { createdDate: 'asc' },
             select: { createdDate: true }
         });
 
-        if (firstTicket && firstTicket.createdDate >= start && firstTicket.createdDate <= end) {
-            newClients.push({
+        if (firstTicketEver && firstTicketEver.createdDate >= start && firstTicketEver.createdDate <= end) {
+            newClientsArray.push({
                 id: client.id,
                 name: client.name,
-                firstTicketDate: firstTicket.createdDate
+                firstTicketDate: firstTicketEver.createdDate
             });
         }
     }
@@ -247,38 +223,55 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     // === CORRECTIVE METRICS ===
 
     // MTTR: Mean Time To Repair
-    const mttr = Object.values(resolutionTimes).reduce((sum, t) => sum + t, 0) / Object.keys(resolutionTimes).length || 0;
+    const mttrValue = avgResolutionTime;
 
-    // Reopen Rate: tickets that were reopened
-    const reopenedTickets = statusHistory.filter(h => {
-        const prevStatus = statusHistory.find(prev =>
-            prev.issueKey === h.issueKey &&
-            prev.transitionDate < h.transitionDate &&
-            (prev.status.toLowerCase() === 'cerrado' || prev.status.toLowerCase() === 'resuelto')
-        );
-        return prevStatus && h.status.toLowerCase() !== 'cerrado' && h.status.toLowerCase() !== 'resuelto';
+    // Reopen Rate: Transitions from a closed state to an active state
+    // We already have reopenedTicketKeys logic idea, let's refine the query
+    const allTransitions = await prisma.ticketStatusHistory.findMany({
+        where: {
+            issueKey: { in: allIncidents.map(i => i.issueKey) },
+            transitionDate: { gte: start, lte: end }
+        },
+        orderBy: { transitionDate: 'asc' }
     });
-    const reopenRate = totalIncidents > 0 ? (reopenedTickets.length / totalIncidents) * 100 : 0;
 
-    // Backlog: pending tickets at end of year
-    const backlog = allIncidents.filter(t =>
-        t.status.toLowerCase() !== 'cerrado' &&
-        t.status.toLowerCase() !== 'resuelto' &&
-        t.status.toLowerCase() !== 'done'
+    const reopenedSet = new Set<string>();
+    const closedStatusNames = ['cerrado', 'resuelto', 'done', 'finalizado', 'finished'];
+    const activeStatusNames = ['abierto', 'en curso', 'en progreso', 'en tratamiento', 'pendiente cliente'];
+
+    // Group by issueKey
+    const ticketHistories: Record<string, string[]> = {};
+    allTransitions.forEach(t => {
+        if (!ticketHistories[t.issueKey]) ticketHistories[t.issueKey] = [];
+        ticketHistories[t.issueKey].push(t.status.toLowerCase());
+    });
+
+    Object.entries(ticketHistories).forEach(([key, statuses]) => {
+        for (let i = 1; i < statuses.length; i++) {
+            const prev = statuses[i - 1];
+            const curr = statuses[i];
+            if (closedStatusNames.some(s => prev.includes(s)) &&
+                activeStatusNames.some(s => curr.includes(s))) {
+                reopenedSet.add(key);
+            }
+        }
+    });
+
+    const reopenRateValue = totalIncidents > 0 ? (reopenedSet.size / totalIncidents) * 100 : 0;
+
+    // Backlog
+    const backlogCount = allIncidents.filter(t =>
+        !['cerrado', 'resuelto', 'done', 'finalizado', 'finished'].includes(t.status.toLowerCase())
     ).length;
 
     // === SATISFACTION ===
-
-    // Note: Schema doesn't have customerSatisfaction field in Ticket
-    // This is a placeholder - you'll need to adjust based on actual data source
-
-    const satisfaction = {
+    const satData = {
         byMonth: Array.from({ length: 12 }, (_, i) => ({
             month: i + 1,
             avg: null as number | null,
             count: 0
         })),
-        byClient: allClients.map(c => ({
+        byClient: allClientsFull.map(c => ({
             clientId: c.id,
             clientName: c.name,
             avg: null as number | null,
@@ -286,9 +279,8 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }))
     };
 
-    // === EVOLUTIVOS (from existing dashboard) ===
-
-    const evolutivos = await prisma.ticket.findMany({
+    // === EVOLUTIVOS ===
+    const evolutivosList = await prisma.ticket.findMany({
         where: {
             workPackage: { clientId: { in: clientsListIds } },
             issueType: { equals: 'Evolutivo', mode: 'insensitive' },
@@ -297,23 +289,25 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         select: { issueKey: true, createdDate: true }
     });
 
-    const peticionesEvolutivo = await prisma.ticket.findMany({
+    const peticionesList = await prisma.ticket.findMany({
         where: {
             workPackage: { clientId: { in: clientsListIds } },
             issueType: { equals: 'Petición de Evolutivo', mode: 'insensitive' },
             createdDate: { gte: start, lte: end }
         },
-        select: { issueKey: true }
+        select: { issueKey: true, createdDate: true }
     });
 
-    const proTransitions = await prisma.ticketStatusHistory.findMany({
+    const proTrans = await prisma.ticketStatusHistory.findMany({
         where: {
-            status: { equals: 'Entregado en PRO', mode: 'insensitive' },
+            status: { in: ['Entregado en PRD', 'ENTREGADO EN PRO', 'Entregado en PRO'], mode: 'insensitive' },
             transitionDate: { gte: start, lte: end }
         }
     });
 
-    const sentTransitions = await prisma.ticketStatusHistory.findMany({
+    const validProEvos = evolutivosList.filter(e => proTrans.some(tr => tr.issueKey === e.issueKey));
+
+    const sentTrans = await prisma.ticketStatusHistory.findMany({
         where: {
             status: {
                 in: ['Oferta Generada', 'Oferta enviada al cliente', 'Oferta enviada al gerente'],
@@ -323,37 +317,41 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
     });
 
-    const sentPeticiones = await prisma.ticket.findMany({
-        where: {
-            issueKey: { in: sentTransitions.map(t => t.issueKey) },
-            issueType: { equals: 'Petición de Evolutivo', mode: 'insensitive' }
-        }
-    });
+    const uniqueSentEvoKeys = new Set(
+        sentTrans
+            .filter(tr => peticionesList.some(p => p.issueKey === tr.issueKey))
+            .map(tr => tr.issueKey)
+    );
 
-    const uniqueSent = new Set(sentPeticiones.map(p => p.issueKey)).size;
-
-    const approvedPeticiones = await prisma.ticket.findMany({
+    const approvedPeticionesList = await prisma.ticket.findMany({
         where: {
             workPackage: { clientId: { in: clientsListIds } },
             issueType: { equals: 'Petición de Evolutivo', mode: 'insensitive' },
             status: { equals: 'Cerrado', mode: 'insensitive' },
-            resolution: { equals: 'Aprobada', mode: 'insensitive' },
+            resolution: { in: ['Aprobada', 'Aprobado'], mode: 'insensitive' },
             createdDate: { gte: start, lte: end }
         }
     });
 
-    const ratioAceptacion = uniqueSent > 0 ? (approvedPeticiones.length / uniqueSent) * 100 : 0;
-    const ratioEnvio = peticionesEvolutivo.length > 0 ? (uniqueSent / peticionesEvolutivo.length) * 100 : 0;
+    const acceptanceRatioVal = uniqueSentEvoKeys.size > 0 ? (approvedPeticionesList.length / uniqueSentEvoKeys.size) * 100 : 0;
+    const sentRatioVal = peticionesList.length > 0 ? (uniqueSentEvoKeys.size / peticionesList.length) * 100 : 0;
 
     // === MONTHLY BREAKDOWN ===
 
-    const monthly = Array.from({ length: 12 }, (_, i) => {
+    const monthlyData = Array.from({ length: 12 }, (_, i) => {
         const m = i + 1;
+        const mInc = allIncidents.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m);
+        const mEvos = evolutivosList.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m);
+
+        const mSlaT = mInc.filter(t => t.slaResolution).length;
+        const mSlaC = mInc.filter(t => t.slaResolution?.toLowerCase() === 'cumplido').length;
+        const mSlaComp = mSlaT > 0 ? (mSlaC / mSlaT) * 100 : 0;
+
         return {
             month: m,
-            incidents: allIncidents.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
-            evolutivos: evolutivos.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m).length,
-            slaCompliance: 0, // Placeholder - would need monthly SLA calculation
+            incidents: mInc.length,
+            evolutivos: mEvos.length,
+            slaCompliance: mSlaComp,
             satisfaction: null as number | null
         };
     });
@@ -362,30 +360,30 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         totalIncidents,
         slaFirstResponseCompliance,
         slaResolutionCompliance,
-        avgSatisfaction: null, // Placeholder
+        avgSatisfaction: null,
         evolutivos: {
-            creados: evolutivos.length,
-            entregados: proTransitions.length,
-            solicitadas: peticionesEvolutivo.length,
-            enviadas: uniqueSent,
-            aprobadas: approvedPeticiones.length,
-            ratioAceptacion,
-            ratioEnvio
+            creados: evolutivosList.length,
+            entregados: validProEvos.length,
+            solicitadas: peticionesList.length,
+            enviadas: uniqueSentEvoKeys.size,
+            aprobadas: approvedPeticionesList.length,
+            ratioAceptacion: acceptanceRatioVal,
+            ratioEnvio: sentRatioVal
         },
         incidentsByType,
         incidentsByMonth,
         incidentsByComponent,
         slaMetrics,
         clients: {
-            total: allClients.length,
-            newClients
+            total: allClientsFull.length,
+            newClients: newClientsArray
         },
         correctiveMetrics: {
-            mttr,
-            reopenRate,
-            backlog
+            mttr: mttrValue,
+            reopenRate: reopenRateValue,
+            backlog: backlogCount
         },
-        satisfaction,
-        monthly
+        satisfaction: satData,
+        monthly: monthlyData
     };
 }

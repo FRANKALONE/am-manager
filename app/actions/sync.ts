@@ -511,7 +511,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                             maxResults,
                             nextPageToken,
                             // Include SLA fields in initial query for optimization
-                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components', 'reporter']
+                            fields: ['key', 'summary', 'created', 'timeoriginalestimate', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'status', 'issuetype', 'assignee', 'duedate', 'parent', 'priority', 'components', 'reporter', 'resolution']
                         });
 
                         const evolutivosRes: any = await new Promise((resolve, reject) => {
@@ -807,7 +807,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                 const bodyData = JSON.stringify({
                     jql,
                     maxResults: 100,
-                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter']
+                    fields: ['key', 'summary', 'issuetype', 'status', 'priority', 'customfield_10121', 'customfield_10065', 'customfield_10064', 'customfield_10353', 'customfield_10176', 'customfield_10851', 'created', 'components', 'reporter', 'resolution']
                 });
 
                 try {
