@@ -38,7 +38,7 @@ async function debugCounts() {
             const issues = await searchJiraIssues(q.jql, ['id']);
             console.log(`Result: ${issues.length} issues found.`);
         } catch (error: any) {
-            console.error(`Error: ${error.message}`);
+            console.error(`Error: ${error?.message || String(error)}`);
         }
     }
 }

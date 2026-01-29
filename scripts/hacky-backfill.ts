@@ -23,8 +23,8 @@ async function hackyBackfill() {
                 process.stdout.write(`[${i + 1}/${tickets.length}] Syncing ${key}... `);
                 await syncTicketHistory(key, 'TICKET');
                 console.log("OK");
-            } catch (err) {
-                console.log("ERROR: " + err.message);
+            } catch (err: any) {
+                console.log("ERROR: " + (err?.message || String(err)));
             }
         }
 
