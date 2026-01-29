@@ -8,6 +8,7 @@ import { fetchTempo } from '@/lib/tempo';
 export interface AnnualReportData {
     // Executive Summary
     totalIncidents: number;
+    prevYearIncidents: number;
     slaFirstResponseCompliance: number;
     slaResolutionCompliance: number;
     avgSatisfaction: number | null;
@@ -36,6 +37,26 @@ export interface AnnualReportData {
         }>;
     };
 
+    // New KPI: Total Clientes por tipo de Contrato
+    contractClientsKPI: {
+        types: Array<{ type: string; count: number }>;
+        details: Array<{ clientId: string; clientName: string; type: string }>;
+    };
+
+    // New KPI: Total Horas Contratadas
+    contractedHoursKPI: {
+        total: number;
+        regularizationsTotal: number;
+        unconsumedTotal: number;
+        breakdownByWP: Array<{
+            name: string;
+            type: string;
+            contracted: number;
+            consumed: number;
+            remaining: number;
+        }>;
+    };
+
     // Evolutivos (from existing dashboard)
     evolutivos: {
         creados: number;
@@ -48,7 +69,7 @@ export interface AnnualReportData {
     };
 
     // Incidents Volume
-    incidentsByType: Array<{ type: string; count: number }>;
+    incidentsByType: Array<{ type: string; count: number; prevCount: number }>;
     incidentsByMonth: Array<{ month: number; count: number }>;
     incidentsByComponent: Array<{ component: string; count: number }>;
 
@@ -130,10 +151,10 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     // === INCIDENTS VOLUME ===
 
-    // Exclude Evolutivo types
-    const incidentTypes = ['Bug', 'Incidencia', 'Consulta', 'Tarea', 'Subtarea', 'Servicio', 'Problema'];
+    const startPrev = new Date(`${year - 1}-01-01T00:00:00Z`);
+    const endPrev = new Date(`${year - 1}-12-31T23:59:59Z`);
 
-    const allIncidents = await prisma.ticket.findMany({
+    const currentYearTickets = await prisma.ticket.findMany({
         where: {
             workPackage: { clientId: { in: clientsListIds } },
             createdDate: { gte: start, lte: end },
@@ -156,16 +177,38 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
     });
 
-    const totalIncidents = allIncidents.length;
+    const prevYearTickets = await prisma.ticket.findMany({
+        where: {
+            workPackage: { clientId: { in: clientsListIds } },
+            createdDate: { gte: startPrev, lte: endPrev },
+            NOT: {
+                issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+            }
+        },
+        select: { issueType: true }
+    });
+
+    const totalIncidents = currentYearTickets.length;
+    const prevYearIncidents = prevYearTickets.length;
 
     // By Type
-    const incidentsByType = Object.entries(
-        allIncidents.reduce((acc, t) => {
-            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>)
-    ).map(([type, count]) => ({ type, count }))
-        .sort((a, b) => b.count - a.count);
+    const currentTypes = currentYearTickets.reduce((acc, t) => {
+        acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const prevTypes = prevYearTickets.reduce((acc, t) => {
+        acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
+        type,
+        count: currentTypes[type] || 0,
+        prevCount: prevTypes[type] || 0
+    })).sort((a, b) => b.count - a.count);
+
+    const allIncidents = currentYearTickets;
 
     // By Month
     const incidentsByMonth = Array.from({ length: 12 }, (_, i) => {
@@ -435,6 +478,111 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         details: clientsKPIList
     };
 
+    // === NEW KPI: CLIENTS BY CONTRACT TYPE ===
+    const contractClientsMap = new Map<string, Set<string>>();
+    const contractDetails: Array<{ clientId: string; clientName: string; type: string }> = [];
+
+    const activeWps = await prisma.workPackage.findMany({
+        where: {
+            validityPeriods: {
+                some: {
+                    OR: [
+                        { startDate: { lte: end }, endDate: { gte: start } }
+                    ]
+                }
+            }
+        },
+        select: {
+            clientId: true,
+            clientName: true,
+            contractType: true
+        }
+    });
+
+    activeWps.forEach(wp => {
+        const type = wp.contractType.toUpperCase() === 'BD' ? 'BAJO DEMANDA' : wp.contractType.toUpperCase();
+        if (!contractClientsMap.has(type)) contractClientsMap.set(type, new Set());
+        contractClientsMap.get(type)?.add(wp.clientId);
+
+        if (!contractDetails.some(d => d.clientId === wp.clientId && d.type === type)) {
+            contractDetails.push({ clientId: wp.clientId, clientName: wp.clientName, type });
+        }
+    });
+
+    const contractClientsKPI = {
+        types: Array.from(contractClientsMap.entries()).map(([type, clients]) => ({
+            type,
+            count: clients.size
+        })),
+        details: contractDetails
+    };
+
+    // === NEW KPI: CONTRACTED HOURS ===
+    const vpsForYear = await prisma.validityPeriod.findMany({
+        where: {
+            OR: [
+                { startDate: { lte: end }, endDate: { gte: start } }
+            ],
+            workPackage: {
+                NOT: { contractType: { equals: 'EVENTOS', mode: 'insensitive' } }
+            }
+        },
+        include: {
+            workPackage: {
+                select: { id: true, name: true, contractType: true }
+            }
+        }
+    });
+
+    // We only count hours from periods that overlap with the targeted year.
+    // However, the requested KPI is "Total Horas Contratadas", we usually sum the total quantity 
+    // of active periods during that year.
+    const contractedTotal = vpsForYear.reduce((sum, vp) => sum + vp.totalQuantity, 0);
+
+    // Regularizations
+    const yearRegs = await prisma.regularization.findMany({
+        where: {
+            date: { gte: start, lte: end },
+            type: { equals: 'EXCESO_CONSUMO', mode: 'insensitive' }
+        }
+    });
+    const regularizationsTotal = yearRegs.reduce((sum, r) => sum + r.quantity, 0);
+
+    // Unconsumed hours
+    const yearMonthlyMetrics = await prisma.monthlyMetric.findMany({
+        where: {
+            year: year,
+            workPackage: {
+                NOT: { contractType: { equals: 'EVENTOS', mode: 'insensitive' } }
+            }
+        }
+    });
+
+    const consumedByWp = yearMonthlyMetrics.reduce((acc, m) => {
+        acc[m.workPackageId] = (acc[m.workPackageId] || 0) + m.consumedHours;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const breakdownByWP = vpsForYear.map(vp => {
+        const consumed = consumedByWp[vp.workPackageId] || 0;
+        return {
+            name: vp.workPackage.name,
+            type: vp.workPackage.contractType,
+            contracted: vp.totalQuantity,
+            consumed: consumed,
+            remaining: Math.max(0, vp.totalQuantity - consumed)
+        };
+    });
+
+    const unconsumedTotal = breakdownByWP.reduce((sum, item) => sum + item.remaining, 0);
+
+    const contractedHoursKPI = {
+        total: contractedTotal,
+        regularizationsTotal,
+        unconsumedTotal,
+        breakdownByWP: breakdownByWP.sort((a, b) => b.contracted - a.contracted)
+    };
+
     // === EMPLOYEE KPI (TEMPO) ===
     let employeesKPI = {
         total: 0,
@@ -463,7 +611,11 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             const prevEnd = new Date(`${year - 1}-12-31`).getTime();
 
             members.forEach((m: any) => {
-                const memberships = m.memberships?.values || [];
+                // Tempo API v4 changed memberships structure. 
+                // Sometimes m.memberships is the array, sometimes it has .values
+                const membershipsRaw = m.memberships || [];
+                const memberships = Array.isArray(membershipsRaw) ? membershipsRaw : (membershipsRaw.values || []);
+
                 let inYear = false;
                 let inPrev = false;
 
@@ -525,11 +677,14 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     return {
         totalIncidents,
+        prevYearIncidents,
         slaFirstResponseCompliance,
         slaResolutionCompliance,
         avgSatisfaction: null,
         clientsKPI,
         employeesKPI,
+        contractClientsKPI,
+        contractedHoursKPI,
         evolutivos: {
             creados: evolutivosList.length,
             entregados: validProEvos.length,

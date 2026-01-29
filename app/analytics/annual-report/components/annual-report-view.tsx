@@ -10,7 +10,8 @@ import {
 import {
     TrendingUp, TrendingDown, Users, CheckCircle, XCircle, Clock,
     AlertTriangle, Calendar, Filter, Download, ChevronRight,
-    Search, BarChart3, Activity, Briefcase, UserPlus, ArrowUpRight
+    Search, BarChart3, Activity, Briefcase, UserPlus, ArrowUpRight,
+    ClipboardList, PieChart as PieIcon, Calculator, ChevronDown, Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,6 +35,9 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
     const [selectedBacklogType, setSelectedBacklogType] = useState<string | null>(null);
     const [showClientsDetail, setShowClientsDetail] = useState(false);
     const [showEmployeesDetail, setShowEmployeesDetail] = useState(false);
+    const [showContractTypesDetail, setShowContractTypesDetail] = useState(false);
+    const [showHoursDetail, setShowHoursDetail] = useState(false);
+    const [showIncidentsDetail, setShowIncidentsDetail] = useState(false);
 
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const chartData = report.monthly.map(m => ({
@@ -104,12 +108,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
             {/* KPI Cards Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 {[
-                    { title: "Total Incidencias", value: formatNumber(report.totalIncidents), sub: "Volumen anual", icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
-                    { title: "SLA Resolución", value: formatPercent(report.slaResolutionCompliance), sub: `${formatNumber(report.slaMetrics.resolution.compliant)} tickets ok`, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
                     {
                         title: "Clientes Totales",
                         value: formatNumber(report.clientsKPI.total),
-                        sub: `+${report.clientsKPI.newAbsolute} nuevos (${formatPercent(report.clientsKPI.growthRelative)})`,
+                        sub: "Cartera gestionada",
                         icon: Users,
                         color: "text-indigo-600",
                         bg: "bg-indigo-50",
@@ -118,32 +120,62 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     {
                         title: "Equipo AM",
                         value: formatNumber(report.employeesKPI.total),
-                        sub: `${report.employeesKPI.growthAbs >= 0 ? '+' : ''}${report.employeesKPI.growthAbs} vs año anterior (${formatPercent(report.employeesKPI.growthRel)})`,
+                        sub: `${report.employeesKPI.growthAbs >= 0 ? '+' : ''}${report.employeesKPI.growthAbs} miembros vs año anterior (${formatPercent(report.employeesKPI.growthRel)})`,
                         icon: UserPlus,
                         color: "text-violet-600",
                         bg: "bg-violet-50",
                         onClick: () => setShowEmployeesDetail(true)
                     },
-                    { title: "SLA Primera Respuesta", value: formatPercent(report.slaFirstResponseCompliance), sub: `${formatNumber(report.slaMetrics.firstResponse.compliant)} tickets ok`, icon: Clock, color: "text-orange-600", bg: "bg-orange-50" },
+                    {
+                        title: "Total Clientes por Contrato",
+                        value: formatNumber(report.contractClientsKPI.types.length),
+                        sub: "Breakdown por tipo",
+                        icon: PieIcon,
+                        color: "text-emerald-600",
+                        bg: "bg-emerald-50",
+                        onClick: () => setShowContractTypesDetail(true)
+                    },
+                    {
+                        title: "Total Horas Contratadas",
+                        value: formatNumber(report.contractedHoursKPI.total),
+                        sub: "SumatorioValidity Periods",
+                        icon: Clock,
+                        color: "text-orange-600",
+                        bg: "bg-orange-50",
+                        onClick: () => setShowHoursDetail(true)
+                    },
+                    {
+                        title: "Total Incidencias",
+                        value: formatNumber(report.totalIncidents),
+                        sub: `${report.totalIncidents - report.prevYearIncidents >= 0 ? '+' : ''}${report.totalIncidents - report.prevYearIncidents} vs año anterior (${formatPercent(report.prevYearIncidents > 0 ? ((report.totalIncidents - report.prevYearIncidents) / report.prevYearIncidents) * 100 : 0)})`,
+                        icon: Activity,
+                        color: "text-blue-600",
+                        bg: "bg-blue-50",
+                        onClick: () => setShowIncidentsDetail(true)
+                    },
                 ].map((kpi, i) => (
                     <Card
                         key={i}
-                        className={`rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 ${kpi.onClick ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/20' : ''}`}
+                        className={`rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 cursor-pointer hover:ring-2 hover:ring-indigo-500/20`}
                         onClick={kpi.onClick}
                     >
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{kpi.title}</p>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 truncate">{kpi.title}</p>
                                     <h3 className="text-3xl font-black text-slate-800 dark:text-slate-100">{kpi.value}</h3>
-                                    <p className="text-[10px] font-medium text-slate-400 mt-1 flex items-center gap-1">
-                                        {kpi.title === "Equipo AM" || kpi.title === "Clientes Totales" ? (
-                                            <TrendingUp className="w-3 h-3 text-emerald-500" />
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1 flex items-center gap-1 line-clamp-1">
+                                        {kpi.title === "Equipo AM" || kpi.title === "Total Incidencias" ? (
+                                            (kpi.title === "Equipo AM" ? report.employeesKPI.growthAbs : (report.totalIncidents - report.prevYearIncidents)) >= 0 ? (
+                                                <TrendingUp className="w-3 h-3 text-emerald-500" />
+                                            ) : (
+                                                <TrendingDown className="w-3 h-3 text-rose-500" />
+                                            )
                                         ) : null}
                                         {kpi.sub}
                                     </p>
                                 </div>
-                                <div className={`p-3 rounded-xl ${kpi.bg} dark:bg-slate-800 group-hover:scale-110 transition-transform duration-300`}>
+                                <div className={`p-3 rounded-xl ${kpi.bg} dark:bg-slate-800 group-hover:scale-110 transition-transform duration-300 ml-2 shadow-sm`}>
                                     <kpi.icon className={`w-6 h-6 ${kpi.color}`} />
                                 </div>
                             </div>
@@ -568,6 +600,175 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Contract Types Detail Modal */}
+            {showContractTypesDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Clientes por Contrato {year}</CardTitle>
+                                    <CardDescription className="text-emerald-100 text-sm font-medium">Desglose porcentual y absoluto por modalidad</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowContractTypesDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                {report.contractClientsKPI.types.map((t, idx) => (
+                                    <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex flex-col items-center">
+                                        <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t.type}</p>
+                                        <p className="text-3xl font-black text-emerald-600">{t.count}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="space-y-2">
+                                <h4 className="text-xs font-black uppercase text-slate-400 mb-4 px-2">Listado de Clientes</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {report.contractClientsKPI.details.map((d, i) => (
+                                        <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate pr-2">{d.clientName}</span>
+                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 uppercase shrink-0">{d.type}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Contracted Hours Detail Modal */}
+            {showHoursDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Capacidad Contratada {year}</CardTitle>
+                                    <CardDescription className="text-orange-100 text-sm font-medium">Análisis de horas, regularizaciones y consumo remanente</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowHoursDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Total Segun VP</p>
+                                    <p className="text-2xl font-black">{formatNumber(report.contractedHoursKPI.total)}h</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Excesos Regularizados</p>
+                                    <p className="text-2xl font-black">+{formatNumber(report.contractedHoursKPI.regularizationsTotal)}h</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Remanente No Consumido</p>
+                                    <p className="text-2xl font-black text-amber-200">{formatNumber(report.contractedHoursKPI.unconsumedTotal)}h</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900">
+                            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-slate-50 dark:bg-slate-800">
+                                        <tr>
+                                            <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Work Package / Cliente</th>
+                                            <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Tipo</th>
+                                            <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Contratado</th>
+                                            <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Consumido</th>
+                                            <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Remanente</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        {report.contractedHoursKPI.breakdownByWP.map((wp, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="px-6 py-4 text-sm font-black text-slate-700 dark:text-slate-200">{wp.name}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">{wp.type}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-sm font-bold text-slate-600 dark:text-slate-400">{formatNumber(wp.contracted)}h</td>
+                                                <td className="px-6 py-4 text-right text-sm font-bold text-indigo-600">{formatNumber(wp.consumed)}h</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className={`text-sm font-black ${wp.remaining > 0 ? 'text-amber-500' : 'text-slate-300'}`}>
+                                                        {formatNumber(wp.remaining)}h
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Incidents Detail Modal */}
+            {showIncidentsDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 relative">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Análisis de Incidencias {year}</CardTitle>
+                                    <CardDescription className="text-blue-100 text-sm font-medium">Comparativa interanual y distribución por tipología</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowIncidentsDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-6">
+                                <div className="bg-white/10 p-4 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Año Actual ({year})</p>
+                                    <p className="text-3xl font-black">{formatNumber(report.totalIncidents)}</p>
+                                </div>
+                                <div className="bg-white/10 p-4 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Año Anterior ({year - 1})</p>
+                                    <div className="flex items-end gap-3">
+                                        <p className="text-3xl font-black">{formatNumber(report.prevYearIncidents)}</p>
+                                        <div className={`mb-1 flex items-center gap-1 text-sm font-bold ${report.totalIncidents <= report.prevYearIncidents ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            {report.totalIncidents > report.prevYearIncidents ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                            {formatPercent(report.prevYearIncidents > 0 ? ((report.totalIncidents - report.prevYearIncidents) / report.prevYearIncidents) * 100 : 0)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900">
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black uppercase text-slate-400 mb-2 px-2">Desglose por Tipo</h4>
+                                {report.incidentsByType.map((item, idx) => {
+                                    const diff = item.count - item.prevCount;
+                                    const perc = item.prevCount > 0 ? (diff / item.prevCount) * 100 : (item.count > 0 ? 100 : 0);
+                                    return (
+                                        <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
+                                                    <ClipboardList className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase">{item.type}</span>
+                                                    <p className="text-[10px] font-bold text-slate-400">Año anterior: {item.prevCount}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xl font-black text-slate-800 dark:text-slate-100">{item.count}</p>
+                                                <div className={`flex items-center justify-end gap-1 text-[10px] font-black ${diff <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                    {diff > 0 ? '+' : ''}{diff} ({diff > 0 ? '+' : ''}{perc.toFixed(1)}%)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     </Card>
