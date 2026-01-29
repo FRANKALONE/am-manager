@@ -742,10 +742,9 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             const tempoTeams = (teamsRes.results || []).filter((t: any) => t.name.startsWith("AMA"));
 
             for (const team of tempoTeams) {
-                // Try to get ALL memberships for this team (including historical ones if backend supports it)
-                // In Tempo API, memberships are often the way to see who was where and when.
-                const membershipsRes = await fetchTempo(`/memberships?teamId=${team.id}`);
-                const membershipsList = membershipsRes.results || [];
+                // Correct endpoint for Tempo Cloud memberships is usually /team-memberships/team/{id}
+                const membershipsRes = await fetchTempo(`/team-memberships/team/${team.id}`);
+                const membershipsList = membershipsRes.results || membershipsRes || [];
 
                 let teamTotalYear = 0;
                 let teamTotalPrev = 0;
@@ -760,8 +759,13 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
                 const prevEnd = new Date(`${year - 1}-12-31`).getTime();
 
                 membershipsList.forEach((ms: any) => {
-                    const msFrom = new Date(ms.from).getTime();
-                    const msTo = ms.to ? new Date(ms.to).getTime() : new Date('2099-12-31').getTime();
+                    // Structure is { from, to, member: { accountId } }
+                    const rawFrom = ms.from || ms.membership?.from;
+                    const rawTo = ms.to || ms.membership?.to;
+
+                    const msFrom = new Date(rawFrom).getTime();
+                    // If to is null, it's an active membership
+                    const msTo = rawTo ? new Date(rawTo).getTime() : new Date('2099-12-31').getTime();
                     const accountId = ms.member?.accountId || ms.accountId;
 
                     if (accountId) {
