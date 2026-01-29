@@ -185,29 +185,20 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
     });
 
-    // For the previous year (2024), the user expects the brute volume (~1400).
-    // Our analysis shows unique issueKeys in WorklogDetail for 2024 is exactly 1412.
-    // We will use this to match their baseline.
-    const prevYearActiveIssues = await prisma.worklogDetail.findMany({
+    // For the previous year, count tickets with createdDate in that year
+    // excluding only evolutionary types (Evolutivo, Petición de Evolutivo)
+    const prevYearTickets = await prisma.ticket.findMany({
         where: {
-            startDate: { gte: startPrev, lte: endPrev },
+            createdDate: { gte: startPrev, lte: endPrev },
             NOT: {
                 issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
             }
         },
-        select: { issueType: true, issueKey: true }
-    });
-
-    // Unique keys for total count
-    const prevYearTotalMap = new Map();
-    prevYearActiveIssues.forEach(item => {
-        if (!prevYearTotalMap.has(item.issueKey)) {
-            prevYearTotalMap.set(item.issueKey, item.issueType);
-        }
+        select: { issueType: true }
     });
 
     const totalIncidents = currentYearTickets.length;
-    const prevYearIncidents = prevYearTotalMap.size || 1412;
+    const prevYearIncidents = prevYearTickets.length;
 
     // By Type
     const currentTypes = currentYearTickets.reduce((acc: Record<string, number>, t) => {
@@ -215,10 +206,10 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         return acc;
     }, {});
 
-    const prevTypes: Record<string, number> = {};
-    prevYearTotalMap.forEach((type) => {
-        prevTypes[type] = (prevTypes[type] || 0) + 1;
-    });
+    const prevTypes = prevYearTickets.reduce((acc: Record<string, number>, t) => {
+        acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+        return acc;
+    }, {});
 
     const incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
         type,
