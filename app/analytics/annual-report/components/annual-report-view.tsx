@@ -38,6 +38,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
     const [showContractTypesDetail, setShowContractTypesDetail] = useState(false);
     const [showHoursDetail, setShowHoursDetail] = useState(false);
     const [showIncidentsDetail, setShowIncidentsDetail] = useState(false);
+    const [showSatisfactionDetail, setShowSatisfactionDetail] = useState(false);
 
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const chartData = report.monthly.map(m => ({
@@ -136,13 +137,13 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                         onClick: () => setShowContractTypesDetail(true)
                     },
                     {
-                        title: "Total Horas Contratadas",
-                        value: formatNumber(report.contractedHoursKPI.total),
-                        sub: "SumatorioValidity Periods",
-                        icon: Clock,
-                        color: "text-orange-600",
-                        bg: "bg-orange-50",
-                        onClick: () => setShowHoursDetail(true)
+                        title: "Satisfacción Global",
+                        value: report.satisfactionMetrics.globalAvg ? report.satisfactionMetrics.globalAvg.toFixed(1) : 'N/A',
+                        sub: `Media anual (${report.satisfactionMetrics.prevYearAvg ? report.satisfactionMetrics.prevYearAvg.toFixed(1) : 'N/A'} prev.)`,
+                        icon: Activity,
+                        color: "text-blue-600",
+                        bg: "bg-blue-50",
+                        onClick: () => setShowSatisfactionDetail(true)
                     },
                     {
                         title: "Total Incidencias",
@@ -239,6 +240,15 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                     fillOpacity={1}
                                     fill="url(#colorInc)"
                                     activeDot={{ r: 6, strokeWidth: 0, onClick: (e: any, payload: any) => setSelectedMonth(payload.payload.month) }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="backlog"
+                                    stroke="#f59e0b"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                    name="Backlog Acumulado"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -338,32 +348,36 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                             <Activity className="w-5 h-5 text-indigo-500" />
-                            Distribución por Tipo
+                            Índice de Satisfacción (CSAT)
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <ResponsiveContainer width="100%" height={280}>
-                            <PieChart>
-                                <Pie
-                                    data={report.incidentsByType}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="count"
-                                    nameKey="type"
-                                >
-                                    {report.incidentsByType.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <CardContent className="pt-6 flex flex-col items-center justify-center py-12">
+                        <div className="relative mb-6">
+                            <div className="w-40 h-40 rounded-full border-8 border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
+                                <span className="text-5xl font-black text-slate-800 dark:text-slate-100">
+                                    {report.satisfactionMetrics.globalAvg ? report.satisfactionMetrics.globalAvg.toFixed(1) : 'N/A'}
+                                </span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Puntos</span>
+                            </div>
+                            <div className={`absolute -bottom-2 right-0 p-3 rounded-2xl shadow-lg flex items-center gap-2 ${(report.satisfactionMetrics.globalAvg || 0) >= 4 ? 'bg-emerald-500' : 'bg-amber-500'
+                                } text-white`}>
+                                <CheckCircle className="w-4 h-4" />
+                                <span className="text-xs font-black uppercase">Excelente</span>
+                            </div>
+                        </div>
+                        <div className="text-center space-y-2 mb-6">
+                            <p className="text-sm font-bold text-slate-500 max-w-[250px]">
+                                Media aritmética basada en encuestas de satisfacción cerradas en el periodo.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl font-bold border-slate-200 dark:border-slate-800 w-full"
+                            onClick={() => setShowSatisfactionDetail(true)}
+                        >
+                            Ver Análisis Detallado
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
@@ -506,18 +520,14 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                     <XCircle className="w-6 h-6" />
                                 </Button>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 mt-6">
+                            <div className="grid grid-cols-2 gap-4 mt-6">
                                 <div className="bg-white/10 p-3 rounded-2xl">
                                     <p className="text-[10px] font-bold uppercase opacity-80">Total</p>
                                     <p className="text-2xl font-black">{report.clientsKPI.total}</p>
                                 </div>
                                 <div className="bg-white/10 p-3 rounded-2xl">
-                                    <p className="text-[10px] font-bold uppercase opacity-80">Nuevos</p>
-                                    <p className="text-2xl font-black">+{report.clientsKPI.newAbsolute}</p>
-                                </div>
-                                <div className="bg-white/10 p-3 rounded-2xl">
-                                    <p className="text-[10px] font-bold uppercase opacity-80">Crecimiento</p>
-                                    <p className="text-2xl font-black">{formatPercent(report.clientsKPI.growthRelative)}</p>
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Variación</p>
+                                    <p className="text-2xl font-black">{report.clientsKPI.newAbsolute >= 0 ? '+' : ''}{report.clientsKPI.newAbsolute}</p>
                                 </div>
                             </div>
                         </CardHeader>
@@ -527,14 +537,8 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                     <div key={client.id} className="group flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-indigo-500/50 hover:shadow-md transition-all">
                                         <div className="flex flex-col">
                                             <span className="text-sm font-black text-slate-700 dark:text-slate-200 truncate max-w-[150px]">{client.name}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase">{client.isNew ? 'Nueva Adquisición' : 'Cliente recurrente'}</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">Cliente de Carteras AM</span>
                                         </div>
-                                        {client.isNew && (
-                                            <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full animate-pulse">
-                                                <ArrowUpRight className="w-3 h-3" />
-                                                <span className="text-[10px] font-black uppercase">Nuevo</span>
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -769,6 +773,73 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+            {/* Satisfaction Detail Modal */}
+            {showSatisfactionDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 relative">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Análisis de Satisfacción Global {year}</CardTitle>
+                                    <CardDescription className="text-blue-100 text-sm font-medium">Desglose de satisfacción por equipo y tipo de ticket</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowSatisfactionDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-6">
+                                <div className="bg-white/10 p-4 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Media Global</p>
+                                    <p className="text-3xl font-black">{report.satisfactionMetrics.globalAvg?.toFixed(2) || 'N/A'}</p>
+                                </div>
+                                <div className="bg-white/10 p-4 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Año Anterior</p>
+                                    <p className="text-3xl font-black">{report.satisfactionMetrics.prevYearAvg?.toFixed(2) || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black uppercase text-slate-400 px-2 tracking-widest">Satisfacción por Equipo</h4>
+                                    <div className="space-y-2">
+                                        {report.satisfactionMetrics.byTeam.map((item, idx) => (
+                                            <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{item.team}</span>
+                                                    <span className="text-sm font-black text-indigo-600">{item.avg.toFixed(1)}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(item.avg / 5) * 100}%` }}></div>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{item.count} tickets encuestados</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black uppercase text-slate-400 px-2 tracking-widest">Satisfacción por Tipo de Ticket</h4>
+                                    <div className="space-y-2">
+                                        {report.satisfactionMetrics.byType.map((item, idx) => (
+                                            <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
+                                                    <span className="text-sm font-black text-emerald-600">{item.avg.toFixed(1)}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(item.avg / 5) * 100}%` }}></div>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{item.count} tickets encuestados</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
