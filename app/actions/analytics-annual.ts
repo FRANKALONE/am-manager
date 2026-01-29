@@ -167,7 +167,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         where: {
             createdDate: { gte: start, lte: end },
             NOT: {
-                issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
+                issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
             }
         },
         select: {
@@ -185,13 +185,12 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
     });
 
-    // For the previous year, count tickets with createdDate in that year
-    // excluding only evolutionary types (Evolutivo, Petición de Evolutivo)
+    // For the previous year, use the same filter as current year
     const prevYearTickets = await prisma.ticket.findMany({
         where: {
             createdDate: { gte: startPrev, lte: endPrev },
             NOT: {
-                issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
+                issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
             }
         },
         select: { issueType: true }
