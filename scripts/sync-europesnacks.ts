@@ -25,7 +25,7 @@ async function syncEuropesnacks() {
                 }
             }
         } catch (error: any) {
-            console.error(`❌ Exception syncing ${wpId}:`, error.message);
+            console.error(`❌ Exception syncing ${wpId}:`, error?.message || String(error));
         }
     }
 

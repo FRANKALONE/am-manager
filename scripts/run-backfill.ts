@@ -19,7 +19,7 @@ async function runBackfill() {
                 if (result.remaining) {
                     console.log(`Remaining: ${result.remaining.tickets} tickets, ${result.remaining.proposals} proposals`);
                 }
-                hasMore = result.hasMore;
+                hasMore = !!result.hasMore;
             } else {
                 console.error(`Error in batch ${batchCount}:`, result.error);
                 hasMore = false;
