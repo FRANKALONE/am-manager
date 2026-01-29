@@ -1,0 +1,42 @@
+﻿[
+  {
+    "_count": 1,
+    "issueType": "Solicitud de servicio"
+  },
+  {
+    "_count": 1,
+    "issueType": "Interno"
+  },
+  {
+    "_count": 75,
+    "issueType": "Consulta"
+  },
+  {
+    "_count": 333,
+    "issueType": "Evolutivo"
+  },
+  {
+    "_count": 6,
+    "issueType": "Garant├¡a"
+  },
+  {
+    "_count": 3,
+    "issueType": "Soporte AM"
+  },
+  {
+    "_count": 20,
+    "issueType": "Servicio IAAS"
+  },
+  {
+    "_count": 332,
+    "issueType": "Incidencia de Correctivo"
+  },
+  {
+    "_count": 280,
+    "issueType": "Hitos Evolutivos"
+  },
+  {
+    "_count": 33,
+    "issueType": "Petici├│n de Evolutivo"
+  }
+]

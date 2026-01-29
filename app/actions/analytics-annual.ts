@@ -167,7 +167,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         where: {
             createdDate: { gte: start, lte: end },
             NOT: {
-                issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
             }
         },
         select: {
@@ -191,7 +191,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         where: {
             createdDate: { gte: startPrev, lte: endPrev },
             NOT: {
-                issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' }
             }
         },
         select: { issueType: true }
@@ -609,21 +609,26 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     // Pro-rata hours calculation based on billingType
     let contractedTotal = 0;
     vpsForYear.forEach(vp => {
-        if (vp.billingType?.toUpperCase() === 'MENSUAL' || vp.billingType?.toUpperCase() === 'MONTHLY') {
-            // If it's monthly, we count how many months of the vp overlap with the requested year
-            const vpStart = new Date(vp.startDate);
-            const vpEnd = new Date(vp.endDate);
-            const overlapStart = new Date(Math.max(vpStart.getTime(), start.getTime()));
-            const overlapEnd = new Date(Math.min(vpEnd.getTime(), end.getTime()));
+        const vpStart = new Date(vp.startDate);
+        const vpEnd = new Date(vp.endDate);
+        const overlapStart = new Date(Math.max(vpStart.getTime(), start.getTime()));
+        const overlapEnd = new Date(Math.min(vpEnd.getTime(), end.getTime()));
 
-            if (overlapStart <= overlapEnd) {
-                const monthsCount = (overlapEnd.getUTCFullYear() - overlapStart.getUTCFullYear()) * 12 + (overlapEnd.getUTCMonth() - overlapStart.getUTCMonth()) + 1;
-                // Assuming vp.totalQuantity is Monthly Quantity for these types
-                contractedTotal += vp.totalQuantity * monthsCount;
+        if (overlapStart <= overlapEnd) {
+            // Find total months in the whole period (using floor/ceil if needed, but diffMonth is usually okay)
+            const diffMonths = (d1: Date, d2: Date) => {
+                return (d2.getUTCFullYear() - d1.getUTCFullYear()) * 12 + (d2.getUTCMonth() - d1.getUTCMonth()) + 1;
+            };
+
+            if (vp.billingType?.toUpperCase() === 'MENSUAL' || vp.billingType?.toUpperCase() === 'MONTHLY') {
+                const totalMonths = diffMonths(vpStart, vpEnd);
+                const overlapMonths = diffMonths(overlapStart, overlapEnd);
+                const monthlyHours = totalMonths > 0 ? vp.totalQuantity / totalMonths : 0;
+                contractedTotal += monthlyHours * overlapMonths;
+            } else {
+                // One-time billing: count whole amount
+                contractedTotal += vp.totalQuantity;
             }
-        } else {
-            // One-time or "PUNTUAL" billing: count the whole amount in the year it starts/overlaps
-            contractedTotal += vp.totalQuantity;
         }
     });
 
@@ -700,31 +705,36 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             const tempoTeams = (teamsRes.results || []).filter((t: any) => t.name.startsWith("AMA"));
 
             for (const team of tempoTeams) {
-                const membersRes = await fetchTempo(`/teams/${team.id}/members`);
-                const members = membersRes.results || [];
+                // Try to get ALL memberships for this team (including historical ones if backend supports it)
+                // In Tempo API, memberships are often the way to see who was where and when.
+                const membershipsRes = await fetchTempo(`/memberships?teamId=${team.id}`);
+                const membershipsList = membershipsRes.results || [];
 
                 let teamTotalYear = 0;
                 let teamTotalPrev = 0;
+
+                // Track unique persons per period
+                const personsInYear = new Set<string>();
+                const personsInPrev = new Set<string>();
+
                 const yearStart = new Date(`${year}-01-01`).getTime();
                 const yearEnd = new Date(`${year}-12-31`).getTime();
                 const prevStart = new Date(`${year - 1}-01-01`).getTime();
                 const prevEnd = new Date(`${year - 1}-12-31`).getTime();
 
-                members.forEach((m: any) => {
-                    const memberships = m.memberships?.values || m.memberships || [];
-                    let inYear = false;
-                    let inPrev = false;
+                membershipsList.forEach((ms: any) => {
+                    const msFrom = new Date(ms.from).getTime();
+                    const msTo = ms.to ? new Date(ms.to).getTime() : new Date('2099-12-31').getTime();
+                    const accountId = ms.member?.accountId || ms.accountId;
 
-                    memberships.forEach((ms: any) => {
-                        const msFrom = new Date(ms.from).getTime();
-                        const msTo = ms.to ? new Date(ms.to).getTime() : new Date('2099-12-31').getTime();
-                        if (msFrom <= yearEnd && msTo >= yearStart) inYear = true;
-                        if (msFrom <= prevEnd && msTo >= prevStart) inPrev = true;
-                    });
-
-                    if (inYear) teamTotalYear++;
-                    if (inPrev) teamTotalPrev++;
+                    if (accountId) {
+                        if (msFrom <= yearEnd && msTo >= yearStart) personsInYear.add(accountId);
+                        if (msFrom <= prevEnd && msTo >= prevStart) personsInPrev.add(accountId);
+                    }
                 });
+
+                teamTotalYear = personsInYear.size;
+                teamTotalPrev = personsInPrev.size;
 
                 employeesKPI.teamsBreakdown.push({
                     teamName: team.name,
@@ -792,7 +802,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             where: {
                 createdDate: { lte: monthEnd },
                 NOT: {
-                    issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                    issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos', 'Tarea', 'Sub-Tarea', 'Sub-task', 'Task'], mode: 'insensitive' }
                 },
                 OR: [
                     { resolution: { equals: null } },
