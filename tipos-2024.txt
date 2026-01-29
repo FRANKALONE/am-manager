@@ -1,0 +1,13 @@
+=== TODOS LOS TIPOS EN 2024 ===
+Evolutivo: 333
+Incidencia de Correctivo: 332
+Hitos Evolutivos: 280
+Consulta: 75
+Petición de Evolutivo: 33
+Servicio IAAS: 20
+Garantía: 6
+Soporte AM: 3
+Solicitud de servicio: 1
+Interno: 1
+
+TOTAL: 1084

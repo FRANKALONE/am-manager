@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { fetchTempo } from '@/lib/tempo';
+import { fetchJira } from '@/lib/jira';
 
 export interface AnnualReportData {
     // Executive Summary
@@ -158,63 +159,72 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         clientsListIds = allClients.map(c => c.id);
     }
 
-    // === INCIDENTS VOLUME ===
+    // === INCIDENTS KPI (QUERY JIRA DIRECTLY) ===
+    // Query Jira directly to get accurate counts matching the user's JQL
+    const incidentTypes = ['Consulta', 'Evolutivo', 'Formación', 'Garantía', 'Incidencia de Correctivo',
+        'Interno', 'Petición de Evolutivo', 'Servicio IAAS', 'Solicitud de servicio', 'Soporte AM'];
 
-    const startPrev = new Date(`${year - 1}-01-01T00:00:00Z`);
-    const endPrev = new Date(`${year - 1}-12-31T23:59:59Z`);
+    const jqlCurrent = `created >= "${year}-01-01" AND created <= "${year}-12-31" AND type IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
+    const jqlPrev = `created >= "${year - 1}-01-01" AND created <= "${year - 1}-12-31" AND type IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
 
-    const currentYearTickets = await prisma.ticket.findMany({
-        where: {
-            createdDate: { gte: start, lte: end },
-            NOT: {
-                issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
-            }
-        },
-        select: {
-            issueKey: true,
-            issueType: true,
-            createdDate: true,
-            component: true,
-            status: true,
-            resolution: true,
-            slaResolution: true,
-            slaResponse: true,
-            slaResolutionTime: true,
-            slaResponseTime: true,
-            workPackage: { select: { clientId: true, clientName: true } }
-        }
-    });
+    let currentYearTickets: any[] = [];
+    let prevYearTickets: any[] = [];
+    let totalIncidents = 0;
+    let prevYearIncidents = 0;
+    let incidentsByType: Array<{ type: string; count: number; prevCount: number }> = [];
 
-    // For the previous year, use the same filter as current year
-    const prevYearTickets = await prisma.ticket.findMany({
-        where: {
-            createdDate: { gte: startPrev, lte: endPrev },
-            NOT: {
-                issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
-            }
-        },
-        select: { issueType: true }
-    });
+    try {
+        // Fetch current year from Jira
+        const currentRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlCurrent)}&maxResults=0`);
+        totalIncidents = currentRes.total || 0;
 
-    const totalIncidents = currentYearTickets.length;
-    const prevYearIncidents = prevYearTickets.length;
+        // Fetch previous year from Jira
+        const prevRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlPrev)}&maxResults=0`);
+        prevYearIncidents = prevRes.total || 0;
 
-    // By Type
-    const currentTypes = currentYearTickets.reduce((acc: Record<string, number>, t) => {
-        acc[t.issueType] = (acc[t.issueType] || 0) + 1;
-        return acc;
-    }, {});
+        // Now fetch with details for type breakdown (limited to reasonable amount)
+        const currentDetailRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlCurrent)}&fields=issuetype,created,component,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009&maxResults=1000`);
+        currentYearTickets = (currentDetailRes.issues || []).map((issue: any) => ({
+            issueKey: issue.key,
+            issueType: issue.fields?.issuetype?.name || 'Unknown',
+            createdDate: issue.fields?.created,
+            component: issue.fields?.components?.[0]?.name,
+            status: issue.fields?.status?.name,
+            resolution: issue.fields?.resolution?.name,
+            slaResolution: issue.fields?.customfield_10006?.[0]?.name, // Assuming customfield_10006 is SLA Resolution
+            slaResponse: issue.fields?.customfield_10007?.[0]?.name, // Assuming customfield_10007 is SLA First Response
+            slaResolutionTime: issue.fields?.customfield_10008, // Assuming customfield_10008 is SLA Resolution Time
+            slaResponseTime: issue.fields?.customfield_10009, // Assuming customfield_10009 is SLA First Response Time
+            // workPackage will need to be fetched separately or inferred if not directly available
+            workPackage: { clientId: 'unknown', clientName: 'Unknown' } // Placeholder
+        }));
 
-    const prevTypes = prevYearTickets.reduce((acc: Record<string, number>, t) => {
-        acc[t.issueType] = (acc[t.issueType] || 0) + 1;
-        return acc;
-    }, {});
+        const prevDetailRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlPrev)}&fields=issuetype&maxResults=1000`);
+        prevYearTickets = (prevDetailRes.issues || []).map((issue: any) => ({
+            issueType: issue.fields?.issuetype?.name || 'Unknown'
+        }));
 
-    const incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
-        type,
-        count: currentTypes[type] || 0,
-        prevCount: prevTypes[type] || 0
-    })).sort((a, b) => b.count - a.count);
+        // By Type
+        const currentTypes = currentYearTickets.reduce((acc: Record<string, number>, t) => {
+            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+            return acc;
+        }, {});
+
+        const prevTypes = prevYearTickets.reduce((acc: Record<string, number>, t) => {
+            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+            return acc;
+        }, {});
+
+        incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
+            type,
+            count: currentTypes[type] || 0,
+            prevCount: prevTypes[type] || 0
+        })).sort((a, b) => b.count - a.count);
+
+    } catch (error) {
+        console.error("Error fetching incidents from Jira:", error);
+        // Fallback or throw error as appropriate
+    }
 
     const allIncidents = currentYearTickets;
 
@@ -234,8 +244,8 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             acc[comp] = (acc[comp] || 0) + 1;
             return acc;
         }, {} as Record<string, number>)
-    ).map(([component, count]) => ({ component, count }))
-        .sort((a, b) => b.count - a.count)
+    ).map(([component, count]) => ({ component, count: count as number }))
+        .sort((a, b) => (b.count as number) - (a.count as number))
         .slice(0, 10); // Top 10
 
     // === SLA COMPLIANCE ===
