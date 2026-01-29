@@ -6,9 +6,9 @@ import { getHistorySyncStatus, setHistorySyncStatus, HistorySyncJobStatus } from
 
 export async function startHistorySync() {
     try {
-        // Count all Evolutivo tickets and ALL proposals
+        // Count all Evolutivo and Petición de Evolutivo tickets and ALL proposals
         const totalTickets = await (prisma as any).ticket.count({
-            where: { issueType: 'Evolutivo' }
+            where: { issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' } }
         });
 
         const totalProposals = await (prisma as any).evolutivoProposal.count();
@@ -52,7 +52,7 @@ export async function processNextHistoryBatch() {
 
         // Get total counts to handle pagination between tables
         const totalTickets = await (prisma as any).ticket.count({
-            where: { issueType: 'Evolutivo' }
+            where: { issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' } }
         });
 
         let allRecords: { key: string, type: 'TICKET' | 'PROPOSAL' }[] = [];
@@ -61,7 +61,7 @@ export async function processNextHistoryBatch() {
             // Processing TICKETS
             const tickets = await (prisma as any).ticket.findMany({
                 select: { issueKey: true },
-                where: { issueType: 'Evolutivo' },
+                where: { issueType: { in: ['Evolutivo', 'Petición de Evolutivo'], mode: 'insensitive' } },
                 orderBy: { id: 'asc' },
                 skip: currentStatus.currentIdx,
                 take: BATCH_SIZE

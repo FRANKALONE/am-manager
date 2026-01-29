@@ -485,7 +485,7 @@ export async function syncWorkPackage(wpId: string, debug: boolean = false, sync
                     // accountIds contains wp.id, CSE variant, oldWpId and tempoAccountId, but we now "obviar el WP" (ignore account) 
                     // to ensure all relevant hours are captured project-wide.
                     // Standardize JQL using field IDs for robustness
-                    let jql = `project IN (${projectKeys.join(',')}) AND issuetype = "Evolutivo" AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
+                    let jql = `project IN (${projectKeys.join(',')}) AND issuetype IN ("Evolutivo", "Petición de Evolutivo") AND (cf[10121] IN ("Bolsa de Horas", "T&M contra bolsa", "T&M Facturable", "T&M facturable", "Facturable", "facturable") OR cf[10121] IS EMPTY)`;
 
                     if (syncDays && syncDays > 0) {
                         jql += ` AND updated >= "-${syncDays}d"`;
@@ -1745,8 +1745,12 @@ export async function syncHistoryInBulk(issueKeys: string[], type: 'TICKET' | 'P
             if (changelog && changelog.values) {
                 // Filter for relevant statuses only to save time
                 const relevantStatuses = type === 'TICKET'
-                    ? ['ENTREGADO EN PRO', 'Entregado en PRD', 'Entregado en PRO']
+                    ? [
+                        'ENTREGADO EN PRO', 'Entregado en PRD', 'Entregado en PRO',
+                        'Oferta Generada', 'Oferta enviada al cliente', 'Oferta enviada al gerente'
+                    ]
                     : [
+                        'Oferta Generada',
                         'Oferta enviada al cliente', 'Oferta enviada al gerente',
                         'Enviado a Cliente', 'Enviado a Gerente',
                         'Oferta Enviada', 'Enviado a SAP',
