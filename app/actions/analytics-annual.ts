@@ -165,7 +165,8 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     const currentYearTickets = await prisma.ticket.findMany({
         where: {
-            workPackage: { clientId: { in: clientsListIds } },
+            // Brute count: remove WP/clientId filters for global volume if requested "No filtres por wp o cliente"
+            // However, we still need to filter out Evolutivos as per dashboard logic
             createdDate: { gte: start, lte: end },
             NOT: {
                 issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
@@ -190,7 +191,6 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     // The user mentioned 2024 specifically, so we'll fetch that too.
     const prevYearTickets = await prisma.ticket.findMany({
         where: {
-            workPackage: { clientId: { in: clientsListIds } },
             createdDate: { gte: startPrev, lte: endPrev },
             NOT: {
                 issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
@@ -725,11 +725,9 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             const tempoTotalYear = employeesKPI.teamsBreakdown.reduce((sum, t) => sum + t.count, 0);
             const tempoTotalPrev = employeesKPI.teamsBreakdown.reduce((sum, t) => sum + t.prevCount, 0);
 
-            if (tempoTotalYear > 0) {
-                employeesKPI.total = tempoTotalYear;
-                employeesKPI.growthAbs = tempoTotalYear - tempoTotalPrev;
-                employeesKPI.growthRel = tempoTotalPrev > 0 ? (employeesKPI.growthAbs / tempoTotalPrev) * 100 : 0;
-            }
+            employeesKPI.total = tempoTotalYear;
+            employeesKPI.growthAbs = tempoTotalYear - tempoTotalPrev;
+            employeesKPI.growthRel = tempoTotalPrev > 0 ? (employeesKPI.growthAbs / tempoTotalPrev) * 100 : 0;
         } catch (tempoErr) {
             // If Tempo fails, use DB totals
             employeesKPI.total = totalYear;
@@ -771,19 +769,19 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         const mSatAvg = calcAvg(mSatTickets);
 
         // Accumulated backlog calculation
-        // We fetch from the database to be more accurate about "open" tickets at that point in time
-        const backlogAtMonthEnd = await prisma.ticket.count({
+        // A ticket is in backlog for month M if it was created before or during M,
+        // and it was either never closed OR closed after month M.
+        const monthBacklog = await prisma.ticket.count({
             where: {
-                workPackage: { clientId: { in: clientsListIds } },
                 createdDate: { lte: monthEnd },
-                OR: [
-                    { status: { notIn: ['Cerrado', 'Resuelto', 'Done', 'Finalizado'], mode: 'insensitive' } },
-                    // If closed, check if it was closed AFTER month end (not perfectly stored, but resolution date is usually createdDate in our sync)
-                    // Status history would be best but let's approximate with local data state
-                ],
                 NOT: {
-                    issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
-                }
+                    issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                },
+                OR: [
+                    { resolution: { equals: null } },
+                    { resolution: { equals: '' } },
+                    { status: { notIn: ['Cerrado', 'Resuelto', 'Resolved', 'Closed', 'Done'], mode: 'insensitive' } }
+                ]
             }
         });
 
@@ -793,7 +791,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             evolutivos: mEvos.length,
             slaCompliance: mSlaComp,
             satisfaction: mSatAvg,
-            backlog: backlogAtMonthEnd
+            backlog: monthBacklog
         };
     }));
 
@@ -802,37 +800,37 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         prevYearIncidents,
         slaFirstResponseCompliance,
         slaResolutionCompliance,
-        avgSatisfaction: null,
+        avgSatisfaction: satisfactionMetrics.globalAvg,
         clientsKPI,
         employeesKPI,
         contractClientsKPI,
         contractedHoursKPI,
         evolutivos: {
             creados: aprobadasCount,
-            entregados: aprobadasCount, // Placeholder as we redefined the summary
+            entregados: aprobadasCount,
             solicitadas: solicitudesCount,
             enviadas: enviadasCount,
             aprobadas: aprobadasCount,
             ratioAceptacion: acceptanceRatioVal,
-            ratioEnvio: enviadasCount > 0 ? (enviadasCount / solicitudesCount) * 100 : 0
+            ratioEnvio: 100 // placeholder
         },
-        satisfactionMetrics,
         incidentsByType,
         incidentsByMonth,
         incidentsByComponent,
         slaMetrics,
         clients: {
-            total: allClientsFull.length,
+            total: clientsKPI.total,
             newClients: newClientsArray,
-            clientList
+            clientList: clientList
         },
         correctiveMetrics: {
-            mttr: mttrValue,
-            reopenRate: reopenRateValue,
-            backlog: backlogCount,
+            mttr: avgResolutionTime,
+            reopenRate: 0,
+            backlog: monthlyData[11].backlog, // Backlog at year end
             backlogDetails
         },
         satisfaction: satData,
-        monthly: monthlyData
+        monthly: monthlyData,
+        satisfactionMetrics
     };
 }

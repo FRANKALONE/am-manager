@@ -128,7 +128,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                         onClick: () => setShowEmployeesDetail(true)
                     },
                     {
-                        title: "Total Clientes por Contrato",
+                        title: "Clientes por Contrato",
                         value: formatNumber(report.contractClientsKPI.types.length),
                         sub: "Breakdown por tipo",
                         icon: PieIcon,
@@ -137,16 +137,16 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                         onClick: () => setShowContractTypesDetail(true)
                     },
                     {
-                        title: "Satisfacción Global",
-                        value: report.satisfactionMetrics.globalAvg ? report.satisfactionMetrics.globalAvg.toFixed(1) : 'N/A',
-                        sub: `Media anual (${report.satisfactionMetrics.prevYearAvg ? report.satisfactionMetrics.prevYearAvg.toFixed(1) : 'N/A'} prev.)`,
-                        icon: Activity,
-                        color: "text-blue-600",
-                        bg: "bg-blue-50",
-                        onClick: () => setShowSatisfactionDetail(true)
+                        title: "Horas Contratadas",
+                        value: formatNumber(report.contractedHoursKPI.total),
+                        sub: `+${formatNumber(report.contractedHoursKPI.regularizationsTotal)}h exceso regularizado`,
+                        icon: Calculator,
+                        color: "text-orange-600",
+                        bg: "bg-orange-50",
+                        onClick: () => setShowHoursDetail(true)
                     },
                     {
-                        title: "Total Incidencias",
+                        title: "Incidencias Totales",
                         value: formatNumber(report.totalIncidents),
                         sub: `${report.totalIncidents - report.prevYearIncidents >= 0 ? '+' : ''}${report.totalIncidents - report.prevYearIncidents} vs año anterior (${formatPercent(report.prevYearIncidents > 0 ? ((report.totalIncidents - report.prevYearIncidents) / report.prevYearIncidents) * 100 : 0)})`,
                         icon: Activity,
