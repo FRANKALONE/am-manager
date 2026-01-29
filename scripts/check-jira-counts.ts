@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { searchJiraIssues, EVOLUTIVO_TYPES } from './lib/ama-evolutivos/jira';
+import { searchJiraIssues, EVOLUTIVO_TYPES } from '../lib/ama-evolutivos/jira';
 
 // Load environment variables
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
