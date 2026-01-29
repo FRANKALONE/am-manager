@@ -49,7 +49,7 @@ export default async function AnalyticsPage() {
             permission: "view_analytics_ama_deviations"
         },
         {
-            title: "Informe Anual de Operaciones",
+            title: "Informe Anual AM",
             description: "Visión global del año: volumen de incidencias, cumplimiento de SLA, análisis de clientes y calidad de servicio.",
             href: "/analytics/annual-report",
             icon: BarChart3,

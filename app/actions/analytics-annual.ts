@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
+import { fetchTempo } from '@/lib/tempo';
 
 export interface AnnualReportData {
     // Executive Summary
@@ -10,6 +11,30 @@ export interface AnnualReportData {
     slaFirstResponseCompliance: number;
     slaResolutionCompliance: number;
     avgSatisfaction: number | null;
+
+    // New KPIs requested
+    clientsKPI: {
+        total: number;
+        newAbsolute: number;
+        growthRelative: number;
+        details: Array<{
+            id: string;
+            name: string;
+            isNew: boolean;
+        }>;
+    };
+    employeesKPI: {
+        total: number;
+        growthAbs: number;
+        growthRel: number;
+        teamsBreakdown: Array<{
+            teamName: string;
+            count: number;
+            prevCount: number;
+            growthAbs: number;
+            growthRel: number;
+        }>;
+    };
 
     // Evolutivos (from existing dashboard)
     evolutivos: {
@@ -41,7 +66,7 @@ export interface AnnualReportData {
         };
     };
 
-    // Client Analysis
+    // Client Analysis (keep for compatibility if needed, but we use clientsKPI)
     clients: {
         total: number;
         newClients: Array<{ id: string; name: string; firstTicketDate: Date }>;
@@ -210,8 +235,6 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         ? (resolutionCompliant / resolutionValid) * 100
         : 0;
 
-    // === CLIENT ANALYSIS ===
-
     const allClientsFull = await prisma.client.findMany({
         where: { id: { in: clientsListIds }, isDemo: false },
         select: { id: true, name: true, createdAt: true }
@@ -235,12 +258,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     }
 
     // === CORRECTIVE METRICS ===
-
-    // MTTR: Mean Time To Repair
     const mttrValue = avgResolutionTime;
-
-    // Reopen Rate: Transitions from a closed state to an active state
-    // We already have reopenedTicketKeys logic idea, let's refine the query
     const allTransitions = await prisma.ticketStatusHistory.findMany({
         where: {
             issueKey: { in: allIncidents.map(i => i.issueKey) },
@@ -253,7 +271,6 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     const closedStatusNames = ['cerrado', 'resuelto', 'done', 'finalizado', 'finished'];
     const activeStatusNames = ['abierto', 'en curso', 'en progreso', 'en tratamiento', 'pendiente cliente'];
 
-    // Group by issueKey
     const ticketHistories: Record<string, string[]> = {};
     allTransitions.forEach(t => {
         if (!ticketHistories[t.issueKey]) ticketHistories[t.issueKey] = [];
@@ -264,24 +281,19 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         for (let i = 1; i < statuses.length; i++) {
             const prev = statuses[i - 1];
             const curr = statuses[i];
-            if (closedStatusNames.some(s => prev.includes(s)) &&
-                activeStatusNames.some(s => curr.includes(s))) {
+            if (closedStatusNames.some(s => prev.includes(s)) && activeStatusNames.some(s => curr.includes(s))) {
                 reopenedSet.add(key);
             }
         }
     });
 
     const reopenRateValue = totalIncidents > 0 ? (reopenedSet.size / totalIncidents) * 100 : 0;
-
-    // Backlog
     const backlogTickets = allIncidents.filter(t =>
         !['cerrado', 'resuelto', 'done', 'finalizado', 'finished'].includes(t.status.toLowerCase()) &&
-        t.issueType?.toLowerCase() !== 'hito evolutivo' &&
-        t.issueType?.toLowerCase() !== 'hitos evolutivos'
+        !['hito evolutivo', 'hitos evolutivos'].includes(t.issueType?.toLowerCase())
     );
     const backlogCount = backlogTickets.length;
 
-    // Group backlog by type then client
     const backlogByType: Record<string, Record<string, { name: string, count: number }>> = {};
     backlogTickets.forEach(t => {
         const type = t.issueType || 'Otros';
@@ -309,7 +321,6 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         isNew: newClientsArray.some(nc => nc.id === c.id)
     })).sort((a, b) => a.name.localeCompare(b.name));
 
-    // === SATISFACTION ===
     const satData = {
         byMonth: Array.from({ length: 12 }, (_, i) => ({
             month: i + 1,
@@ -381,8 +392,119 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     const acceptanceRatioVal = uniqueSentEvoKeys.size > 0 ? (approvedPeticionesList.length / uniqueSentEvoKeys.size) * 100 : 0;
     const sentRatioVal = peticionesList.length > 0 ? (uniqueSentEvoKeys.size / peticionesList.length) * 100 : 0;
 
-    // === MONTHLY BREAKDOWN ===
+    // === CLIENT KPI (NEW REQUEST) ===
+    const getClientsForYear = async (y: number) => {
+        const s = new Date(`${y}-01-01T00:00:00Z`);
+        const e = new Date(`${y}-12-31T23:59:59Z`);
 
+        const vps = await prisma.validityPeriod.findMany({
+            where: {
+                OR: [
+                    { startDate: { lte: e }, endDate: { gte: s } }
+                ]
+            },
+            select: { workPackage: { select: { clientId: true, clientName: true } } }
+        });
+
+        const clientMap = new Map<string, string>();
+        vps.forEach(vp => {
+            clientMap.set(vp.workPackage.clientId, vp.workPackage.clientName);
+        });
+
+        return clientMap;
+    };
+
+    const clientsTargetYear = await getClientsForYear(year);
+    const clientsPrevYear = await getClientsForYear(year - 1);
+
+    const clientsKPIList = Array.from(clientsTargetYear.entries()).map(([id, name]) => ({
+        id,
+        name,
+        isNew: !clientsPrevYear.has(id)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    const totalClients = clientsKPIList.length;
+    const newClientsCount = clientsKPIList.filter(c => c.isNew).length;
+    const prevTotalCount = clientsPrevYear.size;
+    const clientsGrowthRel = prevTotalCount > 0 ? (newClientsCount / prevTotalCount) * 100 : (newClientsCount > 0 ? 100 : 0);
+
+    const clientsKPI = {
+        total: totalClients,
+        newAbsolute: newClientsCount,
+        growthRelative: clientsGrowthRel,
+        details: clientsKPIList
+    };
+
+    // === EMPLOYEE KPI (TEMPO) ===
+    let employeesKPI = {
+        total: 0,
+        growthAbs: 0,
+        growthRel: 0,
+        teamsBreakdown: [] as any[]
+    };
+
+    try {
+        const teamsRes = await fetchTempo("/teams");
+        const tempoTeams = (teamsRes.results || []).filter((t: any) => t.name.startsWith("AMA"));
+
+        let totalYear = 0;
+        let totalPrev = 0;
+
+        for (const team of tempoTeams) {
+            const membersRes = await fetchTempo(`/teams/${team.id}/members`);
+            const members = membersRes.results || [];
+
+            let teamTotalYear = 0;
+            let teamTotalPrev = 0;
+
+            const yearStart = new Date(`${year}-01-01`).getTime();
+            const yearEnd = new Date(`${year}-12-31`).getTime();
+            const prevStart = new Date(`${year - 1}-01-01`).getTime();
+            const prevEnd = new Date(`${year - 1}-12-31`).getTime();
+
+            members.forEach((m: any) => {
+                const memberships = m.memberships?.values || [];
+                let inYear = false;
+                let inPrev = false;
+
+                memberships.forEach((ms: any) => {
+                    const msFrom = new Date(ms.from).getTime();
+                    const msTo = ms.to ? new Date(ms.to).getTime() : new Date('2099-12-31').getTime();
+
+                    // Check overlap with Target Year
+                    if (msFrom <= yearEnd && msTo >= yearStart) inYear = true;
+                    // Check overlap with Previous Year
+                    if (msFrom <= prevEnd && msTo >= prevStart) inPrev = true;
+                });
+
+                if (inYear) teamTotalYear++;
+                if (inPrev) teamTotalPrev++;
+            });
+
+            const teamGrowthAbs = teamTotalYear - teamTotalPrev;
+            const teamGrowthRel = teamTotalPrev > 0 ? (teamGrowthAbs / teamTotalPrev) * 100 : (teamTotalYear > 0 ? 100 : 0);
+
+            employeesKPI.teamsBreakdown.push({
+                teamName: team.name,
+                count: teamTotalYear,
+                prevCount: teamTotalPrev,
+                growthAbs: teamGrowthAbs,
+                growthRel: teamGrowthRel
+            });
+
+            totalYear += teamTotalYear;
+            totalPrev += teamTotalPrev;
+        }
+
+        employeesKPI.total = totalYear;
+        employeesKPI.growthAbs = totalYear - totalPrev;
+        employeesKPI.growthRel = totalPrev > 0 ? (employeesKPI.growthAbs / totalPrev) * 100 : (totalYear > 0 ? 100 : 0);
+
+    } catch (err) {
+        console.error("Error calculating employees KPI:", err);
+    }
+
+    // === MONTHLY BREAKDOWN ===
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
         const m = i + 1;
         const mInc = allIncidents.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m);
@@ -406,6 +528,8 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         slaFirstResponseCompliance,
         slaResolutionCompliance,
         avgSatisfaction: null,
+        clientsKPI,
+        employeesKPI,
         evolutivos: {
             creados: evolutivosList.length,
             entregados: validProEvos.length,

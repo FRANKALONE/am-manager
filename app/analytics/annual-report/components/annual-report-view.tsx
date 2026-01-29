@@ -10,7 +10,7 @@ import {
 import {
     TrendingUp, TrendingDown, Users, CheckCircle, XCircle, Clock,
     AlertTriangle, Calendar, Filter, Download, ChevronRight,
-    Search, BarChart3, Activity, Briefcase
+    Search, BarChart3, Activity, Briefcase, UserPlus, ArrowUpRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +33,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
     const [showBacklogDetail, setShowBacklogDetail] = useState(false);
     const [selectedBacklogType, setSelectedBacklogType] = useState<string | null>(null);
     const [showClientsDetail, setShowClientsDetail] = useState(false);
+    const [showEmployeesDetail, setShowEmployeesDetail] = useState(false);
 
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const chartData = report.monthly.map(m => ({
@@ -55,12 +56,12 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
             {/* Header / Filters Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2 uppercase">
                         <BarChart3 className="w-6 h-6 text-indigo-600" />
-                        Informe Anual {year}
+                        Informe Anual AM {year}
                     </h2>
                     <p className="text-slate-500 text-sm font-medium mt-1">
-                        Análisis detallado de calidad, SLA y volumen de servicio
+                        Análisis estratégico de operaciones, clientes y equipo
                     </p>
                 </div>
 
@@ -101,26 +102,46 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
             </div>
 
             {/* KPI Cards Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 {[
                     { title: "Total Incidencias", value: formatNumber(report.totalIncidents), sub: "Volumen anual", icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
                     { title: "SLA Resolución", value: formatPercent(report.slaResolutionCompliance), sub: `${formatNumber(report.slaMetrics.resolution.compliant)} tickets ok`, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" },
+                    {
+                        title: "Clientes Totales",
+                        value: formatNumber(report.clientsKPI.total),
+                        sub: `+${report.clientsKPI.newAbsolute} nuevos (${formatPercent(report.clientsKPI.growthRelative)})`,
+                        icon: Users,
+                        color: "text-indigo-600",
+                        bg: "bg-indigo-50",
+                        onClick: () => setShowClientsDetail(true)
+                    },
+                    {
+                        title: "Equipo AM",
+                        value: formatNumber(report.employeesKPI.total),
+                        sub: `${report.employeesKPI.growthAbs >= 0 ? '+' : ''}${report.employeesKPI.growthAbs} vs año anterior (${formatPercent(report.employeesKPI.growthRel)})`,
+                        icon: UserPlus,
+                        color: "text-violet-600",
+                        bg: "bg-violet-50",
+                        onClick: () => setShowEmployeesDetail(true)
+                    },
                     { title: "SLA Primera Respuesta", value: formatPercent(report.slaFirstResponseCompliance), sub: `${formatNumber(report.slaMetrics.firstResponse.compliant)} tickets ok`, icon: Clock, color: "text-orange-600", bg: "bg-orange-50" },
-                    { title: "Clientes Totales", value: formatNumber(report.clients.total), sub: `+${report.clients.newClients.length} nuevos este año`, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
                 ].map((kpi, i) => (
                     <Card
                         key={i}
-                        className={`rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 cursor-pointer`}
-                        onClick={() => {
-                            if (kpi.title === "Clientes Totales") setShowClientsDetail(true);
-                        }}
+                        className={`rounded-2xl border-none shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 ${kpi.onClick ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/20' : ''}`}
+                        onClick={kpi.onClick}
                     >
                         <CardContent className="p-6">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{kpi.title}</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{kpi.title}</p>
                                     <h3 className="text-3xl font-black text-slate-800 dark:text-slate-100">{kpi.value}</h3>
-                                    <p className="text-xs font-medium text-slate-400 mt-1">{kpi.sub}</p>
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                                        {kpi.title === "Equipo AM" || kpi.title === "Clientes Totales" ? (
+                                            <TrendingUp className="w-3 h-3 text-emerald-500" />
+                                        ) : null}
+                                        {kpi.sub}
+                                    </p>
                                 </div>
                                 <div className={`p-3 rounded-xl ${kpi.bg} dark:bg-slate-800 group-hover:scale-110 transition-transform duration-300`}>
                                     <kpi.icon className={`w-6 h-6 ${kpi.color}`} />
@@ -441,25 +462,110 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
 
             {/* Clients Detail Modal */}
             {showClientsDetail && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl animate-in zoom-in duration-300">
-                        <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-                            <div>
-                                <CardTitle className="text-2xl font-black text-slate-800 uppercase tracking-tight">Cartera de Clientes</CardTitle>
-                                <CardDescription>Listado completo y nuevas adquisiciones {year}</CardDescription>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-6 relative">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Cartera de Clientes {year}</CardTitle>
+                                    <CardDescription className="text-indigo-100 text-sm font-medium">Análisis de crecimiento y fidelidad</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowClientsDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
                             </div>
-                            <Button variant="ghost" className="rounded-full" onClick={() => setShowClientsDetail(false)}>
-                                <XCircle className="w-6 h-6 text-slate-400" />
-                            </Button>
+                            <div className="grid grid-cols-3 gap-4 mt-6">
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Total</p>
+                                    <p className="text-2xl font-black">{report.clientsKPI.total}</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Nuevos</p>
+                                    <p className="text-2xl font-black">+{report.clientsKPI.newAbsolute}</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Crecimiento</p>
+                                    <p className="text-2xl font-black">{formatPercent(report.clientsKPI.growthRelative)}</p>
+                                </div>
+                            </div>
                         </CardHeader>
-                        <CardContent className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {report.clients.clientList.map(client => (
-                                    <div key={client.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                        <span className="text-sm font-bold text-slate-700">{client.name}</span>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {report.clientsKPI.details.map(client => (
+                                    <div key={client.id} className="group flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-indigo-500/50 hover:shadow-md transition-all">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-black text-slate-700 dark:text-slate-200 truncate max-w-[150px]">{client.name}</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">{client.isNew ? 'Nueva Adquisición' : 'Cliente recurrente'}</span>
+                                        </div>
                                         {client.isNew && (
-                                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Nuevo</span>
+                                            <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full animate-pulse">
+                                                <ArrowUpRight className="w-3 h-3" />
+                                                <span className="text-[10px] font-black uppercase">Nuevo</span>
+                                            </div>
                                         )}
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Employees Detail Modal */}
+            {showEmployeesDetail && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl animate-in zoom-in duration-300 border-none flex flex-col">
+                        <CardHeader className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-6 relative">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tight">Estructura de Equipo AM {year}</CardTitle>
+                                    <CardDescription className="text-violet-100 text-sm font-medium">Desglose por equipos funcionales AMA</CardDescription>
+                                </div>
+                                <Button variant="ghost" className="rounded-full text-white hover:bg-white/20" size="icon" onClick={() => setShowEmployeesDetail(false)}>
+                                    <XCircle className="w-6 h-6" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mt-6">
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Plantilla AM</p>
+                                    <p className="text-2xl font-black">{report.employeesKPI.total}</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Variación Abs</p>
+                                    <p className="text-2xl font-black">{report.employeesKPI.growthAbs >= 0 ? '+' : ''}{report.employeesKPI.growthAbs}</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-2xl">
+                                    <p className="text-[10px] font-bold uppercase opacity-80">Variación Rel</p>
+                                    <p className="text-2xl font-black">{formatPercent(report.employeesKPI.growthRel)}</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 overflow-y-auto bg-white dark:bg-slate-900">
+                            <div className="space-y-4">
+                                {report.employeesKPI.teamsBreakdown.map((team, idx) => (
+                                    <div key={idx} className="flex items-center gap-6 p-5 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all">
+                                        <div className="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-violet-500/20 shrink-0">
+                                            {team.teamName.split(' ')[1] || 'AM'}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">{team.teamName}</h4>
+                                            <p className="text-xs text-slate-400 font-bold uppercase mt-1">
+                                                Cierre anterior: {team.prevCount} miembros
+                                            </p>
+                                        </div>
+                                        <div className="text-right flex items-center gap-8">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Actual</p>
+                                                <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{team.count}</p>
+                                            </div>
+                                            <div className="min-w-[80px]">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Crecimiento</p>
+                                                <div className={`flex items-center gap-1 font-black ${team.growthAbs >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                    {team.growthAbs >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                                    <span>{team.growthAbs >= 0 ? '+' : ''}{team.growthAbs} ({formatPercent(team.growthRel)})</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
