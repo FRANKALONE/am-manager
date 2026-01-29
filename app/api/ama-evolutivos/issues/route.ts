@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getHitos, getEvolutivos } from '@/lib/ama-evolutivos/jira';
+import { getHitos, getEvolutivos, getIssuesByKeys } from '@/lib/ama-evolutivos/jira';
 import type { DashboardData, JiraIssue } from '@/lib/ama-evolutivos/types';
 import { getAuthSession } from '@/lib/auth';
+import { parseISO, isPast, isToday, isFuture, addDays, isBefore } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,135 +13,124 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // 1. Fetch specifically "Hitos Evolutivos" that are not closed.
         const hitos = await getHitos();
+
+        // 2. Fetch metric: Total Active Evolutivos (Parent tickets)
         const evolutivos = await getEvolutivos();
+        const activeEvolutivosCount = evolutivos.length;
 
-        // Extraer gestores únicos del campo customfield_10254 (Gestor del ticket)
-        const gestoresMap = new Map();
+        // 3. ENRICHMENT: Fetch Parent Details for "Gestor del ticket" (customfield_10254)
+        const parentKeys = Array.from(new Set(hitos
+            .filter((i: any) => i.fields.parent && i.fields.parent.key)
+            .map((i: any) => i.fields.parent.key)
+        )) as string[];
 
-        const extractGestor = (issue: any) => {
-            const gestor = issue.fields?.customfield_10254; // Campo Gestor del ticket
-            if (gestor && gestor.accountId) {
-                return {
-                    id: gestor.accountId,
-                    name: gestor.displayName,
-                    displayName: gestor.displayName,
-                    avatarUrl: gestor.avatarUrls?.['48x48'],
-                    emailAddress: gestor.emailAddress,
-                };
+        const managerMap = new Map();
+
+        if (parentKeys.length > 0) {
+            try {
+                // Use getIssuesByKeys to fetch parent details
+                const parentsData = await getIssuesByKeys(parentKeys, ['customfield_10254', 'customfield_10002']);
+
+                parentsData.forEach((p: any) => {
+                    const gestor = p.fields.customfield_10254;
+                    const orgs = p.fields.customfield_10002 || [];
+                    const organization = orgs.length > 0 ? orgs[0].name : null;
+
+                    managerMap.set(p.key, {
+                        gestor: gestor ? {
+                            id: gestor.accountId,
+                            name: gestor.displayName,
+                            avatarUrl: gestor.avatarUrls?.['48x48'] || null
+                        } : null,
+                        organization: organization
+                    });
+                });
+            } catch (err) {
+                console.error("Error fetching parents for enrichment:", err);
             }
-            return null;
-        };
+        }
 
-        // Procesar todos para extraer gestores
-        [...evolutivos, ...hitos].forEach(issue => {
-            const g = extractGestor(issue);
-            if (g) gestoresMap.set(g.id, g);
-        });
-
-        // Crear mapa de evolutivos para acceso rápido
-        const evolutivosMap = new Map();
-        evolutivos.forEach(evo => {
-            const orgs = evo.fields?.customfield_10002 || [];
-            const organization = orgs.length > 0 ? orgs[0].name : null;
-
-            evolutivosMap.set(evo.key, {
-                gestor: extractGestor(evo),
-                organization: organization,
-                summary: evo.fields?.summary
-            });
-        });
-
-        // Procesar hitos y clasificarlos
+        // 4. Attach Manager to Issues & Bucket them
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const in7Days = new Date(today);
-        in7Days.setDate(in7Days.getDate() + 7);
+        const nextWeek = addDays(now, 7);
 
-        const processedIssues: JiraIssue[] = hitos.map((issue: any) => {
-            const parentKey = issue.fields.parent?.key;
-            const parentDetails = parentKey ? evolutivosMap.get(parentKey) : null;
+        const expired: any[] = [];
+        const today: any[] = [];
+        const upcoming: any[] = [];
+        const others: any[] = [];
+        const unplanned: any[] = [];
 
-            // Intentar obtener gestor del hito o del evolutivo padre
-            let gestor = extractGestor(issue) || parentDetails?.gestor;
+        const processedIssues = hitos.map((issue: any) => {
+            const pKey = issue.fields.parent?.key;
+            const parentDetails = pKey ? managerMap.get(pKey) : null;
 
-            // Obtener datos del responsable (assignee)
-            const assignee = issue.fields?.assignee;
-
+            // Re-map to our JiraIssue type
             return {
                 key: issue.key,
                 summary: issue.fields.summary,
                 status: issue.fields.status?.name || 'Unknown',
                 issueType: issue.fields.issuetype?.name || 'Unknown',
                 dueDate: issue.fields.duedate,
-                gestor: gestor ? {
-                    id: gestor.id,
-                    name: gestor.name,
-                    avatarUrl: gestor.avatarUrl,
+                gestor: parentDetails?.gestor || null,
+                organization: parentDetails?.organization || null,
+                parentKey: pKey,
+                parent: pKey ? {
+                    key: pKey,
+                    summary: issue.fields.parent.fields?.summary || 'Sin Título'
                 } : undefined,
-                parentKey: parentKey,
-                parent: parentKey ? {
-                    key: parentKey,
-                    summary: parentDetails?.summary || 'Sin Título'
-                } : undefined,
-                organization: parentDetails?.organization,
-                assignee: assignee ? {
-                    id: assignee.accountId,
-                    displayName: assignee.displayName,
-                    avatarUrl: assignee.avatarUrls?.['48x48']
-                } : undefined,
-                pendingHitos: 0,
+                assignee: issue.fields.assignee ? {
+                    id: issue.fields.assignee.accountId,
+                    displayName: issue.fields.assignee.displayName,
+                    avatarUrl: issue.fields.assignee.avatarUrls?.['48x48']
+                } : undefined
             };
         });
 
-        // Clasificar issues
-        const expired: JiraIssue[] = [];
-        const todayIssues: JiraIssue[] = [];
-        const upcoming: JiraIssue[] = [];
-        const others: JiraIssue[] = [];
-        const unplanned: JiraIssue[] = [];
-
         processedIssues.forEach((issue: any) => {
-            const dueDate = issue.dueDate;
-            const plannedDate = hitos.find((h: any) => h.key === issue.key)?.fields?.customfield_10015;
-            const effectiveDateStr = dueDate || plannedDate;
-
-            if (!effectiveDateStr) {
+            const dueDateStr = issue.dueDate;
+            if (!dueDateStr) {
                 unplanned.push(issue);
                 return;
             }
 
-            const effectiveDate = new Date(effectiveDateStr);
-            const dueDateOnly = new Date(effectiveDate.getFullYear(), effectiveDate.getMonth(), effectiveDate.getDate());
+            const dueDate = parseISO(dueDateStr);
 
-            if (dueDateOnly < today) {
+            if (isToday(dueDate)) {
+                today.push(issue);
+            } else if (isPast(dueDate)) {
                 expired.push(issue);
-            } else if (dueDateOnly.getTime() === today.getTime()) {
-                todayIssues.push(issue);
-            } else if (dueDateOnly <= in7Days) {
+            } else if (isFuture(dueDate) && isBefore(dueDate, nextWeek)) {
                 upcoming.push(issue);
             } else {
                 others.push(issue);
             }
         });
 
+        // Collect all managers for filtering
+        const managers = Array.from(managerMap.values())
+            .filter(item => item.gestor)
+            .map(item => item.gestor)
+            .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+
         const response: DashboardData = {
             summary: {
                 expired: expired.length,
-                today: todayIssues.length,
+                today: today.length,
                 upcoming: upcoming.length,
                 others: others.length,
                 unplanned: unplanned.length,
-                activeEvolutivos: evolutivos.length
+                activeEvolutivos: activeEvolutivosCount
             },
             issues: {
                 expired,
-                today: todayIssues,
+                today,
                 upcoming,
                 others,
                 unplanned,
             },
-            managers: Array.from(gestoresMap.values()),
+            managers: managers as any[],
         };
 
         return NextResponse.json(response);

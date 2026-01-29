@@ -7,8 +7,8 @@ const JIRA_EMAIL = process.env.JIRA_EMAIL || process.env.JIRA_USER_EMAIL || '';
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
 
 // Definimos listas de posibles nombres para mayor robustez
-export const EVOLUTIVO_TYPES = ["Evolutivo", "Petición de Evolutivo", "Evolutivos"];
-export const HITO_TYPES = ["Hitos Evolutivos", "Hito Evolutivo", "Hito"];
+export const EVOLUTIVO_TYPES = ["Evolutivo"];
+export const HITO_TYPES = ["Hitos Evolutivos"];
 
 function getAuthHeader() {
     return `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
@@ -31,16 +31,14 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
             const params = new URLSearchParams({
                 jql,
                 startAt: startAt.toString(),
-                maxResults: (maxIssues && maxIssues < maxResults ? maxIssues : maxResults).toString(),
+                maxResults: (maxIssues && (maxIssues - allIssues.length) < maxResults ? (maxIssues - allIssues.length) : maxResults).toString(),
             });
 
-            // Añadir campos uno a uno si es necesario o como una cadena separada por comas
             if (fields && fields.length > 0) {
                 params.append('fields', fields.join(','));
             }
 
             const searchUrl = `${url}?${params.toString()}`;
-
             console.log(`[Jira Search] URL: ${searchUrl}`);
 
             const response = await fetch(searchUrl, {
@@ -61,16 +59,17 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
             const issues = data.issues || [];
             allIssues.push(...issues);
 
-            console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}, Total in JIRA: ${data.total}`);
+            const total = typeof data.total === 'number' ? data.total : allIssues.length;
+            console.log(`[Jira Search] Page issues: ${issues.length}, Accumulated: ${allIssues.length}, Total in JIRA: ${total}`);
 
             if (maxIssues && allIssues.length >= maxIssues) {
                 break;
             }
 
-            startAt += issues.length;
-            if (issues.length === 0 || startAt >= (data.total || 0)) {
+            if (issues.length === 0 || allIssues.length >= total) {
                 break;
             }
+            startAt += issues.length;
         }
 
         console.log(`[Jira Search] Final issues count: ${allIssues.length}`);
@@ -82,8 +81,7 @@ export async function searchJiraIssues(jql: string, fields: string[] = ['*all'],
 }
 
 export async function getEvolutivos(): Promise<any[]> {
-    const typesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
-    const jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) ORDER BY created DESC`;
+    const jql = `projectType = "service_desk" AND issuetype = "Evolutivo" AND status != "Cerrado" AND status != "Entregado en PRD" ORDER BY created DESC`;
 
     try {
         const issues = await searchJiraIssues(jql, [
@@ -94,7 +92,7 @@ export async function getEvolutivos(): Promise<any[]> {
             'customfield_10014', // Epic Link / Parent
             'customfield_10254', // Gestor del ticket
             'customfield_10002', // Organization
-            'customfield_10095', // Billing Mode
+            'customfield_10121', // Billing Mode (Reference app uses 10121)
             'timeoriginalestimate',
             'timespent',
             'created',
@@ -109,8 +107,7 @@ export async function getEvolutivos(): Promise<any[]> {
 }
 
 export async function getHitos(evolutivoKey?: string): Promise<any[]> {
-    const typesStr = HITO_TYPES.map(t => `"${t}"`).join(', ');
-    let jql = `projectType = "service_desk" AND issuetype IN (${typesStr}) AND status NOT IN ("Cerrado", "Done") AND (duedate is not EMPTY OR cf[10015] is not EMPTY)`;
+    let jql = `projectType = "service_desk" AND issuetype = "Hitos Evolutivos" AND status != "Cerrado"`;
 
     if (evolutivoKey) {
         jql += ` AND parent = "${evolutivoKey}"`;
@@ -191,7 +188,9 @@ export async function getIssueById(issueKey: string): Promise<any | null> {
 export async function getWorkloadMetrics(): Promise<{ incidencias: number; evolutivos: number }> {
     try {
         const evoTypesStr = EVOLUTIVO_TYPES.map(t => `"${t}"`).join(', ');
-        const incidenciasJql = `projectType = "service_desk" AND issuetype IN ("Incidencia de Correctivo", "Consulta") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
+        // Incidencias: Incidencia de Correctivo, Consulta, Consultas. Status NOT IN (Cerrado, Propuesta de Solución, Done)
+        const incidenciasJql = `projectType = "service_desk" AND issuetype IN ("Incidencia de Correctivo", "Consulta", "Consultas") AND status NOT IN ("Cerrado", "Propuesta de Solución", "Done")`;
+        // Evolutivos: Evolutivo (y variantes). Status NOT IN (Cerrado, Done, Entregado en PRO, Entregado en PRD, etc.)
         const evolutivosJql = `projectType = "service_desk" AND issuetype IN (${evoTypesStr}) AND status NOT IN ("Cerrado", "Done", "Entregado en PRO", "Entregado en PRO (Cloud)", "Entregado en PRD")`;
 
         const [incidenciasRes, evolutivosRes] = await Promise.all([
