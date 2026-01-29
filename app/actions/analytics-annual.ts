@@ -223,7 +223,64 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     } catch (error) {
         console.error("Error fetching incidents from Jira:", error);
-        // Fallback or throw error as appropriate
+        // Fallback to database if Jira fails
+        console.log("Falling back to database queries...");
+
+        const startPrev = new Date(`${year - 1}-01-01T00:00:00Z`);
+        const endPrev = new Date(`${year - 1}-12-31T23:59:59Z`);
+
+        const dbCurrentTickets = await prisma.ticket.findMany({
+            where: {
+                createdDate: { gte: start, lte: end },
+                NOT: {
+                    issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                }
+            },
+            select: {
+                issueKey: true,
+                issueType: true,
+                createdDate: true,
+                component: true,
+                status: true,
+                resolution: true,
+                slaResolution: true,
+                slaResponse: true,
+                slaResolutionTime: true,
+                slaResponseTime: true,
+                workPackage: { select: { clientId: true, clientName: true } }
+            }
+        });
+
+        const dbPrevTickets = await prisma.ticket.findMany({
+            where: {
+                createdDate: { gte: startPrev, lte: endPrev },
+                NOT: {
+                    issueType: { in: ['Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
+                }
+            },
+            select: { issueType: true }
+        });
+
+        currentYearTickets = dbCurrentTickets;
+        prevYearTickets = dbPrevTickets;
+        totalIncidents = dbCurrentTickets.length;
+        prevYearIncidents = dbPrevTickets.length;
+
+        const currentTypes = currentYearTickets.reduce((acc: Record<string, number>, t) => {
+            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+            return acc;
+        }, {});
+
+        const prevTypes = prevYearTickets.reduce((acc: Record<string, number>, t) => {
+            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
+            return acc;
+        }, {});
+
+        incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
+            type,
+            count: currentTypes[type] || 0,
+            prevCount: prevTypes[type] || 0
+        })).sort((a, b) => b.count - a.count);
     }
 
     const allIncidents = currentYearTickets;
