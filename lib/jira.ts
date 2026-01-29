@@ -17,14 +17,13 @@ const JIRA_API_BASE = "https://api.tempo.io/core/3"; // Wait, user said "same UR
 // I'll assume I need to use `process.env.JIRA_URL` and fall back or throw error.
 
 export async function fetchJira(endpoint: string, options: RequestInit = {}) {
-    // START DEBUG
     // Trim env vars to avoid subtle Auth issues
     const token = process.env.JIRA_API_TOKEN?.trim();
-    const email = process.env.JIRA_USER_EMAIL?.trim();
-    const domain = process.env.JIRA_URL?.trim();
+    const email = process.env.JIRA_EMAIL?.trim() || process.env.JIRA_USER_EMAIL?.trim();
+    const domain = process.env.NEXT_PUBLIC_JIRA_DOMAIN?.trim() || process.env.JIRA_URL?.trim() || process.env.JIRA_DOMAIN?.trim();
 
     if (!token || !email || !domain) {
-        throw new Error("JIRA_API_TOKEN, JIRA_USER_EMAIL or JIRA_URL is not defined");
+        throw new Error(`JIRA credentials missing: token=${!!token}, email=${!!email}, domain=${!!domain}`);
     }
 
     // Simplified Jira Fetcher: Trust the caller to provide correct Method/Body.
