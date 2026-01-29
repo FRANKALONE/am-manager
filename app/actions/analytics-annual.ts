@@ -165,8 +165,6 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     const currentYearTickets = await prisma.ticket.findMany({
         where: {
-            // Brute count: remove WP/clientId filters for global volume if requested "No filtres por wp o cliente"
-            // However, we still need to filter out Evolutivos as per dashboard logic
             createdDate: { gte: start, lte: end },
             NOT: {
                 issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos'], mode: 'insensitive' }
@@ -608,10 +606,26 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
     });
 
-    // We only count hours from periods that overlap with the targeted year.
-    // However, the requested KPI is "Total Horas Contratadas", we usually sum the total quantity 
-    // of active periods during that year.
-    const contractedTotal = vpsForYear.reduce((sum, vp) => sum + vp.totalQuantity, 0);
+    // Pro-rata hours calculation based on billingType
+    let contractedTotal = 0;
+    vpsForYear.forEach(vp => {
+        if (vp.billingType?.toUpperCase() === 'MENSUAL' || vp.billingType?.toUpperCase() === 'MONTHLY') {
+            // If it's monthly, we count how many months of the vp overlap with the requested year
+            const vpStart = new Date(vp.startDate);
+            const vpEnd = new Date(vp.endDate);
+            const overlapStart = new Date(Math.max(vpStart.getTime(), start.getTime()));
+            const overlapEnd = new Date(Math.min(vpEnd.getTime(), end.getTime()));
+
+            if (overlapStart <= overlapEnd) {
+                const monthsCount = (overlapEnd.getUTCFullYear() - overlapStart.getUTCFullYear()) * 12 + (overlapEnd.getUTCMonth() - overlapStart.getUTCMonth()) + 1;
+                // Assuming vp.totalQuantity is Monthly Quantity for these types
+                contractedTotal += vp.totalQuantity * monthsCount;
+            }
+        } else {
+            // One-time or "PUNTUAL" billing: count the whole amount in the year it starts/overlaps
+            contractedTotal += vp.totalQuantity;
+        }
+    });
 
     // Regularizations: Sum EXCESO_CONSUMO (EXCESS in DB)
     const yearRegs = await prisma.regularization.findMany({
@@ -728,6 +742,9 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             employeesKPI.total = tempoTotalYear;
             employeesKPI.growthAbs = tempoTotalYear - tempoTotalPrev;
             employeesKPI.growthRel = tempoTotalPrev > 0 ? (employeesKPI.growthAbs / tempoTotalPrev) * 100 : 0;
+
+            // Log for debugging since dashboard shows 0.0%
+            console.log(`Team Counts: Year=${tempoTotalYear}, Prev=${tempoTotalPrev}, Growth=${employeesKPI.growthAbs}`);
         } catch (tempoErr) {
             // If Tempo fails, use DB totals
             employeesKPI.total = totalYear;
