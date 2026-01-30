@@ -71,53 +71,39 @@ RESPUESTA REQUERIDA (en formato JSON):
 }
 `;
 
-        // 4. Llamar a Gemini con fallback y diagnóstico
-        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b"];
-        let lastError = "";
+        // 4. Llamar a Gemini con el modelo verificado (gemini-2.0-flash)
+        // En 2026, gemini-2.0-flash es el estándar estable para Flash.
+        const modelId = "gemini-2.0-flash";
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
 
-        for (const modelId of modelsToTry) {
-            try {
-                const URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
-                const response = await fetch(URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            responseMimeType: "application/json"
-                        }
-                    }),
-                });
-
-                if (response.ok) {
-                    const aiData = await response.json();
-                    let text = aiData.candidates[0].content.parts[0].text;
-                    // Limpiar posible formato markdown si la IA lo incluye
-                    text = text.replace(/```json\n?/, "").replace(/\n?```/, "").trim();
-                    const aiResult = JSON.parse(text);
-                    return { success: true, data: aiResult };
+        const response = await fetch(URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json"
                 }
+            }),
+        });
 
-                const errorData = await response.json().catch(() => ({}));
-                lastError = errorData.error?.message || `Error ${response.status}`;
-                console.error(`Gemini trial for ${modelId} failed:`, lastError);
-
-                if (response.status !== 404) break;
-            } catch (e: any) {
-                lastError = e.message;
-            }
+        if (response.ok) {
+            const aiData = await response.json();
+            let text = aiData.candidates[0].content.parts[0].text;
+            text = text.replace(/```json\n?/, "").replace(/\n?```/, "").trim();
+            const aiResult = JSON.parse(text);
+            return { success: true, data: aiResult };
         }
 
-        // Si fallan todos, intentamos listar modelos para el diagnóstico final
-        try {
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
-            const listRes = await fetch(listUrl);
-            const listData = await listRes.json();
-            const available = listData.models?.map((m: any) => m.name.split('/').pop()).join(', ') || "Ninguno";
-            throw new Error(`Modelos probados no encontrados. Disponibles para tu clave: ${available}`);
-        } catch (diagError: any) {
-            throw new Error(`Gemini API error: ${lastError}. (Diagnóstico: ${diagError.message})`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `Error ${response.status}`;
+
+        // Si es un error de cuota, informarlo claramente
+        if (response.status === 429 || errorMessage.includes("quota")) {
+            throw new Error("Límite de cuota de Gemini excedido. Por favor, revisa tu factura o espera unos minutos.");
         }
+
+        throw new Error(`Gemini API error (${modelId}): ${errorMessage}`);
 
     } catch (error: any) {
         console.error("AI Analysis error:", error);
