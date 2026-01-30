@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
     Table,
     TableBody,
@@ -92,11 +93,13 @@ export function ReviewRequestClient({ initialPendingRequests, initialHistoryRequ
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleViewDetails(request)}
+                                    asChild
                                     className="hover:text-malachite"
                                 >
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    {showResolution ? "Ver Decisión" : "Gestionar"}
+                                    <Link href={`/admin/review-requests/${request.id}`}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        {showResolution ? "Ver Decisión" : "Gestionar"}
+                                    </Link>
                                 </Button>
                             </TableCell>
                         </TableRow>

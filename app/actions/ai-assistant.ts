@@ -72,8 +72,10 @@ RESPUESTA REQUERIDA (en formato JSON):
 }
 `;
 
-        // 4. Llamar a Gemini
-        const response = await fetch(GEMINI_URL, {
+        // 4. Llamar a Gemini (usando v1beta por mayor compatibilidad con Flash)
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+        const response = await fetch(URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -87,7 +89,9 @@ RESPUESTA REQUERIDA (en formato JSON):
         });
 
         if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error("Gemini API detailed error:", errorText);
+            throw new Error(`Gemini API error ${response.status}: ${errorText.substring(0, 100)}`);
         }
 
         const aiData = await response.json();
