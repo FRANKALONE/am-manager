@@ -134,7 +134,7 @@ export function ReviewDetailModal({
                     <div className="p-20 text-center text-muted-foreground">Cargando detalles...</div>
                 ) : request ? (
                     <>
-                        <ScrollArea className="flex-1 p-6 pt-2">
+                        <ScrollArea className="flex-1 p-6 pt-2 min-h-[350px]">
                             <div className="space-y-4">
                                 {/* Cabecera de datos compacta */}
                                 <div className="grid grid-cols-4 gap-4 text-[11px] bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-sm">
@@ -175,7 +175,7 @@ export function ReviewDetailModal({
                                             </span>
                                         )}
                                     </h4>
-                                    <div className="border rounded-md overflow-y-auto max-h-[350px] bg-white shadow-sm font-anek">
+                                    <div className="border rounded-md bg-white shadow-sm font-anek">
                                         <table className="w-full text-xs">
                                             <thead className="bg-slate-50 border-b">
                                                 <tr className="text-slate-500 font-semibold italic">
