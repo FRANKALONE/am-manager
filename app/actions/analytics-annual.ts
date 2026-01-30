@@ -934,10 +934,11 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
 
     // === MONTHLY BREAKDOWN & BACKLOG ===
     // Accumulated backlog: Tickets open at the end of each month
-    // We approximate this by: created <= month_end AND (closed > month_end OR resolution IS NULL)
+    // Query Jira directly using resolutiondate for accurate historical data
     const monthlyData = await Promise.all(Array.from({ length: 12 }, async (_, i) => {
         const m = i + 1;
         const monthEnd = new Date(year, m, 0, 23, 59, 59);
+        const monthEndStr = `${year}-${String(m).padStart(2, '0')}-${new Date(year, m, 0).getDate()}`;
 
         const mInc = allIncidents.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m);
         const mEvos = aprobadasList.filter(t => new Date(t.createdDate).getUTCMonth() + 1 === m);
@@ -950,27 +951,19 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         const mSatTickets = currentYearSatTickets.filter((t: any) => new Date(t.fields.created).getUTCMonth() + 1 === m);
         const mSatAvg = calcAvg(mSatTickets);
 
-        // Accumulated backlog calculation
-        // At end of month M, a ticket is in backlog if createdDate <= monthEnd 
-        // AND (it is not currently closed OR it was closed AFTER monthEnd).
-        // Without full history access for all tickets, we use this as the best approximation:
-        const monthBacklog = await prisma.ticket.count({
-            where: {
-                workPackage: { clientId: { in: clientsListIds } },
-                createdDate: { lte: monthEnd },
-                issueType: { notIn: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos', 'Tarea', 'Sub-Tarea', 'Sub-task', 'Task'], mode: 'insensitive' },
-                OR: [
-                    { status: { notIn: ['Cerrado', 'Resuelto', 'Resolved', 'Closed', 'Done'], mode: 'insensitive' } },
-                    // If we had a resolutionDate field in Ticket, we would add:
-                    // { resolutionDate: { gt: monthEnd } }
-                    // Since we don't, tickets that are currently closed but were open then are missed.
-                    // But this is still more accurate than current filtering.
-                ]
-            }
-        });
-
-        // Final clarification: The user wants to know if it's correct. 
-        // We ensure we at least filter out correct types and use creation date.
+        // Backlog calculation: Query Jira for tickets unresolved at month end
+        // Tickets created before or during this month AND (not resolved OR resolved after month end)
+        // Exclude: Hito evolutivo, Hitos Evolutivos
+        let monthBacklog = 0;
+        try {
+            const backlogJql = `created <= "${monthEndStr}" AND (resolutiondate > "${monthEndStr}" OR resolutiondate IS EMPTY) AND issuetype NOT IN ("Hito evolutivo", "Hitos Evolutivos")`;
+            const backlogRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(backlogJql)}&maxResults=0`);
+            monthBacklog = backlogRes.total || 0;
+        } catch (err) {
+            console.error(`Error fetching backlog for month ${m}/${year}:`, err);
+            // Fallback to 0 if Jira query fails
+            monthBacklog = 0;
+        }
 
         return {
             month: m,

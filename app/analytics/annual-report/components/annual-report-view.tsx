@@ -202,6 +202,10 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>
                                 <span className="text-xs font-bold text-slate-500">Incidencias</span>
                             </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                <span className="text-xs font-bold text-slate-500">Backlog</span>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="pt-4">
