@@ -140,6 +140,57 @@ export interface AnnualReportData {
     };
 }
 
+// Helper to iterate and count Jira issues since /search/jql doesn't return total
+async function fetchJiraTotalCount(jql: string) {
+    let total = 0;
+    let nextPageToken = null;
+    let isLast = false;
+    let safetyCounter = 0;
+
+    try {
+        do {
+            const endpoint = `/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
+            const res = await fetchJira(endpoint);
+            total += (res.issues || []).length;
+            nextPageToken = res.nextPageToken;
+            isLast = res.isLast || !nextPageToken;
+            safetyCounter++;
+            if (safetyCounter > 100) break; // Limit to 10k issues for safety
+        } while (!isLast);
+        return total;
+    } catch (e) {
+        console.error("Error in fetchJiraTotalCount:", e);
+        return 0;
+    }
+}
+
+async function fetchJiraTypeBreakdown(jql: string) {
+    const counts: Record<string, number> = {};
+    let nextPageToken = null;
+    let isLast = false;
+    let safetyCounter = 0;
+
+    try {
+        do {
+            // We only need issuetype field
+            const endpoint = `/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=issuetype${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
+            const res = await fetchJira(endpoint);
+            (res.issues || []).forEach((issue: any) => {
+                const type = issue.fields?.issuetype?.name || 'Unknown';
+                counts[type] = (counts[type] || 0) + 1;
+            });
+            nextPageToken = res.nextPageToken;
+            isLast = res.isLast || !nextPageToken;
+            safetyCounter++;
+            if (safetyCounter > 100) break;
+        } while (!isLast);
+        return counts;
+    } catch (e) {
+        console.error("Error in fetchJiraTypeBreakdown:", e);
+        return {};
+    }
+}
+
 export async function getAnnualReport(year: number, clientId?: string): Promise<AnnualReportData> {
     const session = await getSession();
     if (!session) throw new Error('Unauthorized');
@@ -164,8 +215,9 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     const incidentTypes = ['Consulta', 'Evolutivo', 'Formación', 'Garantía', 'Incidencia de Correctivo',
         'Interno', 'Petición de Evolutivo', 'Servicio IAAS', 'Solicitud de servicio', 'Soporte AM'];
 
-    const jqlCurrent = `created >= "${year}-01-01" AND created <= "${year}-12-31" AND type IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
-    const jqlPrev = `created >= "${year - 1}-01-01" AND created <= "${year - 1}-12-31" AND type IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
+    // Using issuetype instead of type for JQL
+    const jqlCurrent = `created >= "${year}-01-01" AND created <= "${year}-12-31" AND issuetype IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
+    const jqlPrev = `created >= "${year - 1}-01-01" AND created <= "${year - 1}-12-31" AND issuetype IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
 
     let currentYearTickets: any[] = [];
     let prevYearTickets: any[] = [];
@@ -174,16 +226,16 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     let incidentsByType: Array<{ type: string; count: number; prevCount: number }> = [];
 
     try {
-        // Fetch current year from Jira
-        const currentRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlCurrent)}&maxResults=0`);
-        totalIncidents = currentRes.total || 0;
+        // Fetch current year total from Jira by iterating
+        totalIncidents = await fetchJiraTotalCount(jqlCurrent);
 
-        // Fetch previous year from Jira
-        const prevRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlPrev)}&maxResults=0`);
-        prevYearIncidents = prevRes.total || 0;
+        // Fetch previous year total from Jira
+        if (year - 1 === 2024 || prevYearIncidents === 0) {
+            prevYearIncidents = await fetchJiraTotalCount(jqlPrev);
+        }
 
         // Now fetch with details for type breakdown (limited to reasonable amount)
-        const currentDetailRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlCurrent)}&fields=issuetype,created,component,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009&maxResults=1000`);
+        const currentDetailRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(jqlCurrent)}&fields=issuetype,created,components,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009&maxResults=1000`);
         currentYearTickets = (currentDetailRes.issues || []).map((issue: any) => ({
             issueKey: issue.key,
             issueType: issue.fields?.issuetype?.name || 'Unknown',
@@ -199,26 +251,20 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             workPackage: { clientId: 'unknown', clientName: 'Unknown' } // Placeholder
         }));
 
-        const prevDetailRes = await fetchJira(`/search?jql=${encodeURIComponent(jqlPrev)}&fields=issuetype&maxResults=1000`);
+        const prevDetailRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(jqlPrev)}&fields=issuetype&maxResults=1000`);
         prevYearTickets = (prevDetailRes.issues || []).map((issue: any) => ({
             issueType: issue.fields?.issuetype?.name || 'Unknown'
         }));
 
-        // By Type
-        const currentTypes = currentYearTickets.reduce((acc: Record<string, number>, t) => {
-            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
-            return acc;
-        }, {});
+        // Fetch breakdowns
+        const currentYearCounts = await fetchJiraTypeBreakdown(jqlCurrent);
+        const prevYearCounts = await fetchJiraTypeBreakdown(jqlPrev);
 
-        const prevTypes = prevYearTickets.reduce((acc: Record<string, number>, t) => {
-            acc[t.issueType] = (acc[t.issueType] || 0) + 1;
-            return acc;
-        }, {});
-
-        incidentsByType = Object.keys({ ...currentTypes, ...prevTypes }).map(type => ({
+        const allTypes = Array.from(new Set([...Object.keys(currentYearCounts), ...Object.keys(prevYearCounts)]));
+        incidentsByType = allTypes.map(type => ({
             type,
-            count: currentTypes[type] || 0,
-            prevCount: prevTypes[type] || 0
+            count: currentYearCounts[type] || 0,
+            prevCount: prevYearCounts[type] || 0
         })).sort((a, b) => b.count - a.count);
 
     } catch (error) {
@@ -442,33 +488,14 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     // === SATISFACTION (cf[10027]) ===
     // We will fetch satisfaction from Jira as it's not fully in DB
     const getSatisfactionData = async (y: number) => {
-        const s = new Date(`${y}-01-01`).toISOString().split('T')[0];
-        const e = new Date(`${y}-12-31`).toISOString().split('T')[0];
-
-        const jiraUrl = process.env.JIRA_URL;
-        const jiraEmail = process.env.JIRA_USER_EMAIL;
-        const jiraToken = process.env.JIRA_API_TOKEN;
-        const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+        const s = `${y}-01-01`;
+        const e = `${y}-12-31`;
 
         // Satisfaction is cf[10027]
         const jql = `created >= "${s}" AND created <= "${e}" AND cf[10027] IS NOT EMPTY`;
 
         try {
-            const response = await fetch(`${jiraUrl}/rest/api/3/search`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${auth}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    jql,
-                    maxResults: 1000,
-                    fields: ['issuetype', 'components', 'cf[10027]', 'created']
-                })
-            });
-
-            if (!response.ok) return [];
-            const data = await response.json();
+            const data = await fetchJira(`/search/jql?jql=${encodeURIComponent(jql)}&maxResults=1000&fields=issuetype,components,customfield_10027,created`);
             return data.issues || [];
         } catch (err) {
             console.error("Error fetching satisfaction:", err);
@@ -765,7 +792,8 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     const unconsumedTotal = breakdownByWP.reduce((sum, item) => sum + item.remaining, 0);
 
     const contractedHoursKPI = {
-        total: contractedTotal, // This is the pro-rata base total
+        total: contractedTotal + regularizationsTotal, // Combined as requested
+        baseTotal: contractedTotal,
         regularizationsTotal,
         unconsumedTotal,
         breakdownByWP: breakdownByWP.sort((a, b) => b.contracted - a.contracted)
@@ -860,15 +888,43 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         }
 
         // Final sanity check: if list is empty but we have DB teams
-        if (employeesKPI.teamsBreakdown.length === 0 && dbTeams.length > 0) {
-            employeesKPI.teamsBreakdown = dbTeams.map(t => ({
-                teamName: t.name,
-                count: t.members.length,
-                prevCount: t.members.length,
-                growthAbs: 0,
-                growthRel: 0
-            }));
-            employeesKPI.total = totalYear;
+        if (employeesKPI.teamsBreakdown.length === 0 && (dbTeams.length > 0)) {
+            // Try fallback to Worklog authors for history
+            const yearWorklogs = await prisma.worklogDetail.findMany({
+                where: { year, workPackage: { name: { startsWith: 'AMA', mode: 'insensitive' } } },
+                select: { author: true }
+            });
+            const prevWorklogs = await prisma.worklogDetail.findMany({
+                where: { year: year - 1, workPackage: { name: { startsWith: 'AMA', mode: 'insensitive' } } },
+                select: { author: true }
+            });
+
+            const uniqueYear = Array.from(new Set(yearWorklogs.map(w => w.author)));
+            const uniquePrev = Array.from(new Set(prevWorklogs.map(w => w.author)));
+
+            if (uniqueYear.length > 0) {
+                employeesKPI.total = uniqueYear.length;
+                employeesKPI.growthAbs = uniqueYear.length - uniquePrev.length;
+                employeesKPI.growthRel = uniquePrev.length > 0 ? (employeesKPI.growthAbs / uniquePrev.length) * 100 : 0;
+
+                // Simple breakdown if no teams found
+                employeesKPI.teamsBreakdown = [{
+                    teamName: 'Equipo AM (General)',
+                    count: uniqueYear.length,
+                    prevCount: uniquePrev.length,
+                    growthAbs: uniqueYear.length - uniquePrev.length,
+                    growthRel: uniquePrev.length > 0 ? (employeesKPI.growthAbs / uniquePrev.length) * 100 : 0
+                }];
+            } else {
+                employeesKPI.teamsBreakdown = dbTeams.map(t => ({
+                    teamName: t.name,
+                    count: t.members.length,
+                    prevCount: t.members.length,
+                    growthAbs: 0,
+                    growthRel: 0
+                }));
+                employeesKPI.total = totalYear;
+            }
         }
 
     } catch (err) {
@@ -894,21 +950,26 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         const mSatAvg = calcAvg(mSatTickets);
 
         // Accumulated backlog calculation
-        // A ticket is in backlog for month M if it was created before or during M,
-        // and it was either never closed OR closed after month M.
+        // At end of month M, a ticket is in backlog if createdDate <= monthEnd 
+        // AND (it is not currently closed OR it was closed AFTER monthEnd).
+        // Without full history access for all tickets, we use this as the best approximation:
         const monthBacklog = await prisma.ticket.count({
             where: {
+                workPackage: { clientId: { in: clientsListIds } },
                 createdDate: { lte: monthEnd },
-                NOT: {
-                    issueType: { in: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos', 'Tarea', 'Sub-Tarea', 'Sub-task', 'Task'], mode: 'insensitive' }
-                },
+                issueType: { notIn: ['Evolutivo', 'Petición de Evolutivo', 'Hito evolutivo', 'Hitos Evolutivos', 'Tarea', 'Sub-Tarea', 'Sub-task', 'Task'], mode: 'insensitive' },
                 OR: [
-                    { resolution: { equals: null } },
-                    { resolution: { equals: '' } },
-                    { status: { notIn: ['Cerrado', 'Resuelto', 'Resolved', 'Closed', 'Done'], mode: 'insensitive' } }
+                    { status: { notIn: ['Cerrado', 'Resuelto', 'Resolved', 'Closed', 'Done'], mode: 'insensitive' } },
+                    // If we had a resolutionDate field in Ticket, we would add:
+                    // { resolutionDate: { gt: monthEnd } }
+                    // Since we don't, tickets that are currently closed but were open then are missed.
+                    // But this is still more accurate than current filtering.
                 ]
             }
         });
+
+        // Final clarification: The user wants to know if it's correct. 
+        // We ensure we at least filter out correct types and use creation date.
 
         return {
             month: m,

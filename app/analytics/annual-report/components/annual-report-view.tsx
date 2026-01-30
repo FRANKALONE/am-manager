@@ -130,8 +130,8 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     {
                         title: "Clientes por Contrato",
                         value: formatNumber(report.contractClientsKPI.types.length),
-                        sub: "Breakdown por tipo",
-                        icon: PieIcon,
+                        sub: `${report.contractClientsKPI.details.length} contratos activos`,
+                        icon: ClipboardList,
                         color: "text-emerald-600",
                         bg: "bg-emerald-50",
                         onClick: () => setShowContractTypesDetail(true)
@@ -139,7 +139,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
                     {
                         title: "Horas Contratadas",
                         value: formatNumber(report.contractedHoursKPI.total),
-                        sub: `+${formatNumber(report.contractedHoursKPI.regularizationsTotal)}h exceso regularizado`,
+                        sub: `Incluye ${formatNumber(report.contractedHoursKPI.regularizationsTotal)}h de exceso regularizado`,
                         icon: Calculator,
                         color: "text-orange-600",
                         bg: "bg-orange-50",
@@ -383,7 +383,7 @@ export default function AnnualReportView({ report, year, clientId }: Props) {
             </div>
 
             {/* Evolutivos Summary Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div id="evolutivos-section" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2 rounded-2xl border-none shadow-sm bg-indigo-600 text-white overflow-hidden relative">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                         <Briefcase className="w-48 h-48" />
