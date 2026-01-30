@@ -4,7 +4,6 @@ import { getReviewRequestDetail } from "./review-requests";
 import { fetchJira } from "@/lib/jira";
 
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function analyzeReclamationWithAI(requestId: string, defenseMode: boolean = true) {
     if (!GEMINI_API_KEY) {
@@ -72,40 +71,53 @@ RESPUESTA REQUERIDA (en formato JSON):
 }
 `;
 
-        // 4. Llamar a Gemini (usando v1beta con el nombre de modelo base)
-        const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        // 4. Llamar a Gemini con fallback y diagnóstico
+        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b"];
+        let lastError = "";
 
-        const response = await fetch(URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "application/json",
+        for (const modelId of modelsToTry) {
+            try {
+                const URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
+                const response = await fetch(URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    }),
+                });
+
+                if (response.ok) {
+                    const aiData = await response.json();
+                    let text = aiData.candidates[0].content.parts[0].text;
+                    // Limpiar posible formato markdown si la IA lo incluye
+                    text = text.replace(/```json\n?/, "").replace(/\n?```/, "").trim();
+                    const aiResult = JSON.parse(text);
+                    return { success: true, data: aiResult };
                 }
-            }),
-        });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Gemini API detailed error:", errorText);
-            throw new Error(`Gemini API error ${response.status}: ${errorText.substring(0, 100)}`);
+                const errorData = await response.json().catch(() => ({}));
+                lastError = errorData.error?.message || `Error ${response.status}`;
+                console.error(`Gemini trial for ${modelId} failed:`, lastError);
+
+                if (response.status !== 404) break;
+            } catch (e: any) {
+                lastError = e.message;
+            }
         }
 
-        const aiData = await response.json();
-        let text = aiData.candidates[0].content.parts[0].text;
-
-        // Limpiar posible formato markdown si la IA lo incluye
-        text = text.replace(/```json\n?/, "").replace(/\n?```/, "").trim();
-
-        const aiResult = JSON.parse(text);
-
-        return {
-            success: true,
-            data: aiResult
-        };
+        // Si fallan todos, intentamos listar modelos para el diagnóstico final
+        try {
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
+            const listRes = await fetch(listUrl);
+            const listData = await listRes.json();
+            const available = listData.models?.map((m: any) => m.name.split('/').pop()).join(', ') || "Ninguno";
+            throw new Error(`Modelos probados no encontrados. Disponibles para tu clave: ${available}`);
+        } catch (diagError: any) {
+            throw new Error(`Gemini API error: ${lastError}. (Diagnóstico: ${diagError.message})`);
+        }
 
     } catch (error: any) {
         console.error("AI Analysis error:", error);
