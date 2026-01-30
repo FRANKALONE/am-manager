@@ -140,6 +140,45 @@ export interface AnnualReportData {
     };
 }
 
+// Helper functions to parse SLA fields from Jira
+function getSlaStatus(slaField: any): string | null {
+    if (!slaField) return null;
+
+    // Check ongoing cycle
+    if (slaField.ongoingCycle) {
+        if (slaField.ongoingCycle.breached) {
+            return "Incumplido";
+        } else {
+            return slaField.ongoingCycle.remainingTime?.friendly || "En plazo";
+        }
+    }
+
+    // Check completed cycles
+    if (slaField.completedCycles && slaField.completedCycles.length > 0) {
+        const lastCycle = slaField.completedCycles[slaField.completedCycles.length - 1];
+        return lastCycle.breached ? "Incumplido" : "Cumplido";
+    }
+
+    return null;
+}
+
+function getSlaTime(slaField: any): string | null {
+    if (!slaField) return null;
+
+    // Check ongoing cycle
+    if (slaField.ongoingCycle?.elapsedTime?.friendly) {
+        return slaField.ongoingCycle.elapsedTime.friendly;
+    }
+
+    // Check completed cycles
+    if (slaField.completedCycles && slaField.completedCycles.length > 0) {
+        const lastCycle = slaField.completedCycles[slaField.completedCycles.length - 1];
+        return lastCycle.elapsedTime?.friendly || null;
+    }
+
+    return null;
+}
+
 // Unified Parallel Jira Fetcher
 async function fetchJiraAnnualDataParallel(year: number, baseJqlPart: string) {
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -160,7 +199,7 @@ async function fetchJiraAnnualDataParallel(year: number, baseJqlPart: string) {
 
         try {
             do {
-                const endpoint = `/search/jql?jql=${encodeURIComponent(monthlyJql)}&maxResults=100&fields=issuetype,created,components,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
+                const endpoint = `/search/jql?jql=${encodeURIComponent(monthlyJql)}&maxResults=100&fields=issuetype,created,components,status,resolution,customfield_10064,customfield_10065${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
                 const res = await fetchJira(endpoint);
                 const issues = res.issues || [];
 
@@ -177,10 +216,13 @@ async function fetchJiraAnnualDataParallel(year: number, baseJqlPart: string) {
                         component: issue.fields?.components?.[0]?.name,
                         status: issue.fields?.status?.name,
                         resolution: issue.fields?.resolution?.name,
-                        slaResolution: issue.fields?.customfield_10006?.[0]?.name,
-                        slaResponse: issue.fields?.customfield_10007?.[0]?.name,
-                        slaResolutionTime: issue.fields?.customfield_10008,
-                        slaResponseTime: issue.fields?.customfield_10009,
+                        // Fix: Use correct custom fields for SLA
+                        // customfield_10064 = Resolution SLA
+                        // customfield_10065 = Response SLA
+                        slaResolution: getSlaStatus(issue.fields?.customfield_10064),
+                        slaResponse: getSlaStatus(issue.fields?.customfield_10065),
+                        slaResolutionTime: getSlaTime(issue.fields?.customfield_10064),
+                        slaResponseTime: getSlaTime(issue.fields?.customfield_10065),
                         workPackage: { clientId: 'unknown', clientName: 'Unknown' }
                     });
                 });
@@ -951,19 +993,16 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
         const mSatTickets = currentYearSatTickets.filter((t: any) => new Date(t.fields.created).getUTCMonth() + 1 === m);
         const mSatAvg = calcAvg(mSatTickets);
 
-        // Backlog calculation: Query Jira for tickets unresolved at month end
-        // Tickets created before or during this month AND (not resolved OR resolved after month end)
-        // Exclude: Hito evolutivo, Hitos Evolutivos
-        let monthBacklog = 0;
-        try {
-            const backlogJql = `created <= "${monthEndStr}" AND (resolutiondate > "${monthEndStr}" OR resolutiondate IS EMPTY) AND issuetype NOT IN ("Hito evolutivo", "Hitos Evolutivos")`;
-            const backlogRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(backlogJql)}&maxResults=0`);
-            monthBacklog = backlogRes.total || 0;
-        } catch (err) {
-            console.error(`Error fetching backlog for month ${m}/${year}:`, err);
-            // Fallback to 0 if Jira query fails
-            monthBacklog = 0;
-        }
+        // Backlog calculation: DISABLED - not used in 2025
+        // let monthBacklog = 0;
+        // try {
+        //     const backlogJql = `created <= "${monthEndStr}" AND (resolutiondate > "${monthEndStr}" OR resolutiondate IS EMPTY) AND issuetype NOT IN ("Hito evolutivo", "Hitos Evolutivos")`;
+        //     const backlogRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(backlogJql)}&maxResults=0`);
+        //     monthBacklog = backlogRes.total || 0;
+        // } catch (err) {
+        //     console.error(`Error fetching backlog for month ${m}/${year}:`, err);
+        //     monthBacklog = 0;
+        // }
 
         return {
             month: m,
@@ -971,7 +1010,7 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
             evolutivos: mEvos.length,
             slaCompliance: mSlaComp,
             satisfaction: mSatAvg,
-            backlog: monthBacklog
+            backlog: 0 // Disabled - not used in 2025
         };
     }));
 

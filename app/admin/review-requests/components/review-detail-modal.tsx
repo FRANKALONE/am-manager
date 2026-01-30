@@ -254,6 +254,10 @@ export function ReviewDetailModal({
                                         </table>
                                     </div>
                                 </div>
+                                <AIClaimAssistant
+                                    requestId={requestId}
+                                    onApplyNote={(note) => setNotes(note)}
+                                />
                             </div>
                         </ScrollArea>
 
@@ -275,10 +279,6 @@ export function ReviewDetailModal({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <AIClaimAssistant
-                                                    requestId={requestId}
-                                                    onApplyNote={(note) => setNotes(note)}
-                                                />
                                                 <Textarea
                                                     placeholder="Indica aquí el porqué de tu decisión (p.ej: revisado con equipo, error de imputación, etc.)"
                                                     value={notes}
