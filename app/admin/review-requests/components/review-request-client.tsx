@@ -150,7 +150,7 @@ export function ReviewRequestClient({ initialPendingRequests, initialHistoryRequ
                     }}
                     requestId={selectedRequest.id}
                     adminId={userId}
-                    userRole={userRole}
+                    userRole={userRole || ""}
                     onStatusUpdate={() => {
                         setIsModalOpen(false);
                         window.location.reload();
