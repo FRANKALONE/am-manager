@@ -4,8 +4,7 @@ import { getReviewRequestDetail } from "./review-requests";
 import { fetchJira } from "@/lib/jira";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Usamos gemini-1.5-flash para velocidad y costo, v1beta para máxima compatibilidad de features
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function analyzeReclamationWithAI(requestId: string, defenseMode: boolean = true) {
     if (!GEMINI_API_KEY) {

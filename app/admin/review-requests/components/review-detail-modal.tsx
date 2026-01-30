@@ -1,26 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    getReviewRequestDetail,
-    approveReviewRequest,
-    rejectReviewRequest,
-    deleteReviewRequest
-} from "@/app/actions/review-requests";
+import { getReviewRequestDetail, approveReviewRequest, rejectReviewRequest, deleteReviewRequest } from "@/app/actions/review-requests";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "@/lib/utils";
 import { AIClaimAssistant } from "@/components/reclamation/ai-claim-assistant";
 
 interface Props {
@@ -28,8 +15,8 @@ interface Props {
     onClose: () => void;
     requestId: string;
     adminId: string;
-    userRole?: string;
-    onStatusUpdate: () => void;
+    userRole: string;
+    onStatusUpdate?: () => void;
 }
 
 export function ReviewDetailModal({
@@ -41,75 +28,70 @@ export function ReviewDetailModal({
     onStatusUpdate
 }: Props) {
     const [request, setRequest] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [notes, setNotes] = useState("");
+    const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [selectedWlogs, setSelectedWlogs] = useState<number[]>([]);
+    const [notes, setNotes] = useState("");
+    const [selectedWlogs, setSelectedWlogs] = useState<string[]>([]);
 
     useEffect(() => {
         if (isOpen && requestId) {
-            setLoading(true);
-            setSelectedWlogs([]);
-            getReviewRequestDetail(requestId).then(data => {
-                setRequest(data);
-                if (data) {
-                    setNotes(data.reviewNotes || "");
-                    if (data.worklogs) {
-                        setSelectedWlogs(data.worklogs.map((w: any) => w.id));
-                    }
-                }
-                setLoading(false);
-            });
+            fetchRequestDetail();
         }
     }, [isOpen, requestId]);
 
-    const toggleWorklog = (id: number) => {
-        setSelectedWlogs(prev =>
-            prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]
-        );
+    const fetchRequestDetail = async () => {
+        setLoading(true);
+        try {
+            const data = await getReviewRequestDetail(requestId);
+            setRequest(data);
+            setNotes(data.reviewNotes || "");
+            // Por defecto, seleccionamos todos los worklogs si está pendiente
+            if (data.status === "PENDING") {
+                setSelectedWlogs(data.worklogs.map((w: any) => w.id));
+            }
+        } catch (error) {
+            toast.error("Error al cargar detalles de la reclamación");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAction = async (action: 'APPROVE' | 'REJECT' | 'DELETE') => {
-        if (action !== 'DELETE' && !notes) {
-            toast.error("Por favor, introduce una nota explicativa (obligatoria)");
-            return;
-        }
-
-        if (action === 'APPROVE' && selectedWlogs.length === 0) {
-            toast.error("Debes seleccionar al menos una imputación para aprobar");
+        if (!notes && action !== 'DELETE') {
+            toast.error("Debes incluir notas de resolución");
             return;
         }
 
         setSubmitting(true);
         try {
-            let result;
+            let res;
             if (action === 'APPROVE') {
-                result = await approveReviewRequest(requestId, adminId, notes, selectedWlogs);
+                res = await approveReviewRequest(requestId, adminId, notes, selectedWlogs);
             } else if (action === 'REJECT') {
-                result = await rejectReviewRequest(requestId, adminId, notes);
+                res = await rejectReviewRequest(requestId, adminId, notes);
             } else {
-                result = await deleteReviewRequest(requestId);
+                res = await deleteReviewRequest(requestId);
             }
 
-            if (result.success) {
-                toast.success(
-                    action === 'APPROVE' ? "Reclamación aprobada" :
-                        action === 'REJECT' ? "Reclamación rechazada" :
-                            "Reclamación eliminada"
-                );
-                onStatusUpdate();
+            if (res.success) {
+                toast.success(action === 'APPROVE' ? "Reclamación aprobada" : action === 'REJECT' ? "Reclamación rechazada" : "Reclamación eliminada");
+                onStatusUpdate?.();
                 onClose();
             } else {
-                toast.error(result.error);
+                toast.error(res.error || "Error al procesar");
             }
         } catch (error) {
-            toast.error("Error al procesar la solicitud");
+            toast.error("Error en la solicitud");
         } finally {
             setSubmitting(false);
         }
     };
 
-    if (!isOpen) return null;
+    const toggleWorklog = (id: string) => {
+        setSelectedWlogs(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     const isPending = request?.status === "PENDING";
 
@@ -120,13 +102,11 @@ export function ReviewDetailModal({
                     <DialogTitle className="flex items-center justify-between">
                         <span>Detalles de la Reclamación</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${isPending ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'}`}>
-                            {request?.status}
+                            {request?.status || "CARGANDO..."}
                         </span>
                     </DialogTitle>
                     <DialogDescription>
-                        {isPending
-                            ? "Revisa las imputaciones y añade tus notas para resolver la reclamación."
-                            : "Consulta el histórico de esta reclamación."}
+                        Revisa las imputaciones y añade tus notas para resolver la reclamación.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -254,19 +234,20 @@ export function ReviewDetailModal({
                                         </table>
                                     </div>
                                 </div>
-                                <AIClaimAssistant
-                                    requestId={requestId}
-                                    onApplyNote={(note) => setNotes(note)}
-                                />
                             </div>
                         </ScrollArea>
 
-                        {/* Pie fijo con Notas y Botones */}
+                        {/* Pie fijo con IA, Notas y Botones */}
                         <div className="border-t bg-slate-50 p-6 space-y-4 shadow-inner flex-shrink-0">
                             {isPending ? (
-                                <>
+                                <div className="space-y-4">
+                                    <AIClaimAssistant
+                                        requestId={requestId}
+                                        onApplyNote={(note) => setNotes(note)}
+                                    />
+
                                     {userRole !== 'GERENTE' ? (
-                                        <>
+                                        <div className="space-y-3">
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center px-1">
                                                     <label className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter flex items-center gap-1.5">
@@ -315,14 +296,14 @@ export function ReviewDetailModal({
                                                     {submitting ? "Procesando..." : "Aprobar y Devolver Horas"}
                                                 </Button>
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
                                         <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg text-amber-800 text-sm italic text-center">
                                             Como Gerente puedes visualizar la reclamación pero no tienes permisos para resolverla.
                                             Contacta con un Administrador si es necesario.
                                         </div>
                                     )}
-                                </>
+                                </div>
                             ) : (
                                 <div className="bg-white border rounded p-4 shadow-sm">
                                     <h4 className="font-bold text-xs uppercase text-slate-400 mb-2">Notas de Resolución Guardadas:</h4>
