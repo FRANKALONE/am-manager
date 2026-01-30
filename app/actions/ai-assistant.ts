@@ -3,8 +3,8 @@
 import { getReviewRequestDetail } from "./review-requests";
 import { fetchJira } from "@/lib/jira";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function analyzeReclamationWithAI(requestId: string, defenseMode: boolean = true) {
     if (!GEMINI_API_KEY) {

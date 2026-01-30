@@ -238,80 +238,80 @@ export function ReviewDetailModal({
                                         </table>
                                     </div>
                                 </div>
+
+                                <AIClaimAssistant
+                                    requestId={requestId}
+                                    onApplyNote={(note) => setNotes(note)}
+                                />
+
+                                {isPending && (
+                                    <div className="space-y-2 pb-4">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                                Notas de Resolución (Obligatorias)
+                                            </label>
+                                            {!notes && (
+                                                <span className="text-[9px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                                                    CAMPO REQUERIDO
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Textarea
+                                            placeholder="Indica aquí el porqué de tu decisión (p.ej: revisado con equipo, error de imputación, etc.)"
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            className={`min-h-[100px] bg-white text-sm shadow-sm transition-all resize-none ${!notes ? 'border-orange-300 ring-4 ring-orange-500/5' : 'border-slate-200'}`}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </ScrollArea>
 
-                        {/* Pie fijo con IA, Notas y Botones */}
-                        <div className="border-t bg-slate-50 p-6 space-y-4 shadow-inner flex-shrink-0">
+                        {/* Pie fijo solo con Botones de Acción */}
+                        <div className="border-t bg-slate-50 p-4 shadow-inner flex-shrink-0">
                             {isPending ? (
-                                <div className="space-y-4">
-                                    <AIClaimAssistant
-                                        requestId={requestId}
-                                        onApplyNote={(note) => setNotes(note)}
-                                    />
-
+                                <div className="flex justify-end gap-3">
                                     {userRole !== 'GERENTE' ? (
-                                        <div className="space-y-3">
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center px-1">
-                                                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter flex items-center gap-1.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                                                        Notas de Resolución (Obligatorias)
-                                                    </label>
-                                                    {!notes && (
-                                                        <span className="text-[9px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                                                            CAMPO REQUERIDO
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <Textarea
-                                                    placeholder="Indica aquí el porqué de tu decisión (p.ej: revisado con equipo, error de imputación, etc.)"
-                                                    value={notes}
-                                                    onChange={(e) => setNotes(e.target.value)}
-                                                    className={`min-h-[80px] bg-white text-sm shadow-sm transition-all resize-none ${!notes ? 'border-orange-300 ring-4 ring-orange-500/5' : 'border-slate-200'}`}
-                                                />
-                                            </div>
-                                            <div className="flex justify-end gap-3 pt-2">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => handleAction('REJECT')}
-                                                    disabled={submitting || !notes}
-                                                    className="bg-white text-red-700 hover:bg-red-50 border-red-200 font-semibold"
-                                                >
-                                                    Rechazar
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    onClick={() => {
-                                                        if (confirm("¿Estás seguro de que deseas eliminar permanentemente esta reclamación?")) {
-                                                            handleAction('DELETE');
-                                                        }
-                                                    }}
-                                                    disabled={submitting}
-                                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                                >
-                                                    Eliminar
-                                                </Button>
-                                                <Button
-                                                    onClick={() => handleAction('APPROVE')}
-                                                    disabled={submitting || !notes}
-                                                    className="bg-jade hover:bg-jade-600 text-white font-bold px-10 shadow-lg disabled:opacity-50"
-                                                >
-                                                    {submitting ? "Procesando..." : "Aprobar y Devolver Horas"}
-                                                </Button>
-                                            </div>
-                                        </div>
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => handleAction('REJECT')}
+                                                disabled={submitting || !notes}
+                                                className="bg-white text-red-700 hover:bg-red-50 border-red-200 font-semibold"
+                                            >
+                                                Rechazar
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    if (confirm("¿Estás seguro de que deseas eliminar permanentemente esta reclamación?")) {
+                                                        handleAction('DELETE');
+                                                    }
+                                                }}
+                                                disabled={submitting}
+                                                className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                            >
+                                                Eliminar
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleAction('APPROVE')}
+                                                disabled={submitting || !notes}
+                                                className="bg-jade hover:bg-jade-600 text-white font-bold px-10 shadow-lg disabled:opacity-50"
+                                            >
+                                                {submitting ? "Procesando..." : "Aprobar y Devolver"}
+                                            </Button>
+                                        </>
                                     ) : (
-                                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg text-amber-800 text-sm italic text-center">
-                                            Como Gerente puedes visualizar la reclamación pero no tienes permisos para resolverla.
-                                            Contacta con un Administrador si es necesario.
+                                        <div className="w-full text-center text-[11px] text-amber-800 italic">
+                                            Como Gerente puedes visualizar pero no resolver esta reclamación.
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <div className="bg-white border rounded p-4 shadow-sm">
-                                    <h4 className="font-bold text-xs uppercase text-slate-400 mb-2">Notas de Resolución Guardadas:</h4>
-                                    <p className="text-slate-700 text-sm italic leading-relaxed">"{request.reviewNotes || "Sin notas adicionales"}"</p>
+                                <div className="bg-white border rounded p-3 shadow-sm">
+                                    <h4 className="font-bold text-[10px] uppercase text-slate-400 mb-1">Notas de Resolución:</h4>
+                                    <p className="text-slate-700 text-xs italic">"{request.reviewNotes || "Sin notas"}"</p>
                                 </div>
                             )}
                         </div>
