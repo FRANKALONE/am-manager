@@ -31,7 +31,7 @@ export function ReviewDetailModal({
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [notes, setNotes] = useState("");
-    const [selectedWlogs, setSelectedWlogs] = useState<string[]>([]);
+    const [selectedWlogs, setSelectedWlogs] = useState<number[]>([]);
 
     useEffect(() => {
         if (isOpen && requestId) {
@@ -43,6 +43,10 @@ export function ReviewDetailModal({
         setLoading(true);
         try {
             const data = await getReviewRequestDetail(requestId);
+            if (!data) {
+                toast.error("Reclamación no encontrada");
+                return;
+            }
             setRequest(data);
             setNotes(data.reviewNotes || "");
             // Por defecto, seleccionamos todos los worklogs si está pendiente
@@ -87,7 +91,7 @@ export function ReviewDetailModal({
         }
     };
 
-    const toggleWorklog = (id: string) => {
+    const toggleWorklog = (id: number) => {
         setSelectedWlogs(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
