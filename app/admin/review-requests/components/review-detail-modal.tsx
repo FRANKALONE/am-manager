@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/date-utils";
+import { AIClaimAssistant } from "@/components/reclamation/ai-claim-assistant";
 
 interface Props {
     isOpen: boolean;
@@ -214,6 +215,7 @@ export function ReviewDetailModal({
                                                                         checked={isSelected}
                                                                         onChange={() => toggleWorklog(w.id)}
                                                                         className="rounded border-slate-300 text-jade focus:ring-jade"
+                                                                        title="Seleccionar imputación"
                                                                     />
                                                                 </td>
                                                             )}
@@ -273,6 +275,10 @@ export function ReviewDetailModal({
                                                         </span>
                                                     )}
                                                 </div>
+                                                <AIClaimAssistant
+                                                    requestId={requestId}
+                                                    onApplyNote={(note) => setNotes(note)}
+                                                />
                                                 <Textarea
                                                     placeholder="Indica aquí el porqué de tu decisión (p.ej: revisado con equipo, error de imputación, etc.)"
                                                     value={notes}
