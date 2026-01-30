@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getReviewRequestDetail, approveReviewRequest, rejectReviewRequest, deleteReviewRequest } from "@/app/actions/review-requests";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/date-utils";
 import { AIClaimAssistant } from "@/components/reclamation/ai-claim-assistant";
 
 interface Props {
