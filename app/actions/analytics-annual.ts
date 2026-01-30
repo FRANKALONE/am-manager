@@ -140,55 +140,77 @@ export interface AnnualReportData {
     };
 }
 
-// Helper to iterate and count Jira issues since /search/jql doesn't return total
-async function fetchJiraTotalCount(jql: string) {
+// Unified Parallel Jira Fetcher
+async function fetchJiraAnnualDataParallel(year: number, baseJqlPart: string) {
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const results = await Promise.all(months.map(async (m) => {
+        const startDay = `${year}-${String(m).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, m, 0).getDate();
+        const endDay = `${year}-${String(m).padStart(2, '0')}-${lastDay}`;
+
+        const monthlyJql = `created >= "${startDay}" AND created <= "${endDay}" AND ${baseJqlPart}`;
+
+        let total = 0;
+        const typeCounts: Record<string, number> = {};
+        const tickets: any[] = [];
+        let nextPageToken = null;
+        let isLast = false;
+        let safety = 0;
+
+        try {
+            do {
+                const endpoint = `/search/jql?jql=${encodeURIComponent(monthlyJql)}&maxResults=100&fields=issuetype,created,components,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
+                const res = await fetchJira(endpoint);
+                const issues = res.issues || [];
+
+                total += issues.length;
+                issues.forEach((issue: any) => {
+                    const type = issue.fields?.issuetype?.name || 'Unknown';
+                    typeCounts[type] = (typeCounts[type] || 0) + 1;
+
+                    // We collect all tickets for charts, but could limit if memory is an issue
+                    tickets.push({
+                        issueKey: issue.key,
+                        issueType: type,
+                        createdDate: issue.fields?.created,
+                        component: issue.fields?.components?.[0]?.name,
+                        status: issue.fields?.status?.name,
+                        resolution: issue.fields?.resolution?.name,
+                        slaResolution: issue.fields?.customfield_10006?.[0]?.name,
+                        slaResponse: issue.fields?.customfield_10007?.[0]?.name,
+                        slaResolutionTime: issue.fields?.customfield_10008,
+                        slaResponseTime: issue.fields?.customfield_10009,
+                        workPackage: { clientId: 'unknown', clientName: 'Unknown' }
+                    });
+                });
+
+                nextPageToken = res.nextPageToken;
+                isLast = res.isLast || !nextPageToken;
+                safety++;
+                if (safety > 20) break; // Each month shouldn't have > 2000 tickets for this service
+            } while (!isLast);
+        } catch (err) {
+            console.error(`Error fetching month ${m}/${year}:`, err);
+        }
+
+        return { total, typeCounts, tickets };
+    }));
+
+    // Aggregate
     let total = 0;
-    let nextPageToken = null;
-    let isLast = false;
-    let safetyCounter = 0;
+    const typeCounts: Record<string, number> = {};
+    let allTickets: any[] = [];
 
-    try {
-        do {
-            const endpoint = `/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
-            const res = await fetchJira(endpoint);
-            total += (res.issues || []).length;
-            nextPageToken = res.nextPageToken;
-            isLast = res.isLast || !nextPageToken;
-            safetyCounter++;
-            if (safetyCounter > 100) break; // Limit to 10k issues for safety
-        } while (!isLast);
-        return total;
-    } catch (e) {
-        console.error("Error in fetchJiraTotalCount:", e);
-        return 0;
-    }
-}
+    results.forEach(res => {
+        total += res.total;
+        allTickets = allTickets.concat(res.tickets);
+        Object.entries(res.typeCounts).forEach(([type, count]) => {
+            typeCounts[type] = (typeCounts[type] || 0) + count;
+        });
+    });
 
-async function fetchJiraTypeBreakdown(jql: string) {
-    const counts: Record<string, number> = {};
-    let nextPageToken = null;
-    let isLast = false;
-    let safetyCounter = 0;
-
-    try {
-        do {
-            // We only need issuetype field
-            const endpoint = `/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=issuetype${nextPageToken ? `&nextPageToken=${nextPageToken}` : ''}`;
-            const res = await fetchJira(endpoint);
-            (res.issues || []).forEach((issue: any) => {
-                const type = issue.fields?.issuetype?.name || 'Unknown';
-                counts[type] = (counts[type] || 0) + 1;
-            });
-            nextPageToken = res.nextPageToken;
-            isLast = res.isLast || !nextPageToken;
-            safetyCounter++;
-            if (safetyCounter > 100) break;
-        } while (!isLast);
-        return counts;
-    } catch (e) {
-        console.error("Error in fetchJiraTypeBreakdown:", e);
-        return {};
-    }
+    return { total, typeCounts, tickets: allTickets };
 }
 
 export async function getAnnualReport(year: number, clientId?: string): Promise<AnnualReportData> {
@@ -226,45 +248,24 @@ export async function getAnnualReport(year: number, clientId?: string): Promise<
     let incidentsByType: Array<{ type: string; count: number; prevCount: number }> = [];
 
     try {
-        // Fetch current year total from Jira by iterating
-        totalIncidents = await fetchJiraTotalCount(jqlCurrent);
+        const baseJqlPart = `issuetype IN (${incidentTypes.map(t => `"${t}"`).join(', ')})`;
 
-        // Fetch previous year total from Jira
-        if (year - 1 === 2024 || prevYearIncidents === 0) {
-            prevYearIncidents = await fetchJiraTotalCount(jqlPrev);
-        }
+        // Fetch current and previous year in parallel, each being parallel by month
+        const [currentData, prevData] = await Promise.all([
+            fetchJiraAnnualDataParallel(year, baseJqlPart),
+            fetchJiraAnnualDataParallel(year - 1, baseJqlPart)
+        ]);
 
-        // Now fetch with details for type breakdown (limited to reasonable amount)
-        const currentDetailRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(jqlCurrent)}&fields=issuetype,created,components,status,resolution,customfield_10006,customfield_10007,customfield_10008,customfield_10009&maxResults=1000`);
-        currentYearTickets = (currentDetailRes.issues || []).map((issue: any) => ({
-            issueKey: issue.key,
-            issueType: issue.fields?.issuetype?.name || 'Unknown',
-            createdDate: issue.fields?.created,
-            component: issue.fields?.components?.[0]?.name,
-            status: issue.fields?.status?.name,
-            resolution: issue.fields?.resolution?.name,
-            slaResolution: issue.fields?.customfield_10006?.[0]?.name, // Assuming customfield_10006 is SLA Resolution
-            slaResponse: issue.fields?.customfield_10007?.[0]?.name, // Assuming customfield_10007 is SLA First Response
-            slaResolutionTime: issue.fields?.customfield_10008, // Assuming customfield_10008 is SLA Resolution Time
-            slaResponseTime: issue.fields?.customfield_10009, // Assuming customfield_10009 is SLA First Response Time
-            // workPackage will need to be fetched separately or inferred if not directly available
-            workPackage: { clientId: 'unknown', clientName: 'Unknown' } // Placeholder
-        }));
+        totalIncidents = currentData.total;
+        prevYearIncidents = prevData.total;
+        currentYearTickets = currentData.tickets;
+        prevYearTickets = prevData.tickets;
 
-        const prevDetailRes = await fetchJira(`/search/jql?jql=${encodeURIComponent(jqlPrev)}&fields=issuetype&maxResults=1000`);
-        prevYearTickets = (prevDetailRes.issues || []).map((issue: any) => ({
-            issueType: issue.fields?.issuetype?.name || 'Unknown'
-        }));
-
-        // Fetch breakdowns
-        const currentYearCounts = await fetchJiraTypeBreakdown(jqlCurrent);
-        const prevYearCounts = await fetchJiraTypeBreakdown(jqlPrev);
-
-        const allTypes = Array.from(new Set([...Object.keys(currentYearCounts), ...Object.keys(prevYearCounts)]));
+        const allTypes = Array.from(new Set([...Object.keys(currentData.typeCounts), ...Object.keys(prevData.typeCounts)]));
         incidentsByType = allTypes.map(type => ({
             type,
-            count: currentYearCounts[type] || 0,
-            prevCount: prevYearCounts[type] || 0
+            count: currentData.typeCounts[type] || 0,
+            prevCount: prevData.typeCounts[type] || 0
         })).sort((a, b) => b.count - a.count);
 
     } catch (error) {
