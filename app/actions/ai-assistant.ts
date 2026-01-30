@@ -75,6 +75,9 @@ RESPUESTA REQUERIDA (en formato JSON):
         // 4. Llamar a Gemini
         const response = await fetch(GEMINI_URL, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
