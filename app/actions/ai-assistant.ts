@@ -71,9 +71,8 @@ RESPUESTA REQUERIDA (en formato JSON):
 }
 `;
 
-        // 4. Llamar a Gemini con el modelo verificado (gemini-2.0-flash)
-        // En 2026, gemini-2.0-flash es el estándar estable para Flash.
-        const modelId = "gemini-2.0-flash";
+        // 4. Llamar a Gemini con el modelo verificado en tu panel (gemini-2.5-flash)
+        const modelId = "gemini-2.5-flash";
         const URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
 
         const response = await fetch(URL, {
