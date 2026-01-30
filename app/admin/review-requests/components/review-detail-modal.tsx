@@ -116,7 +116,7 @@ export function ReviewDetailModal({
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[850px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
-                <DialogHeader className="p-6 pb-2">
+                <DialogHeader className="p-6 pb-2 flex-shrink-0">
                     <DialogTitle className="flex items-center justify-between">
                         <span>Detalles de la Reclamación</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${isPending ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'}`}>
@@ -262,7 +262,7 @@ export function ReviewDetailModal({
                         </ScrollArea>
 
                         {/* Pie fijo con Notas y Botones */}
-                        <div className="border-t bg-slate-50 p-6 space-y-4 shadow-inner">
+                        <div className="border-t bg-slate-50 p-6 space-y-4 shadow-inner flex-shrink-0">
                             {isPending ? (
                                 <>
                                     {userRole !== 'GERENTE' ? (

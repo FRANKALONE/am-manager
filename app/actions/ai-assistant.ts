@@ -4,7 +4,8 @@ import { getReviewRequestDetail } from "./review-requests";
 import { fetchJira } from "@/lib/jira";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+// Usamos gemini-1.5-flash para velocidad y costo, v1beta para máxima compatibilidad de features
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function analyzeReclamationWithAI(requestId: string, defenseMode: boolean = true) {
     if (!GEMINI_API_KEY) {
@@ -91,7 +92,12 @@ RESPUESTA REQUERIDA (en formato JSON):
         }
 
         const aiData = await response.json();
-        const aiResult = JSON.parse(aiData.candidates[0].content.parts[0].text);
+        let text = aiData.candidates[0].content.parts[0].text;
+
+        // Limpiar posible formato markdown si la IA lo incluye
+        text = text.replace(/```json\n?/, "").replace(/\n?```/, "").trim();
+
+        const aiResult = JSON.parse(text);
 
         return {
             success: true,
