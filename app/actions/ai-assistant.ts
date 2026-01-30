@@ -72,8 +72,8 @@ RESPUESTA REQUERIDA (en formato JSON):
 }
 `;
 
-        // 4. Llamar a Gemini (usando v1beta por mayor compatibilidad con Flash)
-        const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        // 4. Llamar a Gemini (usando v1beta con el nombre de modelo base)
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
         const response = await fetch(URL, {
             method: 'POST',
